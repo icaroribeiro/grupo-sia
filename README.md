@@ -1,4 +1,4 @@
-# curso-i2a2-g10
+# curso-i2a2-grupo-g10
 
 Este é o repositório compartilhado do Curso "Criando Agentes Inteligentes com IA Generativa" do I2A2 para a entrega de atividades do Grupo G10.
 
