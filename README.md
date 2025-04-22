@@ -6,4 +6,7 @@ Este é o repositório compartilhado do Curso "Criando Agentes Inteligentes com 
 
 ### Integrantes:
 
-1. Ícaro Ribeiro - icaroribeiro@hotmail.com
+| Nº  | Nome           | Email                    |
+| --- | -------------- | ------------------------ |
+| 1   | Ícaro Ribeiro  | icaroribeiro@hotmail.com |
+| 2   | Vivian Andrade | viviantaan@yahoo.com.br  |
