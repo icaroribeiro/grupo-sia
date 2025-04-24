@@ -1,12 +1,13 @@
-# curso-i2a2-grupo-g10
+# grupo-sia
 
-Este é o repositório compartilhado do Curso "Criando Agentes Inteligentes com IA Generativa" do I2A2 para a entrega de atividades do Grupo G10.
+Este é o repositório compartilhado do Curso "Criando Agentes Inteligentes com IA Generativa" do I2A2 para a entrega de atividades do Grupo SIA (Soluções Inteligentes Autônomas).
 
-## Grupo G10
+## Grupo SIA (Soluções Inteligentes Autônomas)
 
 ### Integrantes:
 
-| Nº  | Nome           | Email                    |
-| --- | -------------- | ------------------------ |
-| 1   | Ícaro Ribeiro  | icaroribeiro@hotmail.com |
-| 2   | Vivian Andrade | viviantaan@yahoo.com.br  |
+| Nº  | Nome                      | Email                     |
+| --- | ------------------------- | ------------------------- |
+| 1   | Ícaro Ribeiro             | icaroribeiro@hotmail.com  |
+| 2   | Vivian Tavares de Andrade | viviantaan@yahoo.com.br   |
+| 3   | André Luiz Jaques Alves   | andreluizjaques@gmail.com |
