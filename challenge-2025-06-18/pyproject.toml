@@ -5,6 +5,7 @@ description = "CSV Analysis Challenge"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "crewai>=0.121.1",
     "python-dotenv>=1.1.0",
     "streamlit>=1.45.1",
 ]
