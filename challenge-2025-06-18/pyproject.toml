@@ -1,7 +1,7 @@
 [project]
 name = "challenge-2025-06-18"
 version = "0.1.0"
-description = "Challenge"
+description = "CSV Analysis Challenge"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = []
