@@ -1,7 +1,7 @@
 [project]
-name = "challenge-2025-06-18"
+name = "challenge-2025-06-18-with-crewai"
 version = "0.1.0"
-description = "CSV Analysis Challenge"
+description = "Challenge with CrewAI"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
