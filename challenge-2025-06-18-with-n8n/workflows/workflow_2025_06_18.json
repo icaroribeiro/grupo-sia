@@ -1,0 +1,51 @@
+{
+  "name": "workflow-2025-06-18",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a7b6e952-2272-4af8-815c-098a0cd76e8a",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.compression",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        0
+      ],
+      "id": "5b97b38d-2977-4a63-85a5-f5b1bd11ca6d",
+      "name": "Compression"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Compression",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7a199342-7d80-4a85-9b71-0e443a4da620",
+  "meta": {
+    "instanceId": "392ecf4720cc6459986623076e44b4dd7dcbf5005c2cbda31d0cbea854c7acb1"
+  },
+  "id": "hlHXFmE1gKadaQ7z",
+  "tags": []
+}
