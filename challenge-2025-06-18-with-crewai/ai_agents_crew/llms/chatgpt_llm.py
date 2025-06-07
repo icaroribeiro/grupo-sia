@@ -6,10 +6,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-class GeminiLLM:
+class ChatGPTLLM:
     def create(self) -> LLM:
         return LLM(
-            model="gemini/gemini-2.0-flash",
+            model="gpt-4o-mini",
             temperature=0.1,
-            api_key=os.environ["GEMINI_API_KEY"],
+            api_key=os.environ["OPENAI_API_KEY"],
         )
