@@ -1,5 +1,5 @@
 [project]
-name = "challenge-2025-06-18-with-crewai"
+name = "desafio-2025-06-18"
 version = "0.1.0"
 description = "Challenge with CrewAI"
 readme = "README.md"

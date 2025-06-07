@@ -297,7 +297,7 @@ wheels = [
 ]
 
 [[package]]
-name = "challenge-2025-06-18-with-crewai"
+name = "desafio-2025-06-18"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
