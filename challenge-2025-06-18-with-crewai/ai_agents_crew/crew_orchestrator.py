@@ -75,9 +75,9 @@ class CrewOrchestrator:
         llm: LLM, zip_files_to_process: List[str], extracted_dir: str
     ) -> List[str]:
         """
-        Step 1: Running Unzip File Crew asynchronously...
+        Step 1: Running File Unzipping Crew asynchronously...
         """
-        logger.info("Step 1: Running Unzip File Crew asynchronously...")
+        logger.info("Step 1: Running File Unzipping Crew asynchronously...")
         try:
             file_unzipping_crew = FileUnzippingCrew(llm=llm).kickoff_crew(
                 zip_files_to_process=zip_files_to_process, extracted_dir=extracted_dir
@@ -89,7 +89,6 @@ class CrewOrchestrator:
                 logger.error("Aborting orchestration. Unzipping failed.")
                 return
 
-            # Discover CSV files in the extracted directory
             extracted_csv_paths = [
                 os.path.join(extracted_dir, f)
                 for f in os.listdir(extracted_dir)
