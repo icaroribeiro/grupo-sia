@@ -14,7 +14,9 @@ RUN . .venv/bin/activate
 RUN --mount=type=cache,target=$UV_CACHE_DIR uv sync --no-dev --no-install-project
 
 # Stage 2: the runtime image, used to just run the code provided its virtual environment
-FROM python:3.13-bookworm AS runtime
+FROM python:3.13-slim-bookworm AS runtime
+
+WORKDIR /app
 
 ENV VIRTUAL_ENV=/app/.venv \
     PATH="/app/.venv/bin:$PATH"
