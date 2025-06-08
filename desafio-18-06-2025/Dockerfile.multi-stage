@@ -24,7 +24,6 @@ ENV VIRTUAL_ENV=/app/.venv \
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
 COPY streamlit_app.py streamlit_app.py
-COPY .streamlit .streamlit
 COPY ai_agents_crew ai_agents_crew
 
 EXPOSE 8501
