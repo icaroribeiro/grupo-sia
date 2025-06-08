@@ -78,9 +78,9 @@ class CrewOrchestrator:
 
         logger.info(f"Result from Step 4: {final_report}")
 
-        # if os.path.exists(extracted_dir):
-        #     shutil.rmtree(extracted_dir)
-        # print(f"Cleaned up extracted files in '{extracted_dir}'.")
+        if os.path.exists(extracted_dir):
+            shutil.rmtree(extracted_dir)
+        print(f"Cleaned up extracted files in '{extracted_dir}'.")
 
         return final_report
 
@@ -211,9 +211,7 @@ if __name__ == "__main__":
     crew_orchestrator = CrewOrchestrator()
 
     # Define the user's initial query for analysis
-    user_query = (
-        "What is the number and series of the invoice with the highest total value?"
-    )
+    user_query = "What is the item with the highest total value?"
     logger.info(
         f"--- Starting Data Processing Orchestration for query: '{user_query}' ---\n"
     )
