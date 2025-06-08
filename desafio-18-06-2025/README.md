@@ -2,7 +2,7 @@
 
 Grupo SIA (Soluções Inteligentes Autônomas)
 
-## Coding Part
+## Take-home Assignment
 
 - [Introduction](#introduction)
 - [How to configure the application?](#how-to-configure-the-application)
@@ -12,7 +12,7 @@ Grupo SIA (Soluções Inteligentes Autônomas)
 
 ## Introduction
 
-This project consists in a application with the purpose of being an AI agent that processes invoices developed with [**Python**](https://www.python.org/), [**Streamlit**](https://github.com/streamlit/streamlit) and [**CrewAI**](https://github.com/crewAIInc/crewAI) that can be run using [**Docker**](https://www.docker.com/).
+This application consists in a application with the purpose of being an AI agent that processes invoices developed with [**Python**](https://www.python.org/) using [**Streamlit**](https://github.com/streamlit/streamlit) and [**CrewAI**](https://github.com/crewAIInc/crewAI) frameworks that can be run in a [**Docker**](https://www.docker.com/) container.
 
 ## How to configure the application?
 
