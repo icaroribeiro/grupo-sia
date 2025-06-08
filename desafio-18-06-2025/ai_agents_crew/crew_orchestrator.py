@@ -5,6 +5,7 @@ from typing import Dict, List
 
 # import litellm
 import pandas as pd
+from ai_agents_crew.settings.settings import get_settings
 from crewai import LLM
 from dotenv import load_dotenv
 
@@ -26,13 +27,17 @@ class CrewOrchestrator:
         """
         Orchestrates the multi-agent data processing workflow.
         """
-        data_dir = "data"
-        extracted_dir = os.path.join(data_dir, "extracted")
-        zip_files_to_process = [
-            os.path.join(data_dir, "202401_NFs.zip"),
-        ]
+        data_dir = get_settings().DATA_DIR
+        if not os.path.exists(data_dir):
+            logger.error(f"Data directory not found: {data_dir}")
+            raise FileNotFoundError(f"Data directory not found: {data_dir}")
 
-        # Ensure extracted directory is clean for each run
+        zip_files_to_process: List[str] = list()
+        for entry in os.listdir(data_dir):
+            zip_files_to_process.append(os.path.join(data_dir, entry))
+
+        extracted_dir = os.path.join(data_dir, "extracted")
+
         if os.path.exists(extracted_dir):
             shutil.rmtree(extracted_dir)
         os.makedirs(extracted_dir, exist_ok=True)
@@ -45,6 +50,9 @@ class CrewOrchestrator:
 
         logger.info(f"Result from Step 1: {extracted_csv_paths}")
 
+        if not extracted_csv_paths:
+            return ""
+
         dataframes_dict = await self.__run_step_2(
             llm=llm,
             extracted_csv_paths=extracted_csv_paths,
@@ -52,11 +60,17 @@ class CrewOrchestrator:
 
         logger.info(f"Result from Step 2: {dataframes_dict}")
 
+        if not dataframes_dict:
+            return ""
+
         analysis_summary = await self.__run_step_3(
             llm=llm, user_query=user_query, dataframes_dict=dataframes_dict
         )
 
         logger.info(f"Result from Step 3: {analysis_summary}")
+
+        if not analysis_summary:
+            return ""
 
         final_report = await self.__run_step_4(
             llm=llm, user_query=user_query, analysis_summary=analysis_summary
@@ -102,7 +116,7 @@ class CrewOrchestrator:
 
             return extracted_csv_paths
         except Exception as err:
-            logger.info(
+            logger.error(
                 f"Aborting orchestration. An error occurred in File Unzipping Crew: {err}"
             )
             raise
@@ -123,9 +137,7 @@ class CrewOrchestrator:
             logger.info(f"CSV Reading Crew result: {csv_readering_crew_result}")
 
             if "Error" in csv_readering_crew_result:
-                logger.warning(
-                    "Aborting orchestration. Some CSV files were unreadable."
-                )
+                logger.error("Aborting orchestration. Some CSV files were unreadable.")
 
             dataframes_dict: Dict[str, pd.DataFrame] = dict()
             for extracted_csv_path in extracted_csv_paths:
@@ -199,7 +211,9 @@ if __name__ == "__main__":
     crew_orchestrator = CrewOrchestrator()
 
     # Define the user's initial query for analysis
-    user_query = "Qual é o número e série da nota fiscal de menor valor total?"
+    user_query = (
+        "What is the number and series of the invoice with the highest total value?"
+    )
     logger.info(
         f"--- Starting Data Processing Orchestration for query: '{user_query}' ---\n"
     )
