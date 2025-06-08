@@ -1,12 +1,11 @@
-<h1 align='center'>
-  Desafio 2025-06-18
-  Grupo SIA (Soluções Inteligentes Autônomas)
-</h1>
+# Desafio 18-06-2025
+
+Grupo SIA (Soluções Inteligentes Autônomas)
 
 ## Coding Part
 
 - [Introduction](#introduction)
-- [How to configure the application?](#how-to-conifigure-the-application)
+- [How to configure the application?](#how-to-configure-the-application)
 - [How to run the application?](#how-to-run-the-application)
 - [How to use the application?](#how-to-use-the-application)
 - [Deployment](#deployment)
@@ -33,11 +32,11 @@ Rename the **.streamlit/secrets.toml.example** file to **.streamlit/secrets.toml
 
 The application can be run using a Docker container with commands from a Makefile file or even a docker-compose.yml file.
 
-#### Makefile file
+1. Run using Makefile file
 
-A **Makefile** file was created as a single entry point containing a set of instructions to run the backend application using Docker containers via commands in the terminal.
+A **Makefile** file was created as a single entry point containing a set of instructions to run the application using Docker containers via commands in the terminal.
 
-To run the backend application, execute the commands:
+To run the application, execute the commands:
 
 1. Create a container image from a Dockerfile and a build context:
 
@@ -51,23 +50,23 @@ make build-container
 make startup-container
 ```
 
-To finish the backend applications, execute the command:
+To finish the applications, execute the command:
 
 ```
 make shutdown-container
 ```
 
-#### docker-compose.yml file
+2.  Run using docker-compose.yml file
 
-A **docker-compose.yml** file was created to run the backend application as an alternative to using the Makefile file.
+A **docker-compose.yml** file was created to run the application as an alternative to using the Makefile file.
 
-To run the backend application, execute the command:
+To run the application, execute the command:
 
 ```
 docker-compose up --build -d streamlit-app
 ```
 
-To finish the backend applications, execute the command:
+To finish the applications, execute the command:
 
 ```
 docker-compose down -v --rmi local streamlit-app
@@ -85,6 +84,6 @@ Wait for the processing and check the answer.
 
 If you want to ask a new question, just write it in the text box and click on the 'Get answer' button again.
 
-## Deploymnet
+## Deployment
 
 The application was deployed with [**Render**](https://render.com/) and can be accessed through the link: https://grupo-sia-desafio-18-06-2025.onrender.com/
