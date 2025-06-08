@@ -5,6 +5,8 @@ from crewai import LLM, Crew, Process
 from ai_agents_crew.agents.data_analyst_agent import DataAnalystAgent
 from ai_agents_crew.tasks.analyze_data_task import AnalyzeDataTask
 from ai_agents_crew.tools.pandas_analysis_tool import (
+    CalculateMax,
+    CalculateMean,
     GetDataFrameHeadTool,
     GetDataFrameInfoTool,
 )
@@ -22,6 +24,8 @@ class DataAnalysisCrew:
         dataframe_tools = [
             GetDataFrameHeadTool(dataframes_dict=dataframes_dict),
             GetDataFrameInfoTool(dataframes_dict=dataframes_dict),
+            CalculateMax(dataframes_dict=dataframes_dict),
+            CalculateMean(dataframes_dict=dataframes_dict),
         ]
 
         data_analyst_agent = DataAnalystAgent(llm=self.__llm).create(
