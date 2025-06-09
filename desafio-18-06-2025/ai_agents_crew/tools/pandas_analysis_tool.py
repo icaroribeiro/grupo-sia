@@ -26,7 +26,7 @@ class GetDataFrameHeadTool(BaseDataFrameTool):
         Use filename as key to identify the DataFrame (e.g., '202401_NFs_Cabecalho.csv').
 
         Arguments:
-            dataframe_key (str): The key to identiry the DataFrame.
+            dataframe_key (str): The key to identify the DataFrame.
             n (int): The number of DataFrame rows to display.
     """
 
@@ -37,8 +37,10 @@ class GetDataFrameHeadTool(BaseDataFrameTool):
         if dataframe_key not in self.dataframes_dict:
             return f"Error: DataFrame '{dataframe_key}' not found."
 
-        df = self.dataframes_dict[dataframe_key]
-        return f"Head of '{dataframe_key}':\n{df.head(n).to_markdown(index=False)}"
+        dataframe = self.dataframes_dict[dataframe_key]
+        return (
+            f"Head of '{dataframe_key}':\n{dataframe.head(n).to_markdown(index=False)}"
+        )
 
 
 class GetDataFrameInfoTool(BaseDataFrameTool):
@@ -48,7 +50,7 @@ class GetDataFrameInfoTool(BaseDataFrameTool):
         Use dataframe_key to identify the DataFrame.
 
         Arguments:
-            dataframe_key (str): The key to identiry the DataFrame.
+            dataframe_key (str): The key to identify the DataFrame.
     """
 
     def __init__(self, dataframes_dict: Dict):
@@ -58,20 +60,53 @@ class GetDataFrameInfoTool(BaseDataFrameTool):
         if dataframe_key not in self.dataframes_dict:
             return f"Error: DataFrame '{dataframe_key}' not found."
 
-        df = self.dataframes_dict[dataframe_key]
+        dataframe = self.dataframes_dict[dataframe_key]
         buf = io.StringIO()
-        df.info(buf=buf)
+        dataframe.info(buf=buf)
         return f"Info for '{dataframe_key}':\n{buf.getvalue()}"
 
 
-class CalculateMax(BaseDataFrameTool):
+class FilterDataFrameTool(BaseDataFrameTool):
+    name: str = "Filter DataFrame"
+    description: str = """
+        Filters a DataFrame based on a column and a specific value.
+        Returns the head of the filtered DataFrame or an error if column/value not found.
+
+        Arguments:
+            dataframe_key (str): The key to identify the DataFrame.
+            column (str): The DataFrame column name.
+            value (str): The value to be filtered. 
+    """
+
+    def __init__(self, dataframes_dict: Dict):
+        super().__init__(dataframes_dict=dataframes_dict)
+
+    def _run(self, dataframe_key: str, column: str, value: str) -> str:
+        if dataframe_key not in self.dataframes_dict:
+            return f"Error: DataFrame '{dataframe_key}' not found."
+
+        dataframe = self.dataframes_dict[dataframe_key]
+        if column not in dataframe.columns:
+            return f"Error: Column '{column}' not found in DataFrame '{dataframe_key}'."
+        try:
+            filtered_dataframe = dataframe[
+                dataframe[column].astype(str).str.contains(value, case=False, na=False)
+            ]
+            if filtered_dataframe.empty:
+                return f"No matching rows found in '{dataframe_key}' for column '{column}' with value '{value}'."
+            return f"Filtered data from '{dataframe_key}':\n{filtered_dataframe.head().to_markdown(index=False)}"
+        except Exception as err:
+            return f"Error filtering DataFrame '{dataframe_key}': {err}"
+
+
+class CalculateMaxTool(BaseDataFrameTool):
     name: str = "Calculate Max"
     description: str = """
         Calculates the maximum value of a numeric column in a DataFrame.
         Use dataframe_key to identify the DataFrame.
 
         Arguments:
-            dataframe_key (str): The key to identiry the DataFrame.
+            dataframe_key (str): The key to identify the DataFrame.
             column (str): The DataFrame column name.
     """
 
@@ -82,12 +117,12 @@ class CalculateMax(BaseDataFrameTool):
         if dataframe_key not in self.dataframes_dict:
             return f"Error: DataFrame '{dataframe_key}' not found."
 
-        df = self.dataframes_dict[dataframe_key]
-        if column not in df.columns:
+        dataframe = self.dataframes_dict[dataframe_key]
+        if column not in dataframe.columns:
             return f"Error: Column '{column}' not found in DataFrame '{dataframe_key}'."
 
         try:
-            max_value = df[column].max()
+            max_value = dataframe[column].max()
             return f"Max value of '{column}' in '{dataframe_key}': {max_value:.2f}"
         except TypeError:
             return f"Error: Column '{column}' in '{dataframe_key}' is not numeric. Cannot calculate the maximum value."
@@ -95,14 +130,14 @@ class CalculateMax(BaseDataFrameTool):
             return f"Error calculating max value for '{dataframe_key}': {err}"
 
 
-class CalculateMean(BaseDataFrameTool):
-    name: str = "Calculate Mean"
+class CalculateMinTool(BaseDataFrameTool):
+    name: str = "Calculate Min"
     description: str = """
-        Calculates the mean of a numeric column in a DataFrame.
+        Calculates the minimum value of a numeric column in a DataFrame.
         Use dataframe_key to identify the DataFrame.
 
         Arguments:
-            dataframe_key (str): The key to identiry the DataFrame.
+            dataframe_key (str): The key to identify the DataFrame.
             column (str): The DataFrame column name.
     """
 
@@ -113,12 +148,43 @@ class CalculateMean(BaseDataFrameTool):
         if dataframe_key not in self.dataframes_dict:
             return f"Error: DataFrame '{dataframe_key}' not found."
 
-        df = self.dataframes_dict[dataframe_key]
-        if column not in df.columns:
+        dataframe = self.dataframes_dict[dataframe_key]
+        if column not in dataframe.columns:
             return f"Error: Column '{column}' not found in DataFrame '{dataframe_key}'."
 
         try:
-            max_value = df[column].max()
+            min_value = dataframe[column].min()
+            return f"Min value of '{column}' in '{dataframe_key}': {min_value:.2f}"
+        except TypeError:
+            return f"Error: Column '{column}' in '{dataframe_key}' is not numeric. Cannot calculate the minimum value."
+        except Exception as err:
+            return f"Error calculating min value for '{dataframe_key}': {err}"
+
+
+class CalculateMeanTool(BaseDataFrameTool):
+    name: str = "Calculate Mean"
+    description: str = """
+        Calculates the mean of a numeric column in a DataFrame.
+        Use dataframe_key to identify the DataFrame.
+
+        Arguments:
+            dataframe_key (str): The key to identify the DataFrame.
+            column (str): The DataFrame column name.
+    """
+
+    def __init__(self, dataframes_dict: Dict):
+        super().__init__(dataframes_dict=dataframes_dict)
+
+    def _run(self, dataframe_key: str, column: str) -> str:
+        if dataframe_key not in self.dataframes_dict:
+            return f"Error: DataFrame '{dataframe_key}' not found."
+
+        dataframe = self.dataframes_dict[dataframe_key]
+        if column not in dataframe.columns:
+            return f"Error: Column '{column}' not found in DataFrame '{dataframe_key}'."
+
+        try:
+            max_value = dataframe[column].max()
             return f"Mean of '{column}' in '{dataframe_key}': {max_value:.2f}"
         except TypeError:
             return f"Error: Column '{column}' in '{dataframe_key}' is not numeric. Cannot calculate mean value."
@@ -128,7 +194,7 @@ class CalculateMean(BaseDataFrameTool):
 
 if __name__ == "__main__":
     logger.info("Starting Pandas analysis tool...")
-    df1 = pd.DataFrame(
+    dataframe = pd.DataFrame(
         {
             "CHAVE DE ACESSO": [
                 41240106267630001509550010035101291224888487,
@@ -138,7 +204,7 @@ if __name__ == "__main__":
             "VALOR NOTA FISCAL": [522.5, 499.0, 337.5],
         }
     )
-    dataframes_dict = {"202401_NFs_Cabecalho.csv": df1}
+    dataframes_dict = {"202401_NFs_Cabecalho.csv": dataframe}
 
     get_dataframe_head_tool_result = GetDataFrameHeadTool(
         dataframes_dict=dataframes_dict
