@@ -1,0 +1,16 @@
+services:
+  streamlit-app:
+    container_name: streamlit-app-container
+    build:
+      context: .
+      dockerfile: Dockerfile.multi-stage
+    env_file:
+      - ./.env
+    restart: always
+    ports:
+      - 8501:8501
+    volumes:
+      - streamlit-app:/opt/streamlit-app
+
+volumes:
+  streamlit-app:
