@@ -570,7 +570,6 @@ dependencies = [
     { name = "litellm" },
     { name = "pandas" },
     { name = "pydantic" },
-    { name = "pydantic-settings" },
     { name = "python-dotenv" },
     { name = "streamlit" },
 ]
@@ -581,7 +580,6 @@ requires-dist = [
     { name = "litellm", specifier = ">=1.68.0" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pydantic", specifier = ">=2.11.5" },
-    { name = "pydantic-settings", specifier = ">=2.9.1" },
     { name = "python-dotenv", specifier = ">=1.1.0" },
     { name = "streamlit", specifier = ">=1.45.1" },
 ]
