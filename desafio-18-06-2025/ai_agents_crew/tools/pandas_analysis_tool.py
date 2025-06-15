@@ -23,7 +23,7 @@ class GetDataFrameHeadTool(BaseDataFrameTool):
     name: str = "Get DataFrame Head"
     description: str = """
         Returns the head (first n rows) of a specified DataFrame.
-        Use filename as key to identify the DataFrame (e.g., '202401_NFs_Cabecalho.csv').
+        Use filename as key to identify the DataFrame.
 
         Arguments:
             dataframe_key (str): The key to identify the DataFrame.
