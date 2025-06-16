@@ -16,7 +16,7 @@ This application consists in a application with the purpose of being an AI agent
 
 ## How to configure the application?
 
-The application can be configured using your OpenAI API key or your Gemini API key. (It doesn't need to set up both of them to use the application.)
+The application must be configured using a Gemini API key.
 
 To do that, follow the step below:
 

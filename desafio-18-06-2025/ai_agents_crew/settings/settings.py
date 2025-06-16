@@ -3,9 +3,8 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    OPENAI_API_KEY: str = Field(default="", env="OPENAI_API_KEY")
-    GEMINI_API_KEY: str = Field(default="", env="GEMINI_API_KEY")
-    DATA_DIR: str = "data"
+    GEMINI_API_KEY: str = Field(default="your_gemini_api_key", env="GEMINI_API_KEY")
+    DATA_DIR: str = Field(default="your_data_dir", env="DATA_DIR")
 
     class Config:
         env_file = ".env"
