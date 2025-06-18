@@ -1,5 +1,8 @@
 import asyncio
+import csv
 import os
+import tempfile
+import zipfile
 from typing import Dict, List, Optional, Tuple
 
 # import litellm
@@ -13,9 +16,6 @@ from ai_agents_crew.crews.file_unzipping_crew import FileUnzippingCrew
 from ai_agents_crew.crews.report_generation_crew import ReportGenerationCrew
 from ai_agents_crew.llms import get_llm
 from ai_agents_crew.logger.logger import logger
-import csv
-import tempfile
-import zipfile
 
 load_dotenv()
 
@@ -245,7 +245,7 @@ async def main():
     # Define the user's initial query for analysis
     user_query = "What is the item with the highest total value?"
     logger.info(
-        f"--- Starting Data Processing Orchestration for query: '{user_query}' ---\n"
+        f"--- Starting Data Processing Orchestration for user query: '{user_query}' ---\n"
     )
 
     # Create temporary .zip file
