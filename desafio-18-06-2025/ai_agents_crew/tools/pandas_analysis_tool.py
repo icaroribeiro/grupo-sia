@@ -1,10 +1,11 @@
 import io
+from abc import ABC, abstractmethod
 from typing import Dict
 
 import pandas as pd
 from crewai.tools import BaseTool
+
 from ai_agents_crew.logger.logger import logger
-from abc import ABC, abstractmethod
 
 
 class BaseDataFrameTool(BaseTool, ABC):
@@ -69,19 +70,20 @@ class GetDataFrameInfoTool(BaseDataFrameTool):
 class FilterDataFrameTool(BaseDataFrameTool):
     name: str = "Filter DataFrame"
     description: str = """
-        Filters a DataFrame based on a column and a specific value.
+        Filters a DataFrame based on a column and a specific value and returns the head (first n rows)
         Returns the head of the filtered DataFrame or an error if column/value not found.
 
         Arguments:
             dataframe_key (str): The key to identify the DataFrame.
             column (str): The DataFrame column name.
-            value (str): The value to be filtered. 
+            value (str): The value to be filtered.
+            n (int): The number of DataFrame rows to display.
     """
 
     def __init__(self, dataframes_dict: Dict):
         super().__init__(dataframes_dict=dataframes_dict)
 
-    def _run(self, dataframe_key: str, column: str, value: str) -> str:
+    def _run(self, dataframe_key: str, column: str, value: str, n: int = 10) -> str:
         if dataframe_key not in self.dataframes_dict:
             return f"Error: DataFrame '{dataframe_key}' not found."
 
@@ -94,7 +96,7 @@ class FilterDataFrameTool(BaseDataFrameTool):
             ]
             if filtered_dataframe.empty:
                 return f"No matching rows found in '{dataframe_key}' for column '{column}' with value '{value}'."
-            return f"Filtered data from '{dataframe_key}':\n{filtered_dataframe.head().to_markdown(index=False)}"
+            return f"Filtered data from '{dataframe_key}':\n{filtered_dataframe.head(n).to_markdown(index=False)}"
         except Exception as err:
             return f"Error filtering DataFrame '{dataframe_key}': {err}"
 
@@ -190,6 +192,35 @@ class CalculateMeanTool(BaseDataFrameTool):
             return f"Error: Column '{column}' in '{dataframe_key}' is not numeric. Cannot calculate mean value."
         except Exception as err:
             return f"Error calculating mean value for '{dataframe_key}': {err}"
+
+
+class CountDistinctRowsTool(BaseDataFrameTool):
+    name: str = "Count Distinct Rows"
+    description: str = """
+        Counts the number of distinct rows in a DataFrame column.
+        Use dataframe_key to identify the DataFrame.
+
+        Arguments:
+            dataframe_key (str): The key to identify the DataFrame.
+            column (str): The DataFrame column name.
+    """
+
+    def __init__(self, dataframes_dict: Dict):
+        super().__init__(dataframes_dict=dataframes_dict)
+
+    def _run(self, dataframe_key: str, column: str) -> str:
+        if dataframe_key not in self.dataframes_dict:
+            return f"Error: DataFrame '{dataframe_key}' not found."
+
+        dataframe = self.dataframes_dict[dataframe_key]
+        if column not in dataframe.columns:
+            return f"Error: Column '{column}' not found in DataFrame '{dataframe_key}'."
+
+        try:
+            count = dataframe[column].nunique()
+            return f"Number of unique values in the '{column}' in '{dataframe_key}': {count}"
+        except Exception as err:
+            return f"Error counting the number of unique values for '{dataframe_key}': {err}"
 
 
 if __name__ == "__main__":

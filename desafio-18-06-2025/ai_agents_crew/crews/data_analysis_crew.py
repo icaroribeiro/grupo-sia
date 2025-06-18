@@ -1,14 +1,16 @@
 from typing import Dict
+
 import pandas as pd
 from crewai import LLM, Crew, Process
 
 from ai_agents_crew.agents.data_analyst_agent import DataAnalystAgent
 from ai_agents_crew.tasks.analyze_data_task import AnalyzeDataTask
 from ai_agents_crew.tools.pandas_analysis_tool import (
-    FilterDataFrameTool,
     CalculateMaxTool,
     CalculateMeanTool,
     CalculateMinTool,
+    CountDistinctRowsTool,
+    FilterDataFrameTool,
     GetDataFrameHeadTool,
     GetDataFrameInfoTool,
 )
@@ -30,6 +32,7 @@ class DataAnalysisCrew:
             CalculateMinTool(dataframes_dict=dataframes_dict),
             CalculateMaxTool(dataframes_dict=dataframes_dict),
             CalculateMeanTool(dataframes_dict=dataframes_dict),
+            CountDistinctRowsTool(dataframes_dict=dataframes_dict),
         ]
 
         data_analyst_agent = DataAnalystAgent(llm=self.__llm).create(
