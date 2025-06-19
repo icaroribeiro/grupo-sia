@@ -1,86 +1,88 @@
 # Desafio 24-06-2025
 
-Grupo SIA (Soluções Inteligentes Autônomas)
+- [Introdução](#introdução)
+- [Como configurar a aplicação?](#como-configurar-a-aplicação)
+- [Como executar a aplicação?](#como-executar-a-aplicação)
+- [Como usar a aplicação?](#como-usar-a-aplicação)
 
-## Take-home Assignment
+## Introdução
 
-- [Introduction](#introduction)
-- [How to configure the application?](#how-to-configure-the-application)
-- [How to run the application?](#how-to-run-the-application)
-- [How to use the application?](#how-to-use-the-application)
+Este desafio consiste no desenvolvimento de uma aplicação que serve como um Assistente de Notas Fiscais com o objetivo de processar Notas Fiscais enviadas pelo usuário e responder às suas perguntas sobre elas.
 
-## Introduction
+O Assistente de Notas Fiscais foi desenvolvido em [**Python**](https://www.python.org/) com os frameworks [**Streamlit**](https://github.com/streamlit/streamlit) e [**CrewAI**](https://github.com/crewAIInc/crewAI) e pode ser executado em um contêiner [**Docker**](https://www.docker.com/).
 
-This challenge consists in an application that serves as an AI agent with the purpose of processing invoices sent by the user and answer user queries about them. The application was developed using [**Python**](https://www.python.org/) with [**Streamlit**](https://github.com/streamlit/streamlit) and [**CrewAI**](https://github.com/crewAIInc/crewAI) frameworks and can be executed in a [**Docker**](https://www.docker.com/) container.
+## Como configurar a aplicação?
 
-## How to configure the application?
+A aplicação deve ser configurado usando uma chave de API OpenAI ou uma chave de API Gemini.
 
-The application must be configured using a Gemini API key or an OpenAI API key.
+Para isso, siga os passos abaixo:
 
-To do that, follow the step below:
+1. Configurar o arquivo .env:
 
-1. Configure .env file:
+Primeiramente, renomeie o arquivo **.env.example** para **.env** e atribua sua chave de API OpenAI ou sua chave de API Gemini às variáveis ​​de ambiente associadas, denominadas OPENAI_API_KEY ou GEMINI_API_KEY, respectivamente.
 
-First of all, rename the **.env.example** file to **.env** file and assign your Gemini API key or even your OpenAI API key to the associated environment variables named GEMINI_API_KEY or OPENAI_API_KEY, respectively.
+2. Configurar o arquivo .streamlit/secrets.toml:
 
-2. Configure .streamlit/secrets.toml file:
+Em seguida, renomeie o arquivo **.streamlit/secrets.toml.example** para **.streamlit/secrets.toml** e atribua sua chave de API Gemini ou até mesmo sua chave de API OpenAI às variáveis ​​de ambiente associadas, denominadas GEMINI_API_KEY ou OPENAI_API_KEY, respectivamente.
 
-After that, rename the **.streamlit/secrets.toml.example** file to **.streamlit/secrets.toml** file and assign your Gemini API key or even your OpenAI API key to the associated environment variables named GEMINI_API_KEY or OPENAI_API_KEY, respectively.
+## Como executar a aplicação?
 
-## How to run the application?
+A aplicação pode ser executado usando um contêiner Docker com i) comandos adicionados em um arquivo Makefile ou ii) comandos baseados em um arquivo docker-compose.yml.
 
-The application can be executed using a Docker container with i) Makefile file commands or ii) a docker-compose.yml file.
+1. Arquivo Makefile
 
-1. Run using Makefile file
+Um arquivo **Makefile** foi criado como um único ponto de entrada contendo um conjunto de instruções para executar a aplicação usando contêineres Docker por meio de comandos no terminal.
 
-A **Makefile** file was created as a single entry point containing a set of instructions to run the application using Docker containers via commands in the terminal.
+Para executar e finalizar a aplicação, execute os comandos:
 
-To run the application, execute the commands:
-
-1. Create a container image from a Dockerfile and a build context:
+1.1 Para criar uma imagem de contêiner a partir de um Dockerfile e um contexto de compilação:
 
 ```
 make build-container
 ```
 
-2.  Create and start a new Docker container from previous image:
+1.2 Para criar e iniciar um novo contêiner Docker a partir da imagem anterior:
 
 ```
 make startup-container
 ```
 
-To finish the applications, execute the command:
+1.3 Para finalizar a aplicação:
 
 ```
 make shutdown-container
 ```
 
-2.  Run using docker-compose.yml file
+2. Arquivo docker-compose.yml
 
-A **docker-compose.yml** file was created to run the application as an alternative to using the Makefile file.
+Um arquivo **docker-compose.yml** foi criado para executar a aplicação como alternativa ao uso do arquivo Makefile.
 
-To run the application, execute the command:
+2.1 Para construir e executar a aplicação:
 
 ```
 docker-compose up --build -d streamlit-app
 ```
 
-To finish the applications, execute the command:
+2.2 Para finalizar a aplicação:
 
 ```
 docker-compose down -v --rmi local streamlit-app
 ```
 
-## How to use the application?
+## Como usar a aplicação?
 
-After running the application successfully, open the browser and access the URL: http://localhost:8501/. Wait for a minute and then a screen with the following image should be displayed:
+Após executar a aplicação com sucesso, abra o navegador e acesse a URL: http://localhost:8501/. Aguarde um minuto e uma tela com a seguinte imagem deverá ser exibida:
 
-![alt text](assets/images/Home.png)
+![texto alternativo](assets/images/Home.png)
 
-Then, submit a zip file with invoices to the application by clicking on the 'Browse files' button.
+Em seguida, envie um arquivo zip com as notas fiscais para a aplicação clicando no botão "Procurar arquivos".
 
-After that, ask a question and click on the 'Enter' button.
+Em seguida, faça uma pergunta e clique no botão "Enter".
 
-Wait for the processing and check the answer.
+Aguarde o processamento e verifique a resposta.
 
-If you want to ask a new question, just write it in the text box and click on the 'Enter' button again.
+Se desejar fazer uma nova pergunta, basta escrevê-la na caixa de texto e clicar no botão "Enter" novamente.
+
+## Implantação
+
+A aplicação foi implantada em operação em um ambiente de computação em nuvem e pode ser acessado para avaliação clicando neste [**link**](https://grupo-sia-desafio-24-06-2025.onrender.com).
