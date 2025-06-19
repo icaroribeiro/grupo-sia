@@ -4,6 +4,7 @@
 - [Como configurar a aplicação?](#como-configurar-a-aplicação)
 - [Como executar a aplicação?](#como-executar-a-aplicação)
 - [Como usar a aplicação?](#como-usar-a-aplicação)
+- [Implantação](#implantação)
 
 ## Introdução
 
