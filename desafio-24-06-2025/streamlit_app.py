@@ -26,6 +26,14 @@ def set_intro():
     )
 
 
+def set_llm():
+    try:
+        st.session_state.llm = get_llm()
+    except Exception as err:
+        logger.error(f"Erro ao carregar a chave de API: {err}")
+        st.error("Chave de API não configurada!")
+
+
 async def handle_user_action():
     if "uploaded_file_path" not in st.session_state:
         st.session_state.uploaded_file_path = ""
@@ -88,13 +96,9 @@ async def set_chat_history():
 
         try:
             with st.spinner("💡 Gerando resposta..."):
-                try:
-                    llm = get_llm()
-                except Exception:
-                    st.error("Chave de API não configurada!")
                 crew_orchestrator = CrewOrchestrator()
                 is_ok, response = await crew_orchestrator.run_orchestration(
-                    llm=llm,
+                    llm=st.session_state.llm,
                     user_query=prompt,
                     file_path=st.session_state.uploaded_file_path,
                     cached_dataframes_dict=st.session_state.cached_dataframes_dict,
@@ -125,6 +129,7 @@ def set_about():
 async def main():
     set_page_config()
     set_intro()
+    set_llm()
     await handle_user_action()
     set_about()
 
