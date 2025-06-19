@@ -1,4 +1,4 @@
-# Desafio 18-06-2025
+# Desafio 24-06-2025
 
 Grupo SIA (Soluções Inteligentes Autônomas)
 
@@ -15,17 +15,17 @@ This challenge consists in an application that serves as an AI agent with the pu
 
 ## How to configure the application?
 
-The application must be configured using a Gemini API key.
+The application must be configured using a Gemini API key or an OpenAI API key.
 
 To do that, follow the step below:
 
 1. Configure .env file:
 
-First of all, rename the **.env.example** file to **.env** file and assign the Gemini API key to the associated environment variables named GEMINI_API_KEY.
+First of all, rename the **.env.example** file to **.env** file and assign your Gemini API key or even your OpenAI API key to the associated environment variables named GEMINI_API_KEY or OPENAI_API_KEY, respectively.
 
 2. Configure .streamlit/secrets.toml file:
 
-After that, rename the **.streamlit/secrets.toml.example** file to **.streamlit/secrets.toml** file and assign the Gemini API key to the associated environment variables named GEMINI_API_KEY.
+After that, rename the **.streamlit/secrets.toml.example** file to **.streamlit/secrets.toml** file and assign your Gemini API key or even your OpenAI API key to the associated environment variables named GEMINI_API_KEY or OPENAI_API_KEY, respectively.
 
 ## How to run the application?
 

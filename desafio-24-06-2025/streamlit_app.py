@@ -22,7 +22,7 @@ def set_page_config():
 def set_intro():
     st.title("🤖 Assistente de Notas Fiscais - Grupo SIA")
     st.markdown(
-        "Seja bem-vindo! Submeta um arquivo '.zip' com notas fiscais e pergunte o que quiser!"
+        "Seja bem-vindo! Submeta um arquivo .zip com notas fiscais e pergunte o que quiser!"
     )
 
 
@@ -38,7 +38,10 @@ async def handle_user_action():
         uploaded_file = st.file_uploader("📤 Envie um arquivo .zip", type=["zip"])
         if uploaded_file is not None:
             try:
+                if not get_settings().DATA_DIR:
+                    st.error("Diretório de dados não configurado!")
                 data_dir = get_settings().DATA_DIR
+
                 try:
                     if os.path.exists(data_dir):
                         shutil.rmtree(data_dir)
@@ -85,7 +88,10 @@ async def set_chat_history():
 
         try:
             with st.spinner("💡 Gerando resposta..."):
-                llm = get_llm()
+                try:
+                    llm = get_llm()
+                except Exception:
+                    st.error("Chave de API não configurada!")
                 crew_orchestrator = CrewOrchestrator()
                 is_ok, response = await crew_orchestrator.run_orchestration(
                     llm=llm,
@@ -111,7 +117,7 @@ async def set_chat_history():
 def set_about():
     st.sidebar.header("ℹ️ Sobre")
     st.sidebar.info(
-        "Este assistente processa notas fiscais em arquivos '.zip' e responde perguntas com base nos dados extraídos."
+        "Este assistente processa notas fiscais em arquivos .zip e responde perguntas com base nos dados extraídos."
     )
     st.sidebar.markdown("Desenvolvido por **Grupo SIA** com ❤️")
 
