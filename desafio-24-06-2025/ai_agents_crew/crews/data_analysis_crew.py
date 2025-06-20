@@ -6,13 +6,20 @@ from crewai import LLM, Crew, Process
 from ai_agents_crew.agents.data_analyst_agent import DataAnalystAgent
 from ai_agents_crew.tasks.analyze_data_task import AnalyzeDataTask
 from ai_agents_crew.tools.pandas_analysis_tool import (
-    CalculateMaxTool,
-    CalculateMeanTool,
-    CalculateMinTool,
-    CountDistinctRowsTool,
-    FilterDataFrameTool,
     GetDataFrameHeadTool,
     GetDataFrameInfoTool,
+    FilterDataFrameTool,
+    MaxValueItemTool,
+    MinValueItemTool,
+    MeanColumnTool,
+    SumColumnTool,
+    TopNBySumTool,
+    AverageByGroupTool,
+    CountByGroupTool,
+    SumByGroupTool,
+    TopFrequentValuesTool,
+    DateRangeTool,
+    JoinDataFramesTool,
 )
 
 
@@ -29,10 +36,17 @@ class DataAnalysisCrew:
             GetDataFrameHeadTool(dataframes_dict=dataframes_dict),
             GetDataFrameInfoTool(dataframes_dict=dataframes_dict),
             FilterDataFrameTool(dataframes_dict=dataframes_dict),
-            CalculateMinTool(dataframes_dict=dataframes_dict),
-            CalculateMaxTool(dataframes_dict=dataframes_dict),
-            CalculateMeanTool(dataframes_dict=dataframes_dict),
-            CountDistinctRowsTool(dataframes_dict=dataframes_dict),
+            MaxValueItemTool(dataframes_dict=dataframes_dict),
+            MinValueItemTool(dataframes_dict=dataframes_dict),
+            MeanColumnTool(dataframes_dict=dataframes_dict),
+            SumColumnTool(dataframes_dict=dataframes_dict),
+            TopNBySumTool(dataframes_dict=dataframes_dict),
+            AverageByGroupTool(dataframes_dict=dataframes_dict),
+            CountByGroupTool(dataframes_dict=dataframes_dict),
+            SumByGroupTool(dataframes_dict=dataframes_dict),
+            TopFrequentValuesTool(dataframes_dict=dataframes_dict),
+            DateRangeTool(dataframes_dict=dataframes_dict),
+            JoinDataFramesTool(dataframes_dict=dataframes_dict),
         ]
 
         data_analyst_agent = DataAnalystAgent(llm=self.__llm).create(
