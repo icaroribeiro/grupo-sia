@@ -20,7 +20,7 @@ def set_page_config():
 
 
 def set_intro():
-    st.title("🤖 Assistente de Notas Fiscais - Grupo SIA")
+    st.title("Assistente de Notas Fiscais - Grupo SIA")
     st.markdown(
         "Seja bem-vindo! Submeta um arquivo .zip com notas fiscais e pergunte o que quiser!"
     )
