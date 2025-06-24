@@ -20,11 +20,32 @@ Para isso, siga os passos abaixo:
 
 1. Configurar o arquivo .env:
 
-Primeiramente, renomeie o arquivo **.env.example** para **.env** e atribua sua chave de API OpenAI ou sua chave de API Gemini às variáveis ​​de ambiente associadas, denominadas OPENAI_API_KEY ou GEMINI_API_KEY, respectivamente.
+Primeiramente, renomeie o arquivo **.env.example** para **.env** e atribua os seguintes valores as chaves do arquivo:
+
+1.1 LLM
+
+Defina qual é a LLM utilizada através da variável de ambiente LLM. A LLM poderá ser gpt ou gemini.
+
+1.2 Chave de API
+
+Defina qual é a chave de API utilizada através das variáveis de ambiente OPENAI_API_KEY ou GEMINI_API_KEY. A chave escolhida é dependente da LLM indicada anteriormente. (Caso utilize a chave da OpenAI, o modelo utilizado pelos agentes de IA será o gpt-4.1-mini. Com a chave do Gemini, o modelo será gemini/gemini-2.0-flash.)
+
+1.3 Diretório de arquivos zip
+
+Defina o diretório onde os arquivos zip serão armazenados através da variável de ambiente DATA_DIR.
+
+Por exemplo:
+
+```
+LLM=gpt
+OPENAI_API_KEY=abcde12345...
+GEMINI_API_KEY=your_gemini_api_key
+DATA_DIR=data
+```
 
 2. Configurar o arquivo .streamlit/secrets.toml:
 
-Em seguida, renomeie o arquivo **.streamlit/secrets.toml.example** para **.streamlit/secrets.toml** e atribua sua chave de API Gemini ou até mesmo sua chave de API OpenAI às variáveis ​​de ambiente associadas, denominadas GEMINI_API_KEY ou OPENAI_API_KEY, respectivamente.
+Em seguida, renomeie o arquivo **.streamlit/secrets.toml.example** para **.streamlit/secrets.toml** e atribua as mesmas variáveis de ambiente e valores definidos no arquivo **.env** anteriormente.
 
 ## Como executar a aplicação?
 
