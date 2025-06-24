@@ -10,20 +10,29 @@ load_dotenv()
 
 
 def get_llm() -> LLM:
-    if not get_settings().OPENAI_API_KEY:
-        logger.warning("""
-            OPENAI_API_KEY not found. 
-            You must set up an API key in your .env file or environment variables.
+    if get_settings().LLM.lower() not in ["gpt", "gemini"]:
+        logger.error("""
+            LLM not found. 
+            You must set up a LLM in your .env file or environment variables.
         """)
-    else:
-        return OpenAILLM().create()
+        raise Exception("LLM not found!")
 
-    if not get_settings().GEMINI_API_KEY:
-        logger.warning("""
-            GEMINI_API_KEY not found. 
-            You must set up an API key in your .env file or environment variables.
-        """)
-    else:
-        return GeminiLLM().create()
+    if get_settings().LLM.lower() == "gpt":
+        if not get_settings().OPENAI_API_KEY:
+            logger.error("""
+                OPENAI_API_KEY not found. 
+                You must set up an API key in your .env file or environment variables.
+            """)
+            raise Exception("API key not found!")
+        else:
+            return OpenAILLM().create()
 
-    raise Exception("API Key not found!")
+    if get_settings().LLM.lower() == "gemini":
+        if not get_settings().GEMINI_API_KEY:
+            logger.error("""
+                GEMINI_API_KEY not found. 
+                You must set up an API key in your .env file or environment variables.
+            """)
+            raise Exception("API key not found!")
+        else:
+            return GeminiLLM().create()
