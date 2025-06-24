@@ -47,6 +47,10 @@ async def handle_user_action():
         if uploaded_file is not None:
             try:
                 if not get_settings().DATA_DIR:
+                    logger.error("""
+                        DATA_DIR not found. 
+                        You must set up a data dir in your .env file or environment variables.
+                    """)
                     st.error("Diretório de dados não configurado!")
                 data_dir = get_settings().DATA_DIR
 

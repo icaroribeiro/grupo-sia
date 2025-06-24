@@ -10,6 +10,6 @@ class GeminiLLM:
     def create(self) -> LLM:
         return LLM(
             model="gemini/gemini-2.0-flash",
-            temperature=0.2,
+            temperature=0.1,
             api_key=os.environ["GEMINI_API_KEY"],
         )
