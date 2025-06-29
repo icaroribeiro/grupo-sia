@@ -1,0 +1,16 @@
+[project]
+name = "server"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "beanie>=1.30.0",
+    "crewai[tools]>=0.134.0",
+    "dependency-injector>=4.48.1",
+    "fastapi>=0.115.14",
+    "pandas>=2.3.0",
+    "python-dotenv>=1.1.1",
+    "python-multipart>=0.0.20",
+    "uvicorn>=0.35.0",
+]

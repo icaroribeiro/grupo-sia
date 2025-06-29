@@ -1,0 +1,36 @@
+services:
+  # app:
+  #   container_name: app-container
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.app
+  #   environment:
+  #     - APP_HOST=0.0.0.0
+  #     - MONGO_HOST=mongodb
+  #   env_file:
+  #     - ./.env
+  #   restart: always
+  #   ports:
+  #     - 8501:8501
+  #   depends_on:
+  #     - mongodb
+  #   volumes:
+  #     - app:/opt/app
+
+  mongodb:
+    container_name: mongodb-container
+    build:
+      context: .
+      dockerfile: mongodb/Dockerfile.mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=mongodbuser
+      - MONGO_INITDB_ROOT_PASSWORD=mongodbpassword
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb:/var/lib/mongodb/data
+
+volumes:
+  # app:
+  mongodb:
