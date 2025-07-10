@@ -2,7 +2,7 @@ import os
 
 
 def main() -> None:
-    os.system("python src/main.py")
+    os.system("uv run src/main.py")
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ format:
 
 # MongoDB tasks.
 init-mongodb:
-	python scripts/init_mongodb.py
+	uv run scripts/init_mongodb.py
 
 create-migration:
 	beanie new-migration -n $(MIGRATION_NAME) -p mongodb/migrations
@@ -18,17 +18,17 @@ roll-one-forward-migration:
 
 # Server tasks.
 run-server:
-	python scripts/run_server.py
+	uv run scripts/run_server.py
 
 # Container tasks.
 build-container:
-	docker build -f Dockerfile.server -t server-app-image .
+	docker build -f Dockerfile.server -t server-image .
 
 startup-container:
-	docker run --name server-app-container --env-file .env -p 8080:8080 server-app-image
+	docker run -d --name server-container --env-file .env -p 8000:8000 -v server_data:/data/server server-image
 
 shutdown-container:
-	docker stop server-app-container && docker rm server-app-container
+	docker stop server-container && docker rm server-container
 
 remove-image:
-	docker rmi server-app-image
+	docker rmi server-image

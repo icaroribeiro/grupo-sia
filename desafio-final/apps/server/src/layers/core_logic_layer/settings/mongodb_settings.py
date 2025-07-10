@@ -18,7 +18,3 @@ class MongoDBSettings(BaseSettings):
         extra="allow",
         env_ignore_extra=True,
     )
-
-
-def get_mongodb_settings() -> MongoDBSettings:
-    return MongoDBSettings()

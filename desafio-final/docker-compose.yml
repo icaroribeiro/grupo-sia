@@ -22,14 +22,13 @@ services:
     build:
       context: .
       dockerfile: mongodb/Dockerfile.mongodb
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=mongodbuser
-      - MONGO_INITDB_ROOT_PASSWORD=mongodbpassword
+    env_file:
+      - ./.env
     restart: always
     ports:
       - "27017:27017"
     volumes:
-      - mongodb:/var/lib/mongodb/data
+      - mongodb_data:/data/mongodb
 
 volumes:
   # app:

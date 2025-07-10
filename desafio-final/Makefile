@@ -1,26 +1,18 @@
 # Containers tasks.
-startup-app-container:
-	docker-compose up --build -d app
+startup-client-container:
+	docker-compose up --build -d client
+
+startup-server-container:
+	docker-compose up --build -d server
 
 startup-mongodb-container:
 	docker-compose up --build -d mongodb
 
+shutdown-client-container:
+	docker-compose down -v client
 
-
-
-
-
-shutdown-app-container:
-	docker-compose down -v app
-
-remove-app-image:
-	docker rmi desafio-final-app
-
-startup-mongodb-container:
-	docker-compose up --build -d mongodb
+shutdown-server-container:
+	docker-compose down -v server
 
 shutdown-mongodb-container:
 	docker-compose down -v mongodb
-
-remove-mongodb-image:
-	docker rmi desafio-final-mongodb

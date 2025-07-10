@@ -11,13 +11,13 @@ run-client:
 	python scripts/run_client.py
 
 build-container:
-	docker build -f Dockerfile.client -t client-app-image .
+	docker build -f Dockerfile.client -t client-image .
 
 startup-container:
-	docker run --name client-app-container --env-file .env -p 8501:8501 client-app-image
+	docker run --name client-container --env-file .env -p 8501:8501 client-image
 
 shutdown-container:
-	docker stop client-app-container && docker rm client-app-container
+	docker stop client-container && docker rm client-container
 
 remove-image:
-	docker rmi client-app-image
+	docker rmi client-image

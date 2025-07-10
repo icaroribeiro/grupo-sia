@@ -2,11 +2,13 @@ import asyncio
 import os
 from urllib.parse import quote
 
-from beanie import init_beanie
-from motor.motor_asyncio import AsyncIOMotorClient
 
+from src.layers.business_layer.ai_agents.tools.disconnect_from_mongodb_tool import (
+    DisconnectFromMongoDBTool,
+)
+from src.layers.core_logic_layer.logging import logger
 from src.layers.core_logic_layer.settings.mongodb_settings import (
-    get_mongodb_settings,
+    MongoDBSettings,
 )
 from src.layers.data_access_layer.mongodb.documents.invoice_document import (
     InvoiceDocument,
@@ -14,60 +16,52 @@ from src.layers.data_access_layer.mongodb.documents.invoice_document import (
 from src.layers.data_access_layer.mongodb.documents.invoice_item_document import (
     InvoiceItemDocument,
 )
-from src.layers.core_logic_layer.logging import logger
+from motor.motor_asyncio import AsyncIOMotorDatabase
+
+from src.layers.business_layer.ai_agents.tools.connect_to_mongodb_tool import (
+    ConnectToMongoDBTool,
+)
 
 
 async def main() -> None:
-    logger.info("Initializing MongoDB...")
+    logger.info("Started initiating MongoDB...")
+
+    mongodb_settings = MongoDBSettings()
     mongodb_uri_template = "mongodb://{username}:{password}@{host}:{port}"
-    mongo_database_settings = get_mongodb_settings()
     mongodb_uri = mongodb_uri_template.format(
-        username=quote(mongo_database_settings.username),
-        password=quote(mongo_database_settings.password),
-        host=mongo_database_settings.host,
-        port=mongo_database_settings.port,
+        username=quote(mongodb_settings.username),
+        password=quote(mongodb_settings.password),
+        host=mongodb_settings.host,
+        port=mongodb_settings.port,
     )
+    connect_to_mongodb_tool = ConnectToMongoDBTool()
+    (message, result) = await connect_to_mongodb_tool._arun(
+        uri=mongodb_uri,
+        database_name=mongodb_settings.database,
+        documents=[InvoiceDocument, InvoiceItemDocument],
+    )
+    database: AsyncIOMotorDatabase | None = None
+    if result is None:
+        raise Exception(message)
+    database = result
 
-    logger.info("Initializing MongoDB client resource...")
-    client = AsyncIOMotorClient(mongodb_uri)
-    try:
-        await client["admin"].command("ping")
-        logger.info("MongoDB client resource initialized successfully.")
-    except Exception as error:
-        logger.error(f"Got an error when initializing MongoDB client resource: {error}")
-        raise
-
-    logger.info("Initializing MongoDB database resource and Beanie...")
-    database = client[mongo_database_settings.database]
-    try:
-        await init_beanie(
-            database=database,
-            document_models=[
-                InvoiceDocument,
-                InvoiceItemDocument,
-            ],
-        )
-        logger.info("MongoDB database resource and Beanie initialized successfully.")
-    except Exception as error:
-        logger.error(
-            f"Got an error when initializing MongoDB database resource and Beanie: {error}"
-        )
-        raise
-
-    logger.info("Running MongoDB Beanie migration...")
+    logger.info("Started running MongoDB Beanie migration...")
     try:
         os.system(
-            f"beanie migrate -uri {mongodb_uri} -db {mongo_database_settings.database} "
-            + "-p src/layers/data_access_layer/mongodb/migrations --forward --no-use-transaction"
+            f"beanie migrate -uri {mongodb_uri} -db {mongodb_settings.database} "
+            + "-p mongodb/migrations --forward --no-use-transaction"
         )
-        logger.info("MongoDB Beanie migration run successfully.")
+        message = "Success: MongoDB Beanie migration complete."
+        logger.info(message)
     except Exception as error:
-        logger.error(f"Got an error when running MongoDB Beanie migration: {error}")
-        raise
+        message = f"Error: Failed to run MongoDB Beanie migration: {error}"
+        logger.error(message)
+        raise Exception(message)
 
-    logger.info("Closing MongoDB database resource...")
-    if database.client:
-        database.client.close()
+    disconnect_from_mongodb_tool = DisconnectFromMongoDBTool()
+    (message, result) = disconnect_from_mongodb_tool._run(database=database)
+    if "Error" in message:
+        raise Exception(message)
 
 
 if __name__ == "__main__":

@@ -1,14 +1,14 @@
 from typing import AsyncGenerator
+
 from beanie import init_beanie
 from dependency_injector import containers, providers
-from src.layers.core_logic_layer.logging import logger
 
-# from src.layers.core_logic_layer.ai.crews.data_injestion_crew.tools.validate_csv_tool import (
+# from src.layers.business_layer.ai_agents.artificial_intelligence.crews.data_injestion_crew.tools.validate_csv_tool import (
 #     ValidateCSVTool,
 #     InvoiceValidateCSVTool,
 #     InvoiceItemValidateCSVTool,
 # )
-# from src.layers.core_logic_layer.ai.crews.data_injestion_crew.tools.insert_mongo_tool import (
+# from src.layers.business_layer.ai_agents.artificial_intelligence.crews.data_injestion_crew.tools.insert_mongo_tool import (
 #     InsertMongoTool,
 #     InvoiceInsertMongoTool,
 #     InvoiceItemInsertMongoTool,
@@ -21,6 +21,19 @@ from src.layers.core_logic_layer.logging import logger
 # )
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
+# from src.layers.business_layer.ai_agents.artificial_intelligence.crews.crew_orchestrator import (
+#     CrewOrchestrator,
+# )
+# from src.layers.business_layer.ai_agents.artificial_intelligence.crews.data_ingestion_crew.data_ingestion_crew import (
+#     DataIngestionCrew,
+# )
+# from src.layers.business_layer.ai_agents.artificial_intelligence.custom_llm import (
+#     GeminiFlashLLM,
+# )
+# from src.layers.business_layer.ai_agents.artificial_intelligence.llms.gpt_mini_llm import (
+#     GPTMiniLLM,
+# )
+from src.layers.core_logic_layer.logging import logger
 from src.layers.data_access_layer.mongodb.documents.invoice_document import (
     InvoiceDocument,
 )
@@ -35,9 +48,9 @@ class Container(containers.DeclarativeContainer):
     async def mongodb_client(
         config: providers.Configuration,
     ) -> AsyncGenerator[AsyncIOMotorClient]:
-        logger.info("Initializing MongoDB client resource...")
+        logger.info("Initiating MongoDB client resource...")
         client = AsyncIOMotorClient(
-            config["mongodb_uri"],
+            config["mongodb"]["uri"],
         )
         try:
             await client["admin"].command("ping")
@@ -45,7 +58,7 @@ class Container(containers.DeclarativeContainer):
             yield client
         except Exception as error:
             logger.error(
-                f"Got an error when initializing MongoDB client resource: {error}"
+                f"Got an error when initiating MongoDB client resource: {error}"
             )
             raise
         finally:
@@ -57,8 +70,8 @@ class Container(containers.DeclarativeContainer):
         client: AsyncIOMotorClient,
         config: providers.Configuration,
     ) -> AsyncGenerator[AsyncIOMotorDatabase]:
-        logger.info("Initializing MongoDB database resource and Beanie...")
-        database = client[config["mongodb_database_name"]]
+        logger.info("Initiating MongoDB database resource and Beanie...")
+        database = client[config["mongodb"]["database"]]
         try:
             await init_beanie(
                 database=database,
@@ -73,7 +86,7 @@ class Container(containers.DeclarativeContainer):
             yield database
         except Exception as error:
             logger.error(
-                f"Got an error when initializing MongoDB database resource and Beanie: {error}"
+                f"Got an error when initiating MongoDB database resource and Beanie: {error}"
             )
             raise
         finally:
@@ -87,30 +100,55 @@ class Container(containers.DeclarativeContainer):
         mongodb_database, client=mongodb_client_resource, config=config
     )
 
-    # invoice_csv_validation_tool = providers.Factory(InvoiceValidateCSVTool)
+    # async def llm(config: providers.Configuration) -> LLM:
+    #     logger.info("Initiating LLM...")
+    #     llm_name = config["llm"]
+    #     openai_api_key = config["openai_api_key"]
+    #     gemini_api_key = config["gemini_api_key"]
+    #     temperature = config["temperature"]
 
-    # invoice_item_csv_validation_tool = providers.Factory(InvoiceItemValidateCSVTool)
+    #     if llm_name.lower() not in ["gpt", "gemini"]:
+    #         message = (
+    #             "LLM not configured. "
+    #             + "You must set up a LLM in your .env file or environment variables."
+    #         )
+    #         logger.error(message)
+    #         raise Exception(message)
 
-    # csv_validation_tool = providers.Factory(
-    #     ValidateCSVTool,
-    #     tools=providers.List(
-    #         invoice_csv_validation_tool, invoice_item_csv_validation_tool
-    #     ),
-    # )
+    #     llm: LLM
+    #     if llm_name.lower() == "gpt":
+    #         if not openai_api_key:
+    #             message = (
+    #                 "OPENAI_API_KEY not configured. "
+    #                 + "You must set up an API key in your .env file or environment variables."
+    #             )
+    #             logger.error(message)
+    #             raise Exception(message)
+    #         else:
+    #             llm = GPTMiniLLM.create(
+    #                 temperature=temperature, api_key=openai_api_key
+    #             ).llm
 
-    # invoice_repository = providers.Factory(InvoiceRepository)
+    #     if llm_name.lower() == "gemini":
+    #         if not gemini_api_key:
+    #             message = (
+    #                 "GEMINI_API_KEY not configured. "
+    #                 + "You must set up an API key in your .env file or environment variables."
+    #             )
+    #             logger.error(message)
+    #             raise Exception(message)
+    #         else:
+    #             llm = GeminiFlashLLM.create(
+    #                 temperature=temperature, api_key=gemini_api_key
+    #             ).llm
 
-    # invoice_item_repository = providers.Factory(InvoiceItemRepository)
+    #     logger.info("LLM initialized successfully.")
+    #     return llm
 
-    # invoice_insert_mongo_tool = providers.Factory(
-    #     InvoiceInsertMongoTool, repository=invoice_repository
-    # )
+    # llm_resource = providers.Resource(llm, config=config)
 
-    # invoice_item_insert_mongo_tool = providers.Factory(
-    #     InvoiceItemInsertMongoTool, repository=invoice_item_repository
-    # )
+    # data_ingestion_crew = providers.Singleton(DataIngestionCrew, llm=llm_resource)
 
-    # insert_mongo_tool = providers.Factory(
-    #     InsertMongoTool,
-    #     tools=providers.List(invoice_insert_mongo_tool, invoice_item_insert_mongo_tool),
+    # crew_orchestrator = providers.Singleton(
+    #     CrewOrchestrator, config=config, data_ingestion_crew=data_ingestion_crew
     # )
