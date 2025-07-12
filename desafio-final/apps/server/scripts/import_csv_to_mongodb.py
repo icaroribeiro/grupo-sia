@@ -22,10 +22,8 @@ from src.layers.business_layer.ai_agents.tools.map_csv_to_ingestion_args_tool im
 )
 from src.layers.business_layer.ai_agents.tools.unzip_file_tool import UnzipFileTool
 from src.layers.core_logic_layer.logging import logger
-from src.layers.core_logic_layer.settings.mongodb_settings import (
-    MongoDBSettings,
-)
-from src.layers.core_logic_layer.settings.settings import Settings
+from src.layers.core_logic_layer.settings import mongodb_settings
+from src.layers.core_logic_layer.settings import app_settings
 from src.layers.data_access_layer.mongodb.documents.invoice_document import (
     InvoiceDocument,
 )
@@ -37,8 +35,7 @@ from src.layers.data_access_layer.mongodb.documents.invoice_item_document import
 async def main() -> None:
     logger.info("Started importing CSV files to MongoDB...")
 
-    settings = Settings()
-    data_dir_path = settings.imports_data_dir_path
+    data_dir_path = app_settings.imports_data_dir_path
     extracted_data_dir_path = os.path.join(data_dir_path, "extracted")
     unzip_file_tool = UnzipFileTool()
     (message, result) = unzip_file_tool._run(
@@ -49,7 +46,6 @@ async def main() -> None:
         raise Exception(message)
     extracted_file_paths = result
 
-    mongodb_settings = MongoDBSettings()
     mongodb_uri_template = "mongodb://{username}:{password}@{host}:{port}"
     mongodb_uri = mongodb_uri_template.format(
         username=quote(mongodb_settings.username),

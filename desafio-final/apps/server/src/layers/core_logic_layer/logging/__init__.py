@@ -1,3 +1,4 @@
-from .custom_logger import setup_custom_logger
+import logging
+from .logger import Logger
 
-logger = setup_custom_logger()
+logger: logging.Logger = Logger().custom_logger

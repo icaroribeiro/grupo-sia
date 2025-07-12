@@ -26,7 +26,8 @@ async def upload_zip_file(
     config: dict = Depends(Provide[Container.config]),
 ):
     if file.content_type != "application/zip":
-        message = "Got an error when checking the Content-Type in request header is defined as 'application/zip'"
+        message = "Error: Failed to check if Content-Type in request header is "
+        "defined as 'application/zip'"
         logger.error(message)
         raise ServerError(
             message=message,
@@ -41,9 +42,7 @@ async def upload_zip_file(
         with open(file_path, "wb") as f:
             f.write(content)
     except Exception as error:
-        message = (
-            f"Got an error when writing file {file.filename} in {dir_path}: {error}"
-        )
+        message = f"Error: Failed to write file {file.filename} in {dir_path}: {error}"
         logger.error(message)
         raise ServerError(
             message=message,

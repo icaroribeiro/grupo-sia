@@ -5,11 +5,7 @@ from bson import ObjectId
 from pydantic import Field
 
 from src.layers.core_logic_layer.logging import logger
-from src.layers.core_logic_layer.settings.mongodb_settings import (
-    MongoDBSettings,
-)
-
-mongodb_settings = MongoDBSettings()
+from src.layers.core_logic_layer.settings import mongodb_settings
 
 
 class BaseDocument(Document):
@@ -37,25 +33,31 @@ class BaseDocument(Document):
     @staticmethod
     def parse_br_datetime(date_str: str) -> datetime | None:
         if not isinstance(date_str, str) or not date_str:
-            message = "Got an error when parsing Brazilian datetime string with non-string or empty string date"
+            message = (
+                "Error: Failed to parse Brazilian datetime string with non-string "
+                "or empty string date"
+            )
             logger.error(message)
             return None
         try:
             return datetime.strptime(date_str, "%d/%m/%Y %H:%M:%S")
         except ValueError as error:
-            message = f"Got an error when parsing {date_str} to Brazilian datetime string: {error}"
+            message = f"Error: Failed to parse {date_str} to Brazilian datetime "
+            f"string: {error}"
             logger.error(message)
             return None
 
     def parse_br_float(value_str: str) -> float | None:
         if not isinstance(value_str, str) or not value_str:
-            message = "Got an error when parsing Brazilian float string with non-string or empty string value"
+            message = "Error: Failed to parse Brazilian float string with non-string "
+            "or empty string value"
             logger.error(message)
             return None
         try:
             cleaned_value = value_str.replace(".", "").replace(",", ".")
             return float(cleaned_value)
         except ValueError as error:
-            message = f"Got an error when parsing Brazilian float strings {value_str}: {error}"
+            message = f"Error: Failed to parse Brazilian float strings {value_str}: "
+            f"{error}"
             logger.error(message)
             return None

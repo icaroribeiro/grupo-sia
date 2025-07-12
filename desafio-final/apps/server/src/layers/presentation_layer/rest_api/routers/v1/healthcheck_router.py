@@ -1,12 +1,12 @@
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, Response, status
-from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from src.layers.core_logic_layer.container.container import Container
 from src.layers.core_logic_layer.logging import logger
 from src.layers.presentation_layer.rest_api.schemas.healthcheck_schema import (
     HealthcheckResponse,
 )
+from motor.motor_asyncio import AsyncIOMotorClient
 
 router = APIRouter()
 
@@ -20,17 +20,17 @@ router = APIRouter()
 @inject
 async def healthcheck(
     response: Response,
-    database: AsyncIOMotorDatabase = Depends(
-        Provide[Container.mongodb_database_resource]
+    mongodb_client_resource: AsyncIOMotorClient = Depends(
+        Provide[Container.mongodb_client_resource]
     ),
 ):
     healthcheck_response: HealthcheckResponse
     try:
-        await database.command("ping")
+        await mongodb_client_resource["admin"].command("ping")
         healthcheck_response = HealthcheckResponse()
         return healthcheck_response
     except Exception as error:
-        message = f"Got an error when checking if application is healthy: {error}"
+        message = f"Error: Failed to check if application is healthy: {error}"
         logger.error(message)
         healthcheck_response = HealthcheckResponse.model_validate(
             obj={"status": "Unhealthy"}
