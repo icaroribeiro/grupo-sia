@@ -1,12 +1,9 @@
 import os
 import re
-from typing import Union
+from typing import Dict, Union
+
 from beanie import Document
 from langchain_core.tools import BaseTool
-
-from src.layers.core_logic_layer.logging import logger
-from typing import Dict
-
 
 from src.layers.business_layer.ai_agents.models.invoice_ingestion_args import (
     InvoiceIngestionArgs,
@@ -14,6 +11,7 @@ from src.layers.business_layer.ai_agents.models.invoice_ingestion_args import (
 from src.layers.business_layer.ai_agents.models.invoice_item_ingestion_args import (
     InvoiceItemIngestionArgs,
 )
+from src.layers.core_logic_layer.logging import logger
 from src.layers.data_access_layer.mongodb.documents.invoice_document import (
     InvoiceDocument,
 )

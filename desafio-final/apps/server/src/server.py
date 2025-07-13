@@ -1,5 +1,3 @@
-from urllib.parse import quote
-
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 
@@ -51,51 +49,23 @@ class Server:
 
     async def __application_startup_handler(self) -> None:
         logger.info("Application startup initiating...")
-        self.__CONTAINER.config.from_dict(
-            {
-                "app_params": {
-                    "uploads_data_dir_path": app_settings.uploads_data_dir_path
-                }
-            }
+        self.__CONTAINER.config.app_settings.from_value(app_settings)
+        self.__CONTAINER.config.ai_settings.from_value(ai_settings)
+        self.__CONTAINER.config.mongodb_settings.from_value(mongodb_settings)
+        self.__CONTAINER.config.mongodb_beanie_documents.from_value(
+            [InvoiceDocument, InvoiceItemDocument]
         )
-
-        self.__CONTAINER.config.from_dict(
-            {
-                "llm_params": {
-                    "provider": ai_settings.llm_provider,
-                    "model": ai_settings.llm_model,
-                    "temperature": ai_settings.llm_temperature,
-                    "api_key": ai_settings.llm_api_key,
-                }
-            }
-        )
-
-        self.__CONTAINER.config.from_dict(
-            {
-                "mongodb_params": {
-                    "username": quote(mongodb_settings.username),
-                    "password": quote(mongodb_settings.password),
-                    "host": mongodb_settings.host,
-                    "port": mongodb_settings.port,
-                    "database": {
-                        "name": mongodb_settings.database,
-                        "documents": [InvoiceDocument, InvoiceItemDocument],
-                    },
-                }
-            }
-        )
-
         self.__CONTAINER.wire(
             packages=[
                 "src.layers.presentation_layer.rest_api.routers.v1",
             ]
         )
-
-        logger.info("Initiating container resources...")
+        logger.info("Container resources initiating...")
         await self.__CONTAINER.init_resources()
         logger.info("Application startup complete.")
 
     async def __application_shutdown_handler(self) -> None:
         logger.info("Application shutdown initiating...")
+        logger.info("Container resources shutting down...")
         await self.__CONTAINER.shutdown_resources()
         logger.info("Application shutdown complete.")

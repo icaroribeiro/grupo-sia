@@ -1,4 +1,5 @@
 from typing import Union
+
 from beanie import Document
 from langchain_core.tools import BaseTool
 from pymongo.errors import DuplicateKeyError

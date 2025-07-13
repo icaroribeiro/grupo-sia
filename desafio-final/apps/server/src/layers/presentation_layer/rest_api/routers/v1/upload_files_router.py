@@ -3,6 +3,7 @@ import os
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, File, Response, UploadFile, status
 
+from src.layers.business_layer.ai_agents.workflows.test_workflow import TestWorkflow
 from src.layers.core_logic_layer.container.container import Container
 from src.layers.core_logic_layer.logging import logger
 from src.layers.presentation_layer.rest_api.schemas.upload_files_schema import (
@@ -24,6 +25,7 @@ async def upload_zip_file(
     response: Response,
     file: UploadFile = File(...),
     config: dict = Depends(Provide[Container.config]),
+    test_workflow: TestWorkflow = Depends(Provide[Container.test_workflow]),
 ):
     if file.content_type != "application/zip":
         message = "Error: Failed to check if Content-Type in request header is "
@@ -34,21 +36,18 @@ async def upload_zip_file(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail="Only ZIP files are allowed",
         )
-
-    dir_path = config["app"]["uploads_data_dir_path"]
+    dir_path = config["app_settings"].uploads_data_dir_path
     file_path = os.path.join(dir_path, file.filename)
     try:
         content = await file.read()
         with open(file_path, "wb") as f:
             f.write(content)
+        result = await test_workflow.arun(input_message="Give me one random number")
+        print(f"result: {result}")
     except Exception as error:
         message = f"Error: Failed to write file {file.filename} in {dir_path}: {error}"
         logger.error(message)
-        raise ServerError(
-            message=message,
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=None,
-        )
+        raise ServerError(message=message)
 
     # csv_dir_path = os.path.join(zip_path, "extracted")
     # try:

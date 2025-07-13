@@ -1,12 +1,12 @@
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, Response, status
+from motor.motor_asyncio import AsyncIOMotorClient
 
 from src.layers.core_logic_layer.container.container import Container
 from src.layers.core_logic_layer.logging import logger
 from src.layers.presentation_layer.rest_api.schemas.healthcheck_schema import (
     HealthcheckResponse,
 )
-from motor.motor_asyncio import AsyncIOMotorClient
 
 router = APIRouter()
 

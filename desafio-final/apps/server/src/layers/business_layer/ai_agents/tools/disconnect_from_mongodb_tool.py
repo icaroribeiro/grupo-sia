@@ -1,4 +1,5 @@
 from typing import Union
+
 from langchain_core.tools import BaseTool
 
 # from langchain_openai import ChatOpenAI

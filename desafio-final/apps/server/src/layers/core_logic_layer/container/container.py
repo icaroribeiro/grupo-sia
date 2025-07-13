@@ -1,5 +1,10 @@
+from typing import AsyncGenerator
+
 from beanie import Document
 from dependency_injector import containers, providers
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 # from src.layers.business_layer.ai_agents.artificial_intelligence.crews.data_injestion_crew.tools.validate_csv_tool import (
 #     ValidateCSVTool,
@@ -17,7 +22,6 @@ from dependency_injector import containers, providers
 # from src.layers.data_access_layer.mongodb.repositories.invoice_repository import (
 #     InvoiceRepository,
 # )
-
 # from src.layers.business_layer.ai_agents.artificial_intelligence.crews.crew_orchestrator import (
 #     CrewOrchestrator,
 # )
@@ -30,17 +34,17 @@ from dependency_injector import containers, providers
 # from src.layers.business_layer.ai_agents.artificial_intelligence.llms.gpt_mini_llm import (
 #     GPTMiniLLM,
 # )
+from src.layers.business_layer.ai_agents.models.agent import Agent
+from src.layers.business_layer.ai_agents.tools.test_tools import CreateRandomNumberTool
+from src.layers.business_layer.ai_agents.workflows.test_workflow import TestWorkflow
 from src.layers.core_logic_layer.llm.llm import LLM
 from src.layers.data_access_layer.mongodb.mongodb import MongoDB
-from typing import AsyncGenerator
-from motor.motor_asyncio import AsyncIOMotorClient
-from motor.motor_asyncio import AsyncIOMotorDatabase
 
 
 class Container(containers.DeclarativeContainer):
     config = providers.Configuration()
 
-    mongodb = providers.Singleton(MongoDB, mongodb_params=config.mongodb_params)
+    mongodb = providers.Singleton(MongoDB, mongodb_settings=config.mongodb_settings)
 
     async def init_mongodb_client(
         mongodb: providers.Singleton,
@@ -54,8 +58,10 @@ class Container(containers.DeclarativeContainer):
     )
 
     async def init_mongodb_database(
-        mongodb: providers.Singleton, database_name: str, documents: list[Document]
+        mongodb: providers.Singleton, config: providers.Configuration
     ) -> AsyncGenerator[AsyncIOMotorDatabase, None]:
+        database_name: str = config["mongodb_settings"].database
+        documents: list[Document] = config["mongodb_beanie_documents"]
         async for database in mongodb.init_database(
             database_name=database_name, documents=documents
         ):
@@ -64,11 +70,60 @@ class Container(containers.DeclarativeContainer):
     mongodb_database_resource = providers.Resource(
         init_mongodb_database,
         mongodb=mongodb,
-        database_name=config.mongodb_params.database.name,
-        documents=config.mongodb_params.database.documents,
+        config=config,
     )
 
-    llm = providers.Singleton(LLM, llm_params=config.llm_params)
+    llm = providers.Singleton(LLM, ai_settings=config.ai_settings)
+
+    def init_llm(
+        llm: providers.Singleton,
+    ) -> ChatOpenAI | ChatGoogleGenerativeAI:
+        return llm.llm
+
+    llm_resource = providers.Resource(
+        init_llm,
+        llm=llm,
+    )
+
+    agent_1 = providers.Singleton(
+        Agent,
+        name="agent_1",
+        prompt="""
+        You are a helpful assistant tasked with creating random numbers.
+        """,
+        llm=llm_resource,
+        tools=[CreateRandomNumberTool()],
+    )
+
+    test_workflow = providers.Singleton(
+        TestWorkflow,
+        agent_1=agent_1,
+    )
+
+    # data_ingestion_agent = providers.Singleton(DataIngestionAgent, llm=llm_resource)
+
+    # def init_data_ingestion_agent(
+    #     data_ingestion_agent: providers.Singleton,
+    # ) -> Runnable[BaseMessage, BaseMessage]:
+    #     return data_ingestion_agent.agent
+
+    # data_ingestion_agent_resource = providers.Resource(
+    #     init_data_ingestion_agent,
+    #     data_ingestion_agent=data_ingestion_agent,
+    # )
+
+    # data_ingestion_workflow = providers.Singleton(
+    #     DataIngestionWorkflow,
+    #     data_ingestion_agent=data_ingestion_agent_resource,
+    # )
+
+    # llm_resource = providers.Resource(llm, config=config)
+
+    # data_ingestion_crew = providers.Singleton(DataIngestionCrew, llm=llm_resource)
+
+    # crew_orchestrator = providers.Singleton(
+    #     CrewOrchestrator, config=config, data_ingestion_crew=data_ingestion_crew
+    # )
 
     # async def mongodb_client(
     #     config: providers.Configuration,

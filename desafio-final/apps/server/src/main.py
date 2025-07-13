@@ -8,12 +8,12 @@ from src.server import Server
 app: FastAPI | None = None
 
 try:
-    logger.info("Started initiating Server...")
+    logger.info("Server startup initiating...")
     server: Server = Server()
     app = server.app
-    logger.info("Success: Server initiated.")
+    logger.info("Success: Server startup complete.")
 except Exception as error:
-    message = f"Error: Failed to initiate Server: {str(error)}"
+    message = f"Error: Failed to startup Server: {str(error)}"
     logger.error(message)
     raise
 
@@ -21,19 +21,15 @@ except Exception as error:
 if __name__ == "__main__":
     if app is not None:
         try:
-            logger.info("Started initiating Uvicorn server...")
+            logger.info("Uvicorn server startup initiating...")
             uvicorn.run(
-                app=app,
-                host="0.0.0.0",
-                port=int(app_settings.port),
+                app="main:app", host="0.0.0.0", port=int(app_settings.port), reload=True
             )
-            message = "Success: Uvicorn server initiated."
-            logger.info(message)
         except Exception as error:
-            message = f"Error: Failed to start Uvicorn server: {error}"
+            message = f"Error: Failed to startup Uvicorn server: {error}"
             logger.error(message)
             raise Exception(message)
     else:
-        message = "Error: Failed to initiate application: application is None"
+        message = "Error: Application is None"
         logger.info(message)
         raise Exception(message)

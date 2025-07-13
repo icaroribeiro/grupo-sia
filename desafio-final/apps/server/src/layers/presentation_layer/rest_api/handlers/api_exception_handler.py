@@ -12,7 +12,7 @@ class ExceptionHandler:
         request: Request, exc: HTTPException
     ) -> JSONResponse:
         message = (
-            f"HTTPException in {request.method} {request.url.path}: "
+            f"Error: HTTPException in {request.method} {request.url.path}: "
             f"status_code={exc.status_code}, detail={exc.detail}"
         )
         logger.error(message)
@@ -24,13 +24,13 @@ class ExceptionHandler:
     ) -> JSONResponse:
         status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
         message = (
-            f"ValidationError in {request.method} {request.url.path}: "
+            f"Error: ValidationError in {request.method} {request.url.path}: "
             f"detail={str(error.errors())}"
         )
         logger.error(message)
         return JSONResponse(
             content=ServerError(
-                message="Validation failed",
+                message="Error: Validation failed",
                 status_code=status_code,
                 detail=str(error.errors()),
             ).error_details.model_dump(),
@@ -40,11 +40,11 @@ class ExceptionHandler:
     @staticmethod
     async def handle_server_error(request: Request, error: ServerError) -> JSONResponse:
         message = (
-            f"ServerError in {request.method} {request.url.path}: "
-            f"status_code={error.error_details.status_code}, detail={error.error_details.detail}"
+            f"Error: ServerError in {request.method} {request.url.path}: "
+            f"status_code={error.status_code}, detail={error.error_details.detail}"
         )
         logger.error(message)
         return JSONResponse(
             content=error.error_details.model_dump(),
-            status_code=error.error_details.status_code,
+            status_code=error.status_code,
         )

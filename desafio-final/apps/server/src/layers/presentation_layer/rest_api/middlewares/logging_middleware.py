@@ -1,6 +1,6 @@
 import time
 
-from fastapi import Request, Response, status
+from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
@@ -34,6 +34,5 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             logger.error(message)
             raise ServerError(
                 message=message,
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=str(error),
             )

@@ -1,4 +1,5 @@
 from typing import Union
+
 from beanie import Document, init_beanie
 from langchain_core.tools import BaseTool
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
