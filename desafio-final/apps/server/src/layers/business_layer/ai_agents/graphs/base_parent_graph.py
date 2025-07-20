@@ -21,25 +21,25 @@ class BaseParentGraph:
         self.name: str = name
         self.__graph: CompiledStateGraph = graph
 
-    def call_subgraph(
+    def call_subgraph_node(
         self, name: str, subgraph: BaseSubgraph, routes_to: str = END
     ) -> SubgraphState:
         return functools.partial(
-            self.__subgraph_node,
+            self.__call_subgraph_node,
             name=name,
             subgraph=subgraph,
             routes_to=routes_to,
         )
 
-    def call_node(
+    def call_node_with_chain(
         self,
         name: str,
-        node_chain: Runnable[dict[str, list[BaseMessage]], dict[str, str]],
-    ) -> ParentGraphState:
+        chain: Runnable[dict[str, list[BaseMessage]], dict[str, str]],
+    ) -> SubgraphState:
         return functools.partial(
-            self.__node,
+            self.__call_node_with_chain,
             name=name,
-            node_chain=node_chain,
+            chain=chain,
         )
 
     def route(self, state: ParentGraphState) -> str:
@@ -64,7 +64,7 @@ class BaseParentGraph:
         return result
 
     @staticmethod
-    async def __subgraph_node(
+    async def __call_subgraph_node(
         state: ParentGraphState,
         name: str,
         subgraph: BaseSubgraph,
@@ -76,7 +76,6 @@ class BaseParentGraph:
         result = await subgraph.run(
             input_message=messages[-1].content if messages else "", next=state["next"]
         )
-        # result = asyncio.get_event_loop().run_until_complete(response)
         logger.info(f"{name} response: {result}")
         return {
             "messages": messages + result["messages"],
@@ -84,14 +83,14 @@ class BaseParentGraph:
         }
 
     @staticmethod
-    def __node(
+    def __call_node_with_chain(
         state: ParentGraphState,
         name: str,
-        node_chain: Runnable[dict[str, list[BaseMessage]], dict[str, str]],
+        chain: Runnable[dict[str, list[BaseMessage]], dict[str, str]],
     ) -> ParentGraphState:
         logger.info(f"Started running {name}...")
         messages = state["messages"]
         logger.info(f"{name} input messages: {messages}")
-        response = node_chain.invoke({"messages": messages})
+        response = chain.invoke({"messages": messages})
         logger.info(f"{name} response: {response}")
         return {"messages": messages, "next": response["next"]}

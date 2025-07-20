@@ -1,8 +1,10 @@
-from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, Response, status
-from motor.motor_asyncio import AsyncIOMotorClient
+from dependency_injector.wiring import inject
 
-from src.layers.core_logic_layer.container.container import Container
+# from dependency_injector.wiring import Provide, inject
+from fastapi import APIRouter, Response, status
+# from motor.motor_asyncio import AsyncIOMotorClient
+
+# from src.layers.core_logic_layer.container.container import Container
 from src.layers.core_logic_layer.logging import logger
 from src.layers.presentation_layer.rest_api.schemas.healthcheck_schema import (
     HealthcheckResponse,
@@ -20,13 +22,13 @@ router = APIRouter()
 @inject
 async def healthcheck(
     response: Response,
-    mongodb_client_resource: AsyncIOMotorClient = Depends(
-        Provide[Container.mongodb_client_resource]
-    ),
+    # mongodb_client_resource: AsyncIOMotorClient = Depends(
+    #     Provide[Container.mongodb_client_resource]
+    # ),
 ):
     healthcheck_response: HealthcheckResponse
     try:
-        await mongodb_client_resource["admin"].command("ping")
+        # await mongodb_client_resource["admin"].command("ping")
         healthcheck_response = HealthcheckResponse()
         return healthcheck_response
     except Exception as error:

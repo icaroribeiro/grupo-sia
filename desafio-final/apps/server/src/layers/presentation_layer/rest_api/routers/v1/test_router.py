@@ -6,9 +6,9 @@ from fastapi import APIRouter, Depends, Response, status
 # )
 # from langgraph.prebuilt import create_react_agent
 from src.layers.business_layer.ai_agents.agents.assistant_agents import AssistentAgent_1
-from src.layers.business_layer.ai_agents.agents.manager_agent_1 import ManagerAgent_1
-from src.layers.business_layer.ai_agents.agents.supervisor_agent_1 import (
-    SupervisorAgent_1,
+from src.layers.business_layer.ai_agents.agents.parent_agent_1 import ParentAgent_1
+from src.layers.business_layer.ai_agents.agents.sub_agent_1 import (
+    SubAgent_1,
 )
 from src.layers.business_layer.ai_agents.graphs.parent_graph_1 import ParentGraph_1
 from src.layers.business_layer.ai_agents.graphs.subgraph_1 import Subgraph_1
@@ -79,17 +79,13 @@ async def test_2(
     response: Response,
     config: dict = Depends(Provide[Container.config]),
     subgraph_2: Subgraph_1 = Depends(Provide[Container.subgraph_2]),
-    supervisor_agent_1: SupervisorAgent_1 = Depends(
-        Provide[Container.supervisor_agent_1]
-    ),
+    sub_agent_1: SubAgent_1 = Depends(Provide[Container.sub_agent_1]),
 ):
     input_message = """
         Firstly, convert the text 'ABCdRT1' in lowercase. After that, check if text
         is a palindrome.
     """
-    result = await subgraph_2.run(
-        input_message=input_message, next=supervisor_agent_1.name
-    )
+    result = await subgraph_2.run(input_message=input_message, next=sub_agent_1.name)
     print(f"Final output: {result['messages'][-1].content}")
     return {"status": "OK"}
 
@@ -103,14 +99,14 @@ async def test_3(
     response: Response,
     config: dict = Depends(Provide[Container.config]),
     parent_graph_1: ParentGraph_1 = Depends(Provide[Container.parent_graph_1]),
-    manager_agent_1: ManagerAgent_1 = Depends(Provide[Container.manager_agent_1]),
+    parent_agent_1: ParentAgent_1 = Depends(Provide[Container.parent_agent_1]),
 ):
     input_message = """
-        Firstly, convert the string 'ABCdRT1' in lowercase. After that, count 
-         the number of characters of string and return this value.
+        Firstly, convert the text 'ABCdRT1' in lowercase. After that, check if text
+        is a palindrome.
     """
     result = await parent_graph_1.run(
-        input_message=input_message, next=manager_agent_1.name
+        input_message=input_message, next=parent_agent_1.name
     )
     print(f"Final output: {result['messages'][-1].content}")
     return {"status": "OK"}

@@ -7,7 +7,7 @@
 #     Agent2,
 #     Agent3,
 # )
-# from src.layers.business_layer.ai_agents.agents.supervisor_agent_1 import SupervisorAgent_1
+# from src.layers.business_layer.ai_agents.agents.sub_agent_1 import SubAgent_1
 # from src.layers.business_layer.ai_agents.models.state import AgentState
 # from src.layers.business_layer.ai_agents.workflows.base_workflow import BaseWorkflow
 
@@ -19,7 +19,7 @@
 #         assistant_agent_1: AssistentAgent_1,
 #         agent2: Agent2,
 #         agent3: Agent3,
-#         supervisor_agent_1: SupervisorAgent_1,
+#         sub_agent_1: SubAgent_1,
 #     ):
 #         super().__init__(
 #             name=name,
@@ -27,7 +27,7 @@
 #                 assistant_agent_1=assistant_agent_1,
 #                 agent2=agent2,
 #                 agent3=agent3,
-#                 supervisor_agent_1=supervisor_agent_1,
+#                 sub_agent_1=sub_agent_1,
 #             ),
 #         )
 
@@ -36,7 +36,7 @@
 #         assistant_agent_1: AssistentAgent_1,
 #         agent2: Agent2,
 #         agent3: Agent3,
-#         supervisor_agent_1: SupervisorAgent_1,
+#         sub_agent_1: SubAgent_1,
 #     ) -> StateGraph:
 #         workflow = StateGraph(state_schema=AgentState)
 #         # workflow.add_node(
@@ -57,8 +57,8 @@
 #         workflow.add_node(
 #             node="supervisor",
 #             action=self.create_supervisor_node(
-#                 name=supervisor_agent_1.name,
-#                 supervisor_chain=supervisor_agent_1.create_supervisor_chain(
+#                 name=sub_agent_1.name,
+#                 supervisor_chain=sub_agent_1.create_supervisor_chain(
 #                     [assistant_agent_1.name]
 #                 ),
 #             ),

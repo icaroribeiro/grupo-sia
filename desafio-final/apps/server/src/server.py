@@ -6,14 +6,15 @@ from src.layers.core_logic_layer.logging import logger
 from src.layers.core_logic_layer.settings import (
     ai_settings,
     app_settings,
-    mongodb_settings,
+    # mongodb_settings,
 )
-from src.layers.data_access_layer.mongodb.documents.invoice_document import (
-    InvoiceDocument,
-)
-from src.layers.data_access_layer.mongodb.documents.invoice_item_document import (
-    InvoiceItemDocument,
-)
+
+# from src.layers.data_access_layer.mongodb.documents.invoice_document import (
+#     InvoiceDocument,
+# )
+# from src.layers.data_access_layer.mongodb.documents.invoice_item_document import (
+#     InvoiceItemDocument,
+# )
 from src.layers.presentation_layer.rest_api.handlers.api_exception_handler import (
     ExceptionHandler,
 )
@@ -51,21 +52,21 @@ class Server:
         logger.info("Application startup initiating...")
         self._container.config.app_settings.from_value(app_settings)
         self._container.config.ai_settings.from_value(ai_settings)
-        self._container.config.mongodb_settings.from_value(mongodb_settings)
-        self._container.config.mongodb_beanie_documents.from_value(
-            [InvoiceDocument, InvoiceItemDocument]
-        )
+        # self._container.config.mongodb_settings.from_value(mongodb_settings)
+        # self._container.config.mongodb_beanie_documents.from_value(
+        #     [InvoiceDocument, InvoiceItemDocument]
+        # )
         self._container.wire(
             packages=[
                 "src.layers.presentation_layer.rest_api.routers.v1",
             ]
         )
         logger.info("Container resources initiating...")
-        await self._container.init_resources()
+        # await self._container.init_resources()
         logger.info("Application startup complete.")
 
     async def __application_shutdown_handler(self) -> None:
         logger.info("Application shutdown initiating...")
-        logger.info("Container resources shutting down...")
-        await self._container.shutdown_resources()
+        # logger.info("Container resources shutting down...")
+        # await self._container.shutdown_resources()
         logger.info("Application shutdown complete.")

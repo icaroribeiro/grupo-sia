@@ -24,7 +24,18 @@ class BaseSubgraph:
         self.name: str = name
         self.__graph: CompiledStateGraph = graph
 
-    def call_subnode(
+    def call_node_with_chain(
+        self,
+        name: str,
+        chain: Runnable[dict[str, list[BaseMessage]], dict[str, str]],
+    ) -> SubgraphState:
+        return functools.partial(
+            self.__call_node_with_chain,
+            name=name,
+            chain=chain,
+        )
+
+    def call_assistant_node(
         self,
         name: str,
         prompt: str,
@@ -32,26 +43,15 @@ class BaseSubgraph:
         routes_to: str,
     ) -> SubgraphState:
         return functools.partial(
-            self.__subnode,
+            self.__call_assistant_node,
             name=name,
             prompt=prompt,
             llm_with_tools=llm_with_tools,
             routes_to=routes_to,
         )
 
-    def call_node(
-        self,
-        name: str,
-        node_chain: Runnable[dict[str, list[BaseMessage]], dict[str, str]],
-    ) -> SubgraphState:
-        return functools.partial(
-            self.__node,
-            name=name,
-            node_chain=node_chain,
-        )
-
-    def call_tool(self, routes_to: str) -> str:
-        return functools.partial(self.__tool, routes_to=routes_to)
+    def call_tool_node(self, routes_to: str) -> str:
+        return functools.partial(self.__call_tool_node, routes_to=routes_to)
 
     def route(self, state: SubgraphState) -> str:
         next_agent = state["next"]
@@ -75,7 +75,20 @@ class BaseSubgraph:
         return result
 
     @staticmethod
-    def __subnode(
+    def __call_node_with_chain(
+        state: SubgraphState,
+        name: str,
+        chain: Runnable[dict[str, list[BaseMessage]], dict[str, str]],
+    ) -> SubgraphState:
+        logger.info(f"Started running {name}...")
+        messages = state["messages"]
+        logger.info(f"{name} input messages: {messages}")
+        response = chain.invoke({"messages": messages})
+        logger.info(f"{name} response: {response}")
+        return {"messages": messages, "next": response["next"]}
+
+    @staticmethod
+    def __call_assistant_node(
         state: SubgraphState,
         name: str,
         prompt: str,
@@ -87,6 +100,20 @@ class BaseSubgraph:
         logger.info(f"{name} input messages: {messages}")
         response = llm_with_tools.invoke([SystemMessage(content=prompt)] + messages)
         logger.info(f"{name} response: {response}")
+
+        # Deduplicate tool calls before updating the state
+        # This ensures that only unique tool calls (based on name and arguments) are
+        # passed to the tools node.
+        if hasattr(response, "tool_calls") and response.tool_calls:
+            seen = set()
+            unique_tool_calls = []
+            for tool_call in response.tool_calls:
+                tool_key = (tool_call["name"], str(tool_call["args"]))
+                if tool_key not in seen:
+                    seen.add(tool_key)
+                    unique_tool_calls.append(tool_call)
+            response.tool_calls = unique_tool_calls
+
         return {
             "messages": messages + [response],
             "next": "tools"
@@ -95,20 +122,7 @@ class BaseSubgraph:
         }
 
     @staticmethod
-    def __node(
-        state: SubgraphState,
-        name: str,
-        node_chain: Runnable[dict[str, list[BaseMessage]], dict[str, str]],
-    ) -> SubgraphState:
-        logger.info(f"Started running {name}...")
-        messages = state["messages"]
-        logger.info(f"{name} input messages: {messages}")
-        response = node_chain.invoke({"messages": messages})
-        logger.info(f"{name} response: {response}")
-        return {"messages": messages, "next": response["next"]}
-
-    @staticmethod
-    def __tool(
+    def __call_tool_node(
         state: SubgraphState,
         routes_to: str,
     ) -> str:

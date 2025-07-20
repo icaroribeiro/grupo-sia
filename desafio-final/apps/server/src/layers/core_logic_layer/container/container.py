@@ -1,55 +1,56 @@
-from typing import AsyncGenerator
+# from typing import AsyncGenerator
 
-from beanie import Document
+# from beanie import Document
 from dependency_injector import containers, providers
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from src.layers.business_layer.ai_agents.agents.manager_agent_1 import ManagerAgent_1
+
+# from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from src.layers.business_layer.ai_agents.agents.assistant_agents import (
     AssistentAgent_1,
     AssistentAgent_2,
     AssistentAgent_3,
 )
-from src.layers.business_layer.ai_agents.agents.supervisor_agent_1 import (
-    SupervisorAgent_1,
+from src.layers.business_layer.ai_agents.agents.parent_agent_1 import ParentAgent_1
+from src.layers.business_layer.ai_agents.agents.sub_agent_1 import (
+    SubAgent_1,
 )
 from src.layers.business_layer.ai_agents.graphs.subgraph_1 import Subgraph_1
 from src.layers.business_layer.ai_agents.graphs.subgraph_2 import Subgraph_2
 from src.layers.business_layer.ai_agents.graphs.parent_graph_1 import ParentGraph_1
 from src.layers.core_logic_layer.llm.llm import LLM
-from src.layers.data_access_layer.mongodb.mongodb import MongoDB
+# from src.layers.data_access_layer.mongodb.mongodb import MongoDB
 
 
 class Container(containers.DeclarativeContainer):
     config = providers.Configuration()
 
-    mongodb = providers.Singleton(MongoDB, mongodb_settings=config.mongodb_settings)
+    # mongodb = providers.Singleton(MongoDB, mongodb_settings=config.mongodb_settings)
 
-    async def init_mongodb_client(
-        mongodb: providers.Singleton,
-    ) -> AsyncGenerator[AsyncIOMotorClient, None]:
-        async for client in mongodb.client:
-            yield client
+    # async def init_mongodb_client(
+    #     mongodb: providers.Singleton,
+    # ) -> AsyncGenerator[AsyncIOMotorClient, None]:
+    #     async for client in mongodb.client:
+    #         yield client
 
-    mongodb_client_resource = providers.Resource(
-        init_mongodb_client,
-        mongodb=mongodb,
-    )
+    # mongodb_client_resource = providers.Resource(
+    #     init_mongodb_client,
+    #     mongodb=mongodb,
+    # )
 
-    async def init_mongodb_database(
-        mongodb: providers.Singleton, config: providers.Configuration
-    ) -> AsyncGenerator[AsyncIOMotorDatabase, None]:
-        database_name: str = config["mongodb_settings"].database
-        documents: list[Document] = config["mongodb_beanie_documents"]
-        async for database in mongodb.init_database(
-            database_name=database_name, documents=documents
-        ):
-            yield database
+    # async def init_mongodb_database(
+    #     mongodb: providers.Singleton, config: providers.Configuration
+    # ) -> AsyncGenerator[AsyncIOMotorDatabase, None]:
+    #     database_name: str = config["mongodb_settings"].database
+    #     documents: list[Document] = config["mongodb_beanie_documents"]
+    #     async for database in mongodb.init_database(
+    #         database_name=database_name, documents=documents
+    #     ):
+    #         yield database
 
-    mongodb_database_resource = providers.Resource(
-        init_mongodb_database,
-        mongodb=mongodb,
-        config=config,
-    )
+    # mongodb_database_resource = providers.Resource(
+    #     init_mongodb_database,
+    #     mongodb=mongodb,
+    #     config=config,
+    # )
 
     llm = providers.Singleton(LLM, ai_settings=config.ai_settings)
 
@@ -73,8 +74,8 @@ class Container(containers.DeclarativeContainer):
 
     assistant_agent_3 = providers.Singleton(AssistentAgent_3, llm=llm.provided.llm)
 
-    supervisor_agent_1 = providers.Singleton(
-        SupervisorAgent_1,
+    sub_agent_1 = providers.Singleton(
+        SubAgent_1,
         llm=llm.provided.llm,
     )
 
@@ -83,11 +84,11 @@ class Container(containers.DeclarativeContainer):
         name="Subgraph_2",
         assistant_agent_2=assistant_agent_2,
         assistant_agent_3=assistant_agent_3,
-        supervisor_agent_1=supervisor_agent_1,
+        sub_agent_1=sub_agent_1,
     )
 
-    manager_agent_1 = providers.Singleton(
-        ManagerAgent_1,
+    parent_agent_1 = providers.Singleton(
+        ParentAgent_1,
         llm=llm.provided.llm,
     )
 
@@ -95,14 +96,14 @@ class Container(containers.DeclarativeContainer):
         ParentGraph_1,
         name="ParentGraph_1",
         subgraph_2=subgraph_2,
-        manager_agent_1=manager_agent_1,
+        parent_agent_1=parent_agent_1,
     )
 
     # parent_graph = providers.Singleton(
     #     ParentGraph,
     #     name="ParentGraph",
     #     subgraph_1=subgraph_1,
-    #     supervisor_agent_1=supervisor_agent_1,
+    #     sub_agent_1=sub_agent_1,
     # )
 
     # test_workflow = providers.Singleton(
@@ -111,7 +112,7 @@ class Container(containers.DeclarativeContainer):
     #     assistant_agent_1=assistant_agent_1,
     #     agent2=agent2,
     #     agent3=agent3,
-    #     supervisor_agent_1=supervisor_agent_1,
+    #     sub_agent_1=sub_agent_1,
     # )
 
     # data_ingestion_agent = providers.Singleton(DataIngestionAgent, llm=llm_resource)

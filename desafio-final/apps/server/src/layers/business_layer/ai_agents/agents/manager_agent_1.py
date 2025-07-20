@@ -29,10 +29,6 @@ class ManagerAgent_1(BaseAgent):
             f'{{{{"next": "{subgraphs[0]}"}}}}' if subgraphs else '{{"next": "FINISH"}}'
         )
         second_example = '{{"next": "FINISH"}}'
-        print(f"\n\nfirst: {first_example}")
-        print(f"\n\nsecond: {second_example}")
-        # first_example = '{{"next": "Subgraph_2"}}'
-        # second_example = '{{"next": "FINISH"}}'
         options = str(["FINISH"] + subgraphs)
         prompt = ChatPromptTemplate.from_messages(
             [

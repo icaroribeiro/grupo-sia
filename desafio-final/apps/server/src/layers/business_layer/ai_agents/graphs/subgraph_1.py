@@ -29,7 +29,7 @@ class Subgraph_1(BaseSubgraph):
         subgraph_builder = StateGraph(state_schema=SubgraphState)
         subgraph_builder.add_node(
             node=assistant_agent_1.name,
-            action=self.call_subnode(
+            action=self.call_assistant_node(
                 name=assistant_agent_1.name,
                 prompt=assistant_agent_1.prompt,
                 llm_with_tools=assistant_agent_1.llm.bind_tools(
@@ -44,10 +44,9 @@ class Subgraph_1(BaseSubgraph):
         subgraph_builder.set_entry_point(key=assistant_agent_1.name)
         subgraph_builder.add_conditional_edges(
             source=assistant_agent_1.name,
-            path=self.call_tool(routes_to=END),
+            path=self.call_tool_node(routes_to=END),
             path_map={"tools": "tools", END: END},
         )
         subgraph_builder.add_edge(start_key="tools", end_key=assistant_agent_1.name)
         subgraph = subgraph_builder.compile(checkpointer=MemorySaver())
-        print(subgraph.get_graph().draw_ascii())
         return subgraph
