@@ -25,47 +25,47 @@ from src.server_error import ServerError
 
 
 class Server:
-    __APP: FastAPI = FastAPI()
+    _app: FastAPI = FastAPI()
 
     def __init__(self) -> None:
-        self.__CONTAINER = Container()
-        self.__APP.add_middleware(LoggingMiddleware)
-        self.__APP.include_router(router=v1_router, prefix="/api/v1")
-        self.__APP.add_exception_handler(
+        self._container = Container()
+        self._app.add_middleware(LoggingMiddleware)
+        self._app.include_router(router=v1_router, prefix="/api/v1")
+        self._app.add_exception_handler(
             HTTPException, ExceptionHandler.http_exception_handler
         )
-        self.__APP.add_exception_handler(
+        self._app.add_exception_handler(
             RequestValidationError, ExceptionHandler.handle_request_validation_error
         )
-        self.__APP.add_exception_handler(
+        self._app.add_exception_handler(
             ServerError, ExceptionHandler.handle_server_error
         )
-        self.__APP.add_event_handler("startup", self.__application_startup_handler)
-        self.__APP.add_event_handler("shutdown", self.__application_shutdown_handler)
+        self._app.add_event_handler("startup", self.__application_startup_handler)
+        self._app.add_event_handler("shutdown", self.__application_shutdown_handler)
 
     @property
     def app(self) -> FastAPI:
-        return self.__APP
+        return self._app
 
     async def __application_startup_handler(self) -> None:
         logger.info("Application startup initiating...")
-        self.__CONTAINER.config.app_settings.from_value(app_settings)
-        self.__CONTAINER.config.ai_settings.from_value(ai_settings)
-        self.__CONTAINER.config.mongodb_settings.from_value(mongodb_settings)
-        self.__CONTAINER.config.mongodb_beanie_documents.from_value(
+        self._container.config.app_settings.from_value(app_settings)
+        self._container.config.ai_settings.from_value(ai_settings)
+        self._container.config.mongodb_settings.from_value(mongodb_settings)
+        self._container.config.mongodb_beanie_documents.from_value(
             [InvoiceDocument, InvoiceItemDocument]
         )
-        self.__CONTAINER.wire(
+        self._container.wire(
             packages=[
                 "src.layers.presentation_layer.rest_api.routers.v1",
             ]
         )
         logger.info("Container resources initiating...")
-        await self.__CONTAINER.init_resources()
+        await self._container.init_resources()
         logger.info("Application startup complete.")
 
     async def __application_shutdown_handler(self) -> None:
         logger.info("Application shutdown initiating...")
         logger.info("Container resources shutting down...")
-        await self.__CONTAINER.shutdown_resources()
+        await self._container.shutdown_resources()
         logger.info("Application shutdown complete.")

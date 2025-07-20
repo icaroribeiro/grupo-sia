@@ -2,41 +2,19 @@ from typing import AsyncGenerator
 
 from beanie import Document
 from dependency_injector import containers, providers
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_openai import ChatOpenAI
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-
-# from src.layers.business_layer.ai_agents.artificial_intelligence.crews.data_injestion_crew.tools.validate_csv_tool import (
-#     ValidateCSVTool,
-#     InvoiceValidateCSVTool,
-#     InvoiceItemValidateCSVTool,
-# )
-# from src.layers.business_layer.ai_agents.artificial_intelligence.crews.data_injestion_crew.tools.insert_mongo_tool import (
-#     InsertMongoTool,
-#     InvoiceInsertMongoTool,
-#     InvoiceItemInsertMongoTool,
-# )
-# from src.layers.data_access_layer.mongodb.repositories.invoice_item_repository import (
-#     InvoiceItemRepository,
-# )
-# from src.layers.data_access_layer.mongodb.repositories.invoice_repository import (
-#     InvoiceRepository,
-# )
-# from src.layers.business_layer.ai_agents.artificial_intelligence.crews.crew_orchestrator import (
-#     CrewOrchestrator,
-# )
-# from src.layers.business_layer.ai_agents.artificial_intelligence.crews.data_ingestion_crew.data_ingestion_crew import (
-#     DataIngestionCrew,
-# )
-# from src.layers.business_layer.ai_agents.artificial_intelligence.custom_llm import (
-#     GeminiFlashLLM,
-# )
-# from src.layers.business_layer.ai_agents.artificial_intelligence.llms.gpt_mini_llm import (
-#     GPTMiniLLM,
-# )
-from src.layers.business_layer.ai_agents.models.agent import Agent
-from src.layers.business_layer.ai_agents.tools.test_tools import CreateRandomNumberTool
-from src.layers.business_layer.ai_agents.workflows.test_workflow import TestWorkflow
+from src.layers.business_layer.ai_agents.agents.manager_agent_1 import ManagerAgent_1
+from src.layers.business_layer.ai_agents.agents.assistant_agents import (
+    AssistentAgent_1,
+    AssistentAgent_2,
+    AssistentAgent_3,
+)
+from src.layers.business_layer.ai_agents.agents.supervisor_agent_1 import (
+    SupervisorAgent_1,
+)
+from src.layers.business_layer.ai_agents.graphs.subgraph_1 import Subgraph_1
+from src.layers.business_layer.ai_agents.graphs.subgraph_2 import Subgraph_2
+from src.layers.business_layer.ai_agents.graphs.parent_graph_1 import ParentGraph_1
 from src.layers.core_logic_layer.llm.llm import LLM
 from src.layers.data_access_layer.mongodb.mongodb import MongoDB
 
@@ -75,30 +53,66 @@ class Container(containers.DeclarativeContainer):
 
     llm = providers.Singleton(LLM, ai_settings=config.ai_settings)
 
-    def init_llm(
-        llm: providers.Singleton,
-    ) -> ChatOpenAI | ChatGoogleGenerativeAI:
-        return llm.llm
+    # assistant_agent_1 = providers.Singleton(
+    #     Agent,
+    #     name="assistant_agent_1",
+    #     prompt="""
+    #     You are a helpful assistant tasked with creating random numbers.
+    #     """,
+    #     llm=llm_resource,
+    #     tools=[CreateRandomNumberTool()],
+    # )
 
-    llm_resource = providers.Resource(
-        init_llm,
-        llm=llm,
+    assistant_agent_1 = providers.Singleton(AssistentAgent_1, llm=llm.provided.llm)
+
+    subgraph_1 = providers.Singleton(
+        Subgraph_1, name="Subgraph_1", assistant_agent_1=assistant_agent_1
     )
 
-    agent_1 = providers.Singleton(
-        Agent,
-        name="agent_1",
-        prompt="""
-        You are a helpful assistant tasked with creating random numbers.
-        """,
-        llm=llm_resource,
-        tools=[CreateRandomNumberTool()],
+    assistant_agent_2 = providers.Singleton(AssistentAgent_2, llm=llm.provided.llm)
+
+    assistant_agent_3 = providers.Singleton(AssistentAgent_3, llm=llm.provided.llm)
+
+    supervisor_agent_1 = providers.Singleton(
+        SupervisorAgent_1,
+        llm=llm.provided.llm,
     )
 
-    test_workflow = providers.Singleton(
-        TestWorkflow,
-        agent_1=agent_1,
+    subgraph_2 = providers.Singleton(
+        Subgraph_2,
+        name="Subgraph_2",
+        assistant_agent_2=assistant_agent_2,
+        assistant_agent_3=assistant_agent_3,
+        supervisor_agent_1=supervisor_agent_1,
     )
+
+    manager_agent_1 = providers.Singleton(
+        ManagerAgent_1,
+        llm=llm.provided.llm,
+    )
+
+    parent_graph_1 = providers.Singleton(
+        ParentGraph_1,
+        name="ParentGraph_1",
+        subgraph_2=subgraph_2,
+        manager_agent_1=manager_agent_1,
+    )
+
+    # parent_graph = providers.Singleton(
+    #     ParentGraph,
+    #     name="ParentGraph",
+    #     subgraph_1=subgraph_1,
+    #     supervisor_agent_1=supervisor_agent_1,
+    # )
+
+    # test_workflow = providers.Singleton(
+    #     TestWorkflow,
+    #     name="TestWorkflow",
+    #     assistant_agent_1=assistant_agent_1,
+    #     agent2=agent2,
+    #     agent3=agent3,
+    #     supervisor_agent_1=supervisor_agent_1,
+    # )
 
     # data_ingestion_agent = providers.Singleton(DataIngestionAgent, llm=llm_resource)
 

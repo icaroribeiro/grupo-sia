@@ -1,80 +1,75 @@
-# from langchain_core.messages import BaseMessage
-# from langchain_core.runnables import Runnable
-# from langchain_core.tools import BaseTool
-# from langchain_google_genai import ChatGoogleGenerativeAI
-# from langchain_openai import ChatOpenAI
-# from pydantic import BaseModel
+from langchain_core.language_models import BaseChatModel
+from langchain_core.tools import BaseTool
+import json
+
+from langchain_core.messages import BaseMessage
+
+from src.layers.core_logic_layer.logging import logger
 
 
-# class BaseAgentDetails(BaseModel):
-#     system_message: str
+class BaseAgent:
+    def __init__(
+        self,
+        name: str,
+        llm: BaseChatModel,
+        tools: list[BaseTool],
+        prompt: str,
+    ):
+        self.name: str = name
+        self.llm: BaseChatModel = llm
+        self.tools: list[BaseTool] = tools
+        self.prompt: str = prompt
 
-#     # role: str
-#     # goal: str
-#     # backstory: str
-#     # File Unzipper
-#     # """,
-#     # goal="""
-#     # Extract specified ZIP files and confirm successful extraction.
-#     # """,
-#     # backstory="""
-#     # You are an automated file system assistant, skilled at handling compressed archives.
-#     # """,
-#     @classmethod
-#     def create_system_message(cls) -> str:
-#         return cls.system_message
+    def robust_json_parser(
+        self, message: BaseMessage, resources: list[str]
+    ) -> dict[str, str]:
+        """
+        Parse a BaseMessage's content into a dictionary with a 'next' key.
 
+        Args:
+            message: BaseMessage containing the content to parse.
+            resources: List of valid resource names for routing.
 
-# class BaseAgent:
-#     def __init__(
-#         self,
-#         name: str,
-#         llm: ChatGoogleGenerativeAI | ChatOpenAI,
-#         tools: list[BaseTool],
-#         system_message: str,
-#     ):
-#         self.__name: str = name
-#         self.__llm: ChatGoogleGenerativeAI | ChatOpenAI = llm
-#         self.__tools: list[BaseTool] = tools
-#         self.__system_message: str = system_message
+        Returns:
+            Dict with 'next' key pointing to a resource name or 'FINISH'.
+        """
+        content = message.content.strip()
+        try:
+            parsed = json.loads(content)
+            if (
+                isinstance(parsed, dict)
+                and "next" in parsed
+                and parsed["next"] in resources + ["FINISH"]
+            ):
+                logger.debug(f"Successfully parsed JSON: {parsed}")
+                return parsed
+            logger.warning(f"Invalid JSON structure or 'next' value: {content}")
+        except json.JSONDecodeError as error:
+            logger.debug(f"Direct JSON parsing failed: {error}")
 
-#     @classmethod
-#     def llm_with_tools(self) -> Runnable[BaseMessage, BaseMessage]:
-#         return self.__llm.bind_tools(self.__tools)
+        try:
+            start = content.find("{")
+            end = content.rfind("}") + 1
+            if start != -1 and end > start:
+                json_str = content[start:end]
+                parsed = json.loads(json_str)
+                if (
+                    isinstance(parsed, dict)
+                    and "next" in parsed
+                    and parsed["next"] in resources + ["FINISH"]
+                ):
+                    logger.debug(f"Successfully parsed JSON substring: {parsed}")
+                    return parsed
+                logger.warning(
+                    f"Invalid JSON substring structure or 'next' value: {json_str}"
+                )
+        except json.JSONDecodeError as error:
+            logger.debug(f"JSON substring parsing failed: {error}")
 
-#     @property
-#     def tools(self) -> list[BaseTool]:
-#         return self.__tools
+        for resource in resources + ["FINISH"]:
+            if resource.lower() in content.lower():
+                logger.info(f"Fallback to resource name match: {resource}")
+                return {"next": resource}
 
-#     @property
-#     def system_messagels(self) -> str:
-#         return self.__system_message
-
-
-# # from langchain.agents import AgentExecutor, create_openai_tools_agent
-# # from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-# # from langchain_core.tools import BaseTool
-# # from langchain_google_genai import ChatGoogleGenerativeAI
-# # from langchain_openai import ChatOpenAI
-
-
-# # class BaseAgent(AgentExecutor):
-# #     def __init__(
-# #         self,
-# #         llm: ChatGoogleGenerativeAI | ChatOpenAI,
-# #         tools: list[BaseTool],
-# #         system_prompt: str,
-# #     ):
-# #         prompt = ChatPromptTemplate.from_messages(
-# #             [
-# #                 (
-# #                     "system",
-# #                     system_prompt,
-# #                 ),
-# #                 MessagesPlaceholder(variable_name="messages"),
-# #                 MessagesPlaceholder(variable_name="agent_scratchpad"),
-# #             ]
-# #         )
-
-# #         agent = create_openai_tools_agent(llm=llm, tools=tools, prompt=prompt)
-# #         super().__init__(agent=agent, tools=tools, verbose=True)
+        logger.warning(f"Could not parse content, defaulting to FINISH: {content}")
+        return {"next": "FINISH"}

@@ -4,56 +4,91 @@ from typing import Type
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field
 
+from src.layers.core_logic_layer.logging import logger
+
 
 class CreateRandomNumberTool(BaseTool):
     name: str = "create_random_number_tool"
     description: str = """
-    Return a number between 0 and 100.
+    Generates a random number between 1 and 100.
+    Returns:
+        int: The random number.
     """
 
-    def _run(self) -> str:
-        return random.randint(0, 100)
+    def _run(self) -> int:
+        logger.info("Generating random number")
+        result = random.randint(1, 100)
+        logger.info(f"Generated random number: {result}")
+        return result
+
+    async def _arun(self) -> str:
+        return self._run()
 
 
 class ToLowerCaseInput(BaseModel):
     """Input schema for ToLowerCaseTool."""
 
-    input: str = Field(..., description="String to convert to lower case.")
+    text: str = Field(..., description="The string to convert to lowercase.")
 
 
-class ToLowerCaseTool(BaseTool):
-    name: str = "to_lower_case_tool"
+class ConvertToLowerCaseTool(BaseTool):
+    name: str = "convert_to_lower_case_tool"
     description: str = """
-    Return input string to lower case.
+    Converts an input string to lowercase.
+    Returns:
+        str: The lowercase version of the input string
     """
     args_schema: Type[BaseModel] = ToLowerCaseInput
 
-    def _run(self, input: str) -> str:
-        return input.lower()
+    def _run(self, text: str) -> str:
+        logger.info(f"Converting to lowercase: {text}")
+        result = text.lower()
+        logger.info(f"Converted to: {result}")
+        return result
+
+    async def _arun(self, text: str) -> str:
+        return self._run(text)
 
 
-class CountCharsInput(BaseModel):
+class CountStringCharsInput(BaseModel):
     """Input schema for CountCharsTool."""
 
-    input: str = Field(..., description="String to count its chars.")
+    text: str = Field(..., description="The string to count characters for.")
 
 
-class CountCharsTool(BaseTool):
-    name: str = "count_chars_tool"
+class CountStringCharsTool(BaseTool):
+    name: str = "count_string_chars_tool"
     description: str = """
-    Return input string to lower case.
+    Counts the number of characters in a string.
+    Returns:
+        str: The number of characters as a string
     """
-    args_schema: Type[BaseModel] = CountCharsInput
+    args_schema: Type[BaseModel] = CountStringCharsInput
 
-    def _run(self, input: str) -> int:
-        return len(input)
+    def _run(self, text: str) -> str:
+        logger.info(f"Counting characters in: {text}")
+        result = str(len(text))
+        logger.info(f"Character count: {result}")
+        return result
+
+    async def _arun(self, text: str) -> str:
+        return self._run(text)
 
 
-class GetIcarosAgeTool(BaseTool):
-    name: str = "get_icaros_age_tool"
+class CheckStringIsPalindromeTool(BaseTool):
+    name: str = "check_string_is_palindrome_tool"
     description: str = """
-    Return Icaro's age.
+    Checks if string is palindrome.
+    Returns:
+        bool: The assessment if string is palindrome
     """
+    args_schema: Type[BaseModel] = CountStringCharsInput
 
-    def _run(self) -> int:
-        return 36
+    def _run(self, text: str) -> str:
+        logger.info(f"Checking if string is palindrome: {text}")
+        result = text == text[::-1]
+        logger.info(f"Character count: {result}")
+        return result
+
+    async def _arun(self, text: str) -> str:
+        return self._run(text)

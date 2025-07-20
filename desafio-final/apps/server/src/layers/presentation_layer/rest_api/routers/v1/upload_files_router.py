@@ -3,7 +3,6 @@ import os
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, File, Response, UploadFile, status
 
-from src.layers.business_layer.ai_agents.workflows.test_workflow import TestWorkflow
 from src.layers.core_logic_layer.container.container import Container
 from src.layers.core_logic_layer.logging import logger
 from src.layers.presentation_layer.rest_api.schemas.upload_files_schema import (
@@ -25,7 +24,7 @@ async def upload_zip_file(
     response: Response,
     file: UploadFile = File(...),
     config: dict = Depends(Provide[Container.config]),
-    test_workflow: TestWorkflow = Depends(Provide[Container.test_workflow]),
+    # test_workflow: TestWorkflow = Depends(Provide[Container.test_workflow]),
 ):
     if file.content_type != "application/zip":
         message = "Error: Failed to check if Content-Type in request header is "
@@ -42,8 +41,11 @@ async def upload_zip_file(
         content = await file.read()
         with open(file_path, "wb") as f:
             f.write(content)
-        result = await test_workflow.arun(input_message="Give me one random number")
-        print(f"result: {result}")
+        # input_message = """
+        #    Generate a random number"
+        # """
+        # result = await test_workflow.run(input_message=input_message)
+        # logger.info(f"Final output: {result['messages'][-1].content}")
     except Exception as error:
         message = f"Error: Failed to write file {file.filename} in {dir_path}: {error}"
         logger.error(message)
