@@ -2,11 +2,11 @@ from typing import AsyncGenerator
 
 from beanie import Document, init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from src.layers.core_logic_layer.settings.postgresdb_settings import (
+from apps.server.src.layers.core_logic_layer.settings.postgresdb_settings import (
     PostgresDBSettings,
 )
 from src.layers.core_logic_layer.logging import logger
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from src.layers.core_logic_layer.settings.mongodb_settings import MongoDBSettings
 
 
 class PostgresDB:
@@ -57,13 +57,12 @@ class PostgresDB:
                 logger.info("MongoDB database close complete.")
 
     @staticmethod
-    def __create_client(postgresdb_settings: PostgresDBSettings) -> AsyncEngine:
+    def __create_client(mongodb_settings: MongoDBSettings) -> AsyncIOMotorClient:
         return create_async_engine(
-            "postgresql+asyncpg://{username}:{password}@{host}:{port}/{database}".format(
-                username=postgresdb_settings.username,
-                password=postgresdb_settings.password,
-                host=postgresdb_settings.host,
-                port=postgresdb_settings.port,
-                database=postgresdb_settings.database,
+            "mongodb://{username}:{password}@{host}:{port}".format(
+                username=mongodb_settings.username,
+                password=mongodb_settings.password,
+                host=mongodb_settings.host,
+                port=mongodb_settings.port,
             )
         )
