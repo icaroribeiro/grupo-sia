@@ -8,40 +8,40 @@ from src.layers.business_layer.ai_agents.tools.test_tools import (
 )
 
 
-class AssistentAgent_1(BaseAgent):
+class WorkerAgent_1(BaseAgent):
     def __init__(self, llm: BaseChatModel):
         super().__init__(
-            name="Assistant_1",
+            name="worker_1",
             llm=llm,
             tools=[CreateRandomNumberTool()],
             prompt="""
-                You are a helpful assistant tasked with creating random numbers.
+                You are a helpful worker tasked with creating random numbers.
                 Use the CreateRandomNumberTool to generate a random number when requested.
             """,
         )
 
 
-class AssistentAgent_2(BaseAgent):
+class WorkerAgent_2(BaseAgent):
     def __init__(self, llm: BaseChatModel):
         super().__init__(
-            name="Assistant_2",
+            name="worker_2",
             llm=llm,
             tools=[ConvertToLowerCaseTool()],
             prompt="""
-                You are a helpful assistant tasked with converting any string in lowercase.
+                You are a helpful worker tasked with converting any string in lowercase.
                 Use the ConvertToLowerCaseTool to convert text to lowercase when needed.
             """,
         )
 
 
-class AssistentAgent_3(BaseAgent):
+class WorkerAgent_3(BaseAgent):
     def __init__(self, llm: BaseChatModel):
         super().__init__(
-            name="Assistant_3",
+            name="worker_3",
             llm=llm,
             tools=[CheckStringIsPalindromeTool()],
             prompt="""
-                You are a helpful assistant tasked with checking if a string is palindrome.
+                You are a helpful worker tasked with checking if a string is palindrome.
                 Use the CheckStringIsPalindromeTool to check string is palindrome when requested.
             """,
         )

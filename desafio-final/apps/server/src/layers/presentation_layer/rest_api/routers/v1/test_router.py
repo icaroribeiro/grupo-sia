@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Response, status
 #     GetIcarosAgeTool,
 # )
 # from langgraph.prebuilt import create_react_agent
-from src.layers.business_layer.ai_agents.agents.assistant_agents import AssistentAgent_1
+from src.layers.business_layer.ai_agents.agents.worker_agents import WorkerAgent_1
 from src.layers.business_layer.ai_agents.agents.parent_agent_1 import ParentAgent_1
 from src.layers.business_layer.ai_agents.agents.sub_agent_1 import (
     SubAgent_1,
@@ -26,25 +26,23 @@ router = APIRouter()
 async def test_1(
     response: Response,
     config: dict = Depends(Provide[Container.config]),
-    assistant_agent_1: AssistentAgent_1 = Depends(Provide[Container.assistant_agent_1]),
+    worker_agent_1: WorkerAgent_1 = Depends(Provide[Container.worker_agent_1]),
     subgraph_1: Subgraph_1 = Depends(Provide[Container.subgraph_1]),
     # parent_graph: ParentGraph = Depends(Provide[Container.parent_graph]),
 ):
     input_message = """
         Generate a random number"
     """
-    result = await subgraph_1.run(
-        input_message=input_message, next=assistant_agent_1.name
-    )
+    result = await subgraph_1.run(input_message=input_message, next=worker_agent_1.name)
     print(f"Final output: {result['messages'][-1].content}")
 
-    # def assistant(state: SubgraphState):
+    # def worker(state: SubgraphState):
     #     return {
     #         "messages": [
-    #             assistant_agent_1.llm.bind_tools(assistant_agent_1.tools).invoke(
+    #             worker_agent_1.llm.bind_tools(worker_agent_1.tools).invoke(
     #                 [
     #                     """
-    #             You are a helpful assistant tasked with creating random numbers as strings.
+    #             You are a helpful worker tasked with creating random numbers as strings.
     #             Use the CreateRandomNumberTool to generate a random number when requested.
     #         """
     #                 ]
@@ -55,14 +53,14 @@ async def test_1(
 
     # subgraph_builder = StateGraph(state_schema=MessagesState)
     # subgraph_builder.add_node(
-    #     node=assistant_agent_1.name,
-    #     # action=assistant_agent_1.llm.bind_tools(assistant_agent_1.tools),
-    #     action=assistant,
+    #     node=worker_agent_1.name,
+    #     # action=worker_agent_1.llm.bind_tools(worker_agent_1.tools),
+    #     action=worker,
     # )
-    # subgraph_builder.add_node(node="tools", action=ToolNode(assistant_agent_1.tools))
-    # subgraph_builder.set_entry_point(key=assistant_agent_1.name)
-    # subgraph_builder.add_conditional_edges(source=assistant_agent_1.name, path=tools_condition)
-    # subgraph_builder.add_edge("tools", assistant_agent_1.name)
+    # subgraph_builder.add_node(node="tools", action=ToolNode(worker_agent_1.tools))
+    # subgraph_builder.set_entry_point(key=worker_agent_1.name)
+    # subgraph_builder.add_conditional_edges(source=worker_agent_1.name, path=tools_condition)
+    # subgraph_builder.add_edge("tools", worker_agent_1.name)
     # s = subgraph_builder.compile()
     # input_messages = [HumanMessage(content=input_message)]
     # messages = s.invoke({"messages": input_messages})

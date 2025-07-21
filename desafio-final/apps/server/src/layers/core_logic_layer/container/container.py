@@ -4,10 +4,10 @@
 from dependency_injector import containers, providers
 
 # from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from src.layers.business_layer.ai_agents.agents.assistant_agents import (
-    AssistentAgent_1,
-    AssistentAgent_2,
-    AssistentAgent_3,
+from src.layers.business_layer.ai_agents.agents.worker_agents import (
+    WorkerAgent_1,
+    WorkerAgent_2,
+    WorkerAgent_3,
 )
 from src.layers.business_layer.ai_agents.agents.parent_agent_1 import ParentAgent_1
 from src.layers.business_layer.ai_agents.agents.sub_agent_1 import (
@@ -54,25 +54,15 @@ class Container(containers.DeclarativeContainer):
 
     llm = providers.Singleton(LLM, ai_settings=config.ai_settings)
 
-    # assistant_agent_1 = providers.Singleton(
-    #     Agent,
-    #     name="assistant_agent_1",
-    #     prompt="""
-    #     You are a helpful assistant tasked with creating random numbers.
-    #     """,
-    #     llm=llm_resource,
-    #     tools=[CreateRandomNumberTool()],
-    # )
-
-    assistant_agent_1 = providers.Singleton(AssistentAgent_1, llm=llm.provided.llm)
+    worker_agent_1 = providers.Singleton(WorkerAgent_1, llm=llm.provided.llm)
 
     subgraph_1 = providers.Singleton(
-        Subgraph_1, name="Subgraph_1", assistant_agent_1=assistant_agent_1
+        Subgraph_1, name="Subgraph_1", worker_agent_1=worker_agent_1
     )
 
-    assistant_agent_2 = providers.Singleton(AssistentAgent_2, llm=llm.provided.llm)
+    worker_agent_2 = providers.Singleton(WorkerAgent_2, llm=llm.provided.llm)
 
-    assistant_agent_3 = providers.Singleton(AssistentAgent_3, llm=llm.provided.llm)
+    worker_agent_3 = providers.Singleton(WorkerAgent_3, llm=llm.provided.llm)
 
     sub_agent_1 = providers.Singleton(
         SubAgent_1,
@@ -82,8 +72,8 @@ class Container(containers.DeclarativeContainer):
     subgraph_2 = providers.Singleton(
         Subgraph_2,
         name="Subgraph_2",
-        assistant_agent_2=assistant_agent_2,
-        assistant_agent_3=assistant_agent_3,
+        worker_agent_2=worker_agent_2,
+        worker_agent_3=worker_agent_3,
         sub_agent_1=sub_agent_1,
     )
 
@@ -109,7 +99,7 @@ class Container(containers.DeclarativeContainer):
     # test_workflow = providers.Singleton(
     #     TestWorkflow,
     #     name="TestWorkflow",
-    #     assistant_agent_1=assistant_agent_1,
+    #     worker_agent_1=worker_agent_1,
     #     agent2=agent2,
     #     agent3=agent3,
     #     sub_agent_1=sub_agent_1,

@@ -24,18 +24,18 @@ class BaseSubgraph:
         self.name: str = name
         self.__graph: CompiledStateGraph = graph
 
-    def call_node_with_chain(
+    def call_llm_chain(
         self,
         name: str,
         chain: Runnable[dict[str, list[BaseMessage]], dict[str, str]],
     ) -> SubgraphState:
         return functools.partial(
-            self.__call_node_with_chain,
+            self.__call_llm_chain,
             name=name,
             chain=chain,
         )
 
-    def call_assistant_node(
+    def call_llm_with_tools(
         self,
         name: str,
         prompt: str,
@@ -43,15 +43,15 @@ class BaseSubgraph:
         routes_to: str,
     ) -> SubgraphState:
         return functools.partial(
-            self.__call_assistant_node,
+            self.__call_llm_with_tools
             name=name,
             prompt=prompt,
             llm_with_tools=llm_with_tools,
             routes_to=routes_to,
         )
 
-    def call_tool_node(self, routes_to: str) -> str:
-        return functools.partial(self.__call_tool_node, routes_to=routes_to)
+    def call_tools(self, routes_to: str) -> str:
+        return functools.partial(self.__call_tools, routes_to=routes_to)
 
     def route(self, state: SubgraphState) -> str:
         next_agent = state["next"]
@@ -75,20 +75,20 @@ class BaseSubgraph:
         return result
 
     @staticmethod
-    def __call_node_with_chain(
+    def __call_llm_chain(
         state: SubgraphState,
         name: str,
-        chain: Runnable[dict[str, list[BaseMessage]], dict[str, str]],
+        llm_chain: Runnable[dict[str, list[BaseMessage]], dict[str, str]],
     ) -> SubgraphState:
         logger.info(f"Started running {name}...")
         messages = state["messages"]
         logger.info(f"{name} input messages: {messages}")
-        response = chain.invoke({"messages": messages})
+        response = llm_chain.invoke({"messages": messages})
         logger.info(f"{name} response: {response}")
         return {"messages": messages, "next": response["next"]}
 
     @staticmethod
-    def __call_assistant_node(
+    def __call_llm_with_tools(
         state: SubgraphState,
         name: str,
         prompt: str,
@@ -122,7 +122,7 @@ class BaseSubgraph:
         }
 
     @staticmethod
-    def __call_tool_node(
+    def __call_tools(
         state: SubgraphState,
         routes_to: str,
     ) -> str:

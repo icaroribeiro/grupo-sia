@@ -18,11 +18,11 @@ class SubAgent_1(BaseAgent):
             llm=llm,
             tools=[],
             prompt="""
-                You are a sub agent responsible for routing tasks to a assistant agent.
-                Current available assistants: [{assistant_names_str}].
+                You are a sub agent responsible for routing tasks to a worker agent.
+                Current available workers: [{worker_names_str}].
                 
                 Analyze the user request and conversation history to determine 
-                which assistant can handle it best.
+                which worker can handle it best.
                 
                 If the input messages indicate that the task is complete, or if 
                 the state contains 'next': 'FINISH', return {finish_node}.
@@ -36,24 +36,24 @@ class SubAgent_1(BaseAgent):
             """,
         )
 
-    def create_chain(
-        self, assistant_names: list[str]
+    def create_llm_chain(
+        self, worker_names: list[str]
     ) -> Runnable[dict[str, list[BaseMessage]], dict[str, str]]:
-        assistant_names_str = ", ".join(assistant_names)
+        worker_names_str = ", ".join(worker_names)
         finish_node = '{{"next": "FINISH"}}'
         entry_node = (
-            f'{{{{"next": "{assistant_names[0]}"}}}}'
-            if assistant_names
+            f'{{{{"next": "{worker_names[0]}"}}}}'
+            if worker_names
             else '{{"next": "FINISH"}}'
         )
         next_node = '{{"next": "<next_node>"}}'
-        options = str(["FINISH"] + assistant_names)
+        options = str(["FINISH"] + worker_names)
         prompt = ChatPromptTemplate.from_messages(
             [
                 (
                     "system",
                     self.prompt.format(
-                        assistant_names_str=assistant_names_str,
+                        worker_names_str=worker_names_str,
                         finish_node=finish_node,
                         entry_node=entry_node,
                         next_node=next_node,
@@ -71,7 +71,7 @@ class SubAgent_1(BaseAgent):
                 ),
             ]
         ).partial(
-            assistant_names_str=", ".join(assistant_names_str),
+            worker_names_str=", ".join(worker_names_str),
             finish_node=finish_node,
             entry_node=entry_node,
             next_node=next_node,
@@ -81,7 +81,7 @@ class SubAgent_1(BaseAgent):
         # return (
         #     prompt
         #     | self.llm
-        #     | RunnableLambda(lambda x: self.robust_json_parser(x, assistants))
+        #     | RunnableLambda(lambda x: self.robust_json_parser(x, workers))
         # )
-        output_parser = JsonOutputParser(pydantic_object=SubOutput)
-        return (prompt | self.llm | output_parser).with_config({"run_name": self.name})
+        chain = prompt | self.llm | JsonOutputParser(pydantic_object=SubOutput)
+        return chain.with_config(config={"run_name": self.name})

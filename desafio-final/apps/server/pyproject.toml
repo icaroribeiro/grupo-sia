@@ -24,4 +24,7 @@ dependencies = [
     "langchain-community>=0.3.27",
     "ipython>=9.4.0",
     "grandalf>=0.8",
+    "sqlalchemy>=2.0.41",
+    "asyncpg>=0.30.0",
+    "alembic>=1.16.4",
 ]

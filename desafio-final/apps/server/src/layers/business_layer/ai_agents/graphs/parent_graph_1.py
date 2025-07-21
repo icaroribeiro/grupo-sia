@@ -30,9 +30,9 @@ class ParentGraph_1(BaseParentGraph):
         parentgraph_builder = StateGraph(state_schema=ParentGraphState)
         parentgraph_builder.add_node(
             node=parent_agent_1.name,
-            action=self.call_node_with_chain(
+            action=self.call_llm_chain(
                 name=parent_agent_1.name,
-                chain=parent_agent_1.create_chain([subgraph_2.name]),
+                chain=parent_agent_1.create_llm_chain([subgraph_2.name]),
             ),
         )
         parentgraph_builder.add_node(

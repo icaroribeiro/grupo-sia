@@ -15,14 +15,14 @@ class ManagerAgent_1(BaseAgent):
             prompt="""
                 You are a manager tasked with routing user requests to one of the following subgraphs: {subgraphs}.
                 Analyze the user request and conversation history to determine which subgraph can handle it best, or choose 'FINISH' if the task is complete.
-                - Subgraph_2 handles multi-agent tasks with a supervisor, such as complex workflows involving multiple assistants.
+                - Subgraph_2 handles multi-agent tasks with a supervisor, such as complex workflows involving multiple workers.
                 Respond with a JSON object containing a single key 'next' whose value is either a subgraph name or 'FINISH'.
                 Return valid JSON fenced by a markdown code block, e.g., {first_example} or {second_example}.
                 Do not return any additional text.
             """,
         )
 
-    def create_chain(
+    def create_llm_chain(
         self, subgraphs: list[str]
     ) -> Runnable[dict[str, list[BaseMessage]], dict[str, str]]:
         first_example = (

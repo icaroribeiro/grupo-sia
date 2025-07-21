@@ -22,7 +22,7 @@ class ParentAgent_1(BaseAgent):
                 You are a parent agent responsible for routing tasks to a subgraph.
                 Current available subgraphs: [{subgraph_names_str}].
                 - Subgraph_2 handles multi-agent tasks with a supervisor, such as 
-                complex workflows involving multiple assistants.
+                complex workflows involving multiple workers.
                 
                 Analyze the user request and conversation history to determine 
                 which subgraph can handle it best.
@@ -39,7 +39,7 @@ class ParentAgent_1(BaseAgent):
             """,
         )
 
-    def create_chain(
+    def create_llm_chain(
         self, subgraph_names: list[str]
     ) -> Runnable[dict[str, list[BaseMessage]], dict[str, str]]:
         subgraph_names_str = ", ".join(subgraph_names)
@@ -86,5 +86,5 @@ class ParentAgent_1(BaseAgent):
         #     | self.llm
         #     | RunnableLambda(lambda x: self.robust_json_parser(x, subgraph_names))
         # )
-        output_parser = JsonOutputParser(pydantic_object=ParentOutput)
-        return (prompt | self.llm | output_parser).with_config({"run_name": self.name})
+        chain = prompt | self.llm | JsonOutputParser(pydantic_object=ParentOutput)
+        return chain.with_config(config={"run_name": self.name})

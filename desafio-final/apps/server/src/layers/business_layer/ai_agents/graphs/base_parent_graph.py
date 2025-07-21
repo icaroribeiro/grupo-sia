@@ -31,13 +31,13 @@ class BaseParentGraph:
             routes_to=routes_to,
         )
 
-    def call_node_with_chain(
+    def call_llm_chain(
         self,
         name: str,
         chain: Runnable[dict[str, list[BaseMessage]], dict[str, str]],
     ) -> SubgraphState:
         return functools.partial(
-            self.__call_node_with_chain,
+            self.__call_llm_chain,
             name=name,
             chain=chain,
         )
@@ -83,7 +83,7 @@ class BaseParentGraph:
         }
 
     @staticmethod
-    def __call_node_with_chain(
+    def __call_llm_chain(
         state: ParentGraphState,
         name: str,
         chain: Runnable[dict[str, list[BaseMessage]], dict[str, str]],
