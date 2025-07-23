@@ -7,6 +7,7 @@ from src.layers.core_logic_layer.settings import (
     ai_settings,
     app_settings,
     # mongodb_settings,
+    postgresdb_settings,
 )
 
 # from src.layers.data_access_layer.mongodb.documents.invoice_document import (
@@ -56,17 +57,18 @@ class Server:
         # self._container.config.mongodb_beanie_documents.from_value(
         #     [InvoiceDocument, InvoiceItemDocument]
         # )
+        self._container.config.postgresdb_settings.from_value(postgresdb_settings)
         self._container.wire(
             packages=[
                 "src.layers.presentation_layer.rest_api.routers.v1",
             ]
         )
         logger.info("Container resources initiating...")
-        # await self._container.init_resources()
+        await self._container.init_resources()
         logger.info("Application startup complete.")
 
     async def __application_shutdown_handler(self) -> None:
         logger.info("Application shutdown initiating...")
-        # logger.info("Container resources shutting down...")
-        # await self._container.shutdown_resources()
+        logger.info("Container resources shutting down...")
+        await self._container.shutdown_resources()
         logger.info("Application shutdown complete.")

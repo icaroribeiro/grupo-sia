@@ -8,6 +8,9 @@ startup-server-container:
 startup-mongodb-container:
 	docker-compose up --build -d mongodb
 
+startup-postgresdb-container:
+	docker-compose up --build -d postgresdb
+
 shutdown-client-container:
 	docker-compose down -v client
 
@@ -16,3 +19,6 @@ shutdown-server-container:
 
 shutdown-mongodb-container:
 	docker-compose down -v mongodb
+
+shutdown-postgresdb-container:
+	docker-compose down -v postgresdb

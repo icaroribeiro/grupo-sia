@@ -9,6 +9,8 @@ from src.layers.core_logic_layer.settings import mongodb_settings
 
 
 class BaseDocument(Document):
+    """Base class for Beanie documents"""
+
     id: PydanticObjectId = Field(default_factory=ObjectId, alias="_id")
     created_at: datetime = Field(
         default=datetime.now(tz=timezone.utc), alias="data_criacao"
@@ -32,6 +34,7 @@ class BaseDocument(Document):
 
     @staticmethod
     def parse_br_datetime(date_str: str) -> datetime | None:
+        """Parse Brazilian datetime format (DD/MM/YYYY HH:MM:SS)"""
         if not isinstance(date_str, str) or not date_str:
             message = (
                 "Error: Failed to parse Brazilian datetime string with non-string "
@@ -48,6 +51,7 @@ class BaseDocument(Document):
             return None
 
     def parse_br_float(value_str: str) -> float | None:
+        """Parse Brazilian float format (e.g., 1.234,56)"""
         if not isinstance(value_str, str) or not value_str:
             message = "Error: Failed to parse Brazilian float string with non-string "
             "or empty string value"

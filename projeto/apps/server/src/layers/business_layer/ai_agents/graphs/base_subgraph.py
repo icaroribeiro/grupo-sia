@@ -43,7 +43,7 @@ class BaseSubgraph:
         routes_to: str,
     ) -> SubgraphState:
         return functools.partial(
-            self.__call_llm_with_tools
+            self.__call_llm_with_tools,
             name=name,
             prompt=prompt,
             llm_with_tools=llm_with_tools,

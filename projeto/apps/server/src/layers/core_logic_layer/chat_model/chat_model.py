@@ -6,20 +6,20 @@ from src.layers.core_logic_layer.settings.ai_settings import AISettings
 from src.server_error import ServerError
 
 
-class LLM:
+class ChatModel:
     def __init__(self, ai_settings: AISettings):
         self.__llm = self.__create_llm(ai_settings=ai_settings)
 
     @property
     def llm(self) -> ChatOpenAI | ChatGoogleGenerativeAI:
         logger.info("LLM startup initiating...")
-        if self.__llm:
-            message = "Success: LLM startup complete."
-            logger.info(message)
-            return self.__llm
-        message = f"Error: Invalid LLM provider: {self.__provider}"
-        logger.error(message)
-        raise ServerError(message)
+        if not self.__llm:
+            message = f"Error: Invalid LLM provider: {self.__provider}"
+            logger.error(message)
+            raise ServerError(message)
+        message = "Success: LLM startup complete."
+        logger.info(message)
+        return self.__llm
 
     @staticmethod
     def __create_llm(

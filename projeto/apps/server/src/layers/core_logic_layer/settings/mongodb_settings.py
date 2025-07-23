@@ -11,6 +11,7 @@ class MongoDBSettings(BaseSettings):
         env_ignore_extra=True,
     )
 
+    driver: str = Field(default="mongodb")
     username: str = Field(default="mongodbuser")
     password: str = Field(default="mongodbpassword")
     host: str = Field(default="localhost")
