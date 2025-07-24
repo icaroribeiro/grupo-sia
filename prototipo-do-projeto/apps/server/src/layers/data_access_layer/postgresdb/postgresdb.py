@@ -42,6 +42,25 @@ class PostgresDB(SQLDatabase):
             logger.error(message)
             raise Exception(message)
 
+    async def run_async(
+        self, command: str | Any, fetch: str = "all"
+    ) -> str | Sequence[dict[str, Any]]:
+        async with self.__async_sessionmaker() as async_session:
+            result = await async_session.execute(command)
+            if fetch == "all":
+                return [dict(row) for row in result.mappings().all()]
+            elif fetch == "one":
+                return dict(result.mappings().first()) if result.rowcount > 0 else {}
+            return str(result)
+
+    async def close(self):
+        if self._engine is None:
+            raise Exception("")
+        await self._engine.dispose()
+
+        self._engine = None
+        self._sessionmaker = None
+
     @staticmethod
     def __create_engine(postgresdb_settings: PostgresDBSettings) -> Engine:
         return create_engine(
@@ -67,14 +86,3 @@ class PostgresDB(SQLDatabase):
                 database=postgresdb_settings.database,
             )
         )
-
-    async def run_async(
-        self, command: str | Any, fetch: str = "all"
-    ) -> str | Sequence[dict[str, Any]]:
-        async with self.__async_sessionmaker() as async_session:
-            result = await async_session.execute(command)
-            if fetch == "all":
-                return [dict(row) for row in result.mappings().all()]
-            elif fetch == "one":
-                return dict(result.mappings().first()) if result.rowcount > 0 else {}
-            return str(result)

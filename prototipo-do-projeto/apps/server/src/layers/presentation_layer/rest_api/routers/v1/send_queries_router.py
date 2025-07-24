@@ -78,61 +78,19 @@ async def send_query(
     )
     agent = create_react_agent(data_analysis_worker_agent.llm, tools, prompt=prompt)
 
-    input_query = "Bob Johnson is a consumer. Tell me how old is Bob Johnson?"
     result = await agent.ainvoke(
-        {"messages": [{"role": "user", "content": input_query}]}
+        {"messages": [{"role": "user", "content": send_query_request.query}]}
     )
 
-    # Print the result
-    if "output" in result:
-        print(f"Agent response: {result['output']}")
-    else:
-        print("Agent response: No output returned")
-        print(f"Full result: {result}")
-    # Example query
-    # query = "Alice Smith is a consumer. Tell me how old is Alice Smith?"
-    # query = "How many consumer we have in database?"
-    # async for event in agent.astream(
-    #     {"messages": [{"role": "user", "content": input_query}]}
-    # ):
-    #     for key in ["agent", "tools"]:
-    #         if key in event:
-    #             for message in event[key].get("messages", []):
-    #                 if isinstance(message, AIMessage):
-    #                     if message.content:
-    #                         print(f"Agent response: {message.content}")
-    #                     if message.tool_calls:
-    #                         print(f"Tool call: {message.tool_calls}")
-    #                 elif isinstance(message, ToolMessage):
-    #                     print(
-    #                         f"Tool response: {message.content} (Tool: {message.name})"
-    #                     )
-    # llm_with_tools = data_analysis_worker_agent.llm.bind_tools(tools=tools)
+    answer = ""
+    for message in result["messages"]:
+        if isinstance(message, AIMessage):
+            if message.content:
+                print(f"Agent response: {message.content}")
+                answer = message.content
+            if message.tool_calls:
+                print(f"Tool call: {message.tool_calls}")
+        elif isinstance(message, ToolMessage):
+            print(f"Tool response: {message.content} (Tool: {message.name})")
 
-    # messages = [
-    #     SystemMessage(
-    #         content="""
-    #         You are a SQL assistant.
-    #         Use the provided tools to query the database and answer questions.
-    #         Always use tools to get information when needed.
-    #         """
-    #     ),
-    #     HumanMessage(
-    #         content="Alice Smith is a consumer. Tell me how old is Alice Smith?"
-    #     ),
-    # ]
-
-    # response_message = llm_with_tools.invoke(messages)
-
-    # logger.info(f"LLM's direct response message:\n{response_message}\n")
-    # if response_message.tool_calls:
-    #     print("LLM made a tool call! Executing it manually...")
-    #     for tool_call in response_message.tool_calls:
-    #         if tool_call.name == "get_current_time":
-    #             # Extract arguments and call the Python function directly
-    #             tool_output = sql_db_list_tables(**tool_call.args)
-    #             print(f"Tool Name: {tool_call.name}")
-    #             print(f"Tool Arguments: {tool_call.args}")
-    #             print(f"Tool Output: {tool_output}")
-
-    return SendQueryResponse(answer="I have no idea")
+    return SendQueryResponse(answer=answer)

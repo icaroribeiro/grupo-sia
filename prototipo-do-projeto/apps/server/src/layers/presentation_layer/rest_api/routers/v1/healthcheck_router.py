@@ -39,10 +39,10 @@ async def healthcheck(
         for data in result:
             if data[0] == 1:
                 print("funciona!")
-
-                result = await postgresdb_async_session.get(Consumer, 1)
-                # result = await postgresdb_async_session.execute(query)
-                print(result.name)
+                async with postgresdb_async_session as session:
+                    result = await session.get(Consumer, 2)
+                    # result = await postgresdb_async_session.execute(query)
+                    print(result.name)
 
                 healthcheck_response = HealthcheckResponse()
                 return healthcheck_response
