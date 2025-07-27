@@ -15,13 +15,13 @@ from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB
 
 class AsyncSQLDatabaseToolkit(BaseModel):
     def __init__(self, postgresdb: PostgresDB, llm: BaseChatModel):
-        self.__db = postgresdb
+        self.__postgresdb = postgresdb
         self.__llm = llm
 
     def get_tools(self) -> list[BaseTool]:
         return [
-            AsyncQuerySQLDatabaseTool(db=self.__db, llm=self.__llm),
-            InfoSQLDatabaseTool(db=self.__db),
-            ListSQLDatabaseTool(db=self.__db),
-            QuerySQLCheckerTool(db=self.__db, llm=self.__llm),
+            AsyncQuerySQLDatabaseTool(postgresdb=self.__postgresdb, llm=self.__llm),
+            InfoSQLDatabaseTool(db=self.__postgresdb),
+            ListSQLDatabaseTool(db=self.__postgresdb),
+            QuerySQLCheckerTool(db=self.__postgresdb, llm=self.__llm),
         ]

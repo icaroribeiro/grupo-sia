@@ -55,12 +55,12 @@ async def upload_zip_file(
                     "human",
                     """
                     Perform the following tasks:
-                    1. Unzip the file located at '{file_path}' to the directory '{dir_path}/extracted' using the `unzip_file_tool`. 
+                    1. Unzip the file located at '{file_path}' to the directory '{dir_path}/extracted' using the `list_files_from_zip_archive_tool`. 
                     The result is a tuple that contains a message and a list of extracted file paths.
                     
                     2. Map all extracted files from the previous step to a list of ingestion arguments using the `map_files_to_ingestion_args_tool`.
                     The result is a tuple that contains a message and a list of ingestion arguments.
-                    When calling the `map_files_to_ingestion_args_tool`, use the second item from the output of the `unzip_file_tool` tool as the input.
+                    When calling the `map_files_to_ingestion_args_tool`, use the second item from the output of the `list_files_from_zip_archive_tool` tool as the input.
         
                     3. List SQLAlchemy model classes from the previous step using the `map_ingestion_args_to_models_tool`.
                     The result is a tuple that contains a message and a list of ingestion arguments.

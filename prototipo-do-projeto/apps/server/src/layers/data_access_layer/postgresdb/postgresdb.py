@@ -16,6 +16,7 @@ from langchain_community.utilities.sql_database import SQLDatabase
 
 class PostgresDB(SQLDatabase):
     def __init__(self, postgresdb_settings: PostgresDBSettings):
+        print(f"postgresdb_settings: {postgresdb_settings}")
         self.__sync_engine = self.__create_engine(
             postgresdb_settings=postgresdb_settings
         )

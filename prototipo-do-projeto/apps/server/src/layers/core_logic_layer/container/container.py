@@ -4,16 +4,24 @@
 from typing import AsyncGenerator
 from dependency_injector import containers, providers
 from sqlalchemy.ext.asyncio import AsyncSession
+from src.layers.business_layer.ai_agents.agents.data_analysis_agent import (
+    DataAnalysisAgent,
+)
 from src.layers.business_layer.ai_agents.agents.data_ingestion_agent import (
     DataIngestionAgent,
 )
-from src.layers.business_layer.ai_agents.tools.map_ingestion_args_to_models_tool import (
-    MapIngestionArgsToModelDictTool,
+from src.layers.business_layer.ai_agents.toolkits.async_sql_database_toolkit import (
+    AsyncSQLDatabaseToolkit,
 )
 from src.layers.business_layer.ai_agents.tools.map_files_to_ingestion_args_tool import (
     MapFilesToIngestionArgsTool,
 )
-from src.layers.business_layer.ai_agents.tools.unzip_file_tool import UnzipFileTool
+from src.layers.business_layer.ai_agents.tools.list_files_from_zip_archive_tool import (
+    ListFilesFromZipArchiveTool,
+)
+from src.layers.business_layer.ai_agents.tools.map_ingestion_args_to_models_tool import (
+    MapIngestionArgsToModelsTool,
+)
 from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB
 
 # from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
@@ -82,20 +90,29 @@ class Container(containers.DeclarativeContainer):
 
     chat_model = providers.Singleton(ChatModel, ai_settings=config.ai_settings)
 
-    unzip_file_tool = providers.Singleton(UnzipFileTool)
-
+    list_files_from_zip_archive_tool = providers.Singleton(ListFilesFromZipArchiveTool)
     map_files_to_ingestion_args_list = providers.Singleton(MapFilesToIngestionArgsTool)
-
-    list_models_from_file = providers.Singleton(MapIngestionArgsToModelDictTool)
-
+    list_models_from_file = providers.Singleton(MapIngestionArgsToModelsTool)
     data_ingestion_agent = providers.Singleton(
         DataIngestionAgent,
         llm=chat_model.provided.llm,
         tools=[
-            unzip_file_tool(),
+            list_files_from_zip_archive_tool(),
             map_files_to_ingestion_args_list(),
             list_models_from_file(),
         ],
+    )
+
+    async_sql_database_toolkit = providers.Singleton(
+        AsyncSQLDatabaseToolkit,
+        postgresdb=postgresdb,
+        llm=chat_model.provided.llm,
+    )
+
+    data_analysis_agent = providers.Singleton(
+        DataAnalysisAgent,
+        llm=chat_model.provided.llm,
+        tools=async_sql_database_toolkit.provided.get_tools.call(),
     )
 
     # worker_agent_1 = providers.Singleton(WorkerAgent_1, llm=llm.provided.llm)

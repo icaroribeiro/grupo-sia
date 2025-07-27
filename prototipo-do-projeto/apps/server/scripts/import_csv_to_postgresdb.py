@@ -1,86 +1,88 @@
 import asyncio
 import os
 
+from typing import Tuple
 
-from src.layers.business_layer.ai_agents.tools.insert_records_to_postgresdb_tool import (
-    InsertRecordsToPostgresDBTool,
+
+from src.layers.business_layer.ai_agents.models.tool_output import ToolOutput
+from src.layers.core_logic_layer.logging import logger
+
+from src.layers.business_layer.ai_agents.models.invoice_ingestion_args import (
+    InvoiceIngestionArgs,
+)
+from src.layers.business_layer.ai_agents.models.invoice_item_ingestion_args import (
+    InvoiceItemIngestionArgs,
+)
+
+from src.layers.business_layer.ai_agents.tools.insert_models_into_postgresdb_tool import (
+    InsertModelsIntoPostgresDBTool,
 )
 from src.layers.business_layer.ai_agents.tools.map_ingestion_args_to_models_tool import (
-    MapIngestionArgsToModelDictTool,
+    MapIngestionArgsToModelsTool,
 )
 from src.layers.business_layer.ai_agents.tools.map_files_to_ingestion_args_tool import (
     MapFilesToIngestionArgsTool,
 )
-from src.layers.business_layer.ai_agents.tools.unzip_file_tool import UnzipFileTool
-from src.layers.core_logic_layer.logging import logger
+from src.layers.business_layer.ai_agents.tools.list_files_from_zip_archive_tool import (
+    ListFilesFromZipArchiveTool,
+)
 from src.layers.core_logic_layer.settings import app_settings
+from src.layers.core_logic_layer.settings.postgresdb_settings import PostgresDBSettings
+from src.layers.data_access_layer.postgresdb.models.invoice_item_model import (
+    InvoiceItemModel,
+)
+from src.layers.data_access_layer.postgresdb.models.invoice_model import InvoiceModel
+from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB
 
 
 async def main() -> None:
-    logger.info("Started importing CSV files to PostgresDB...")
+    logger.info("Importing CSV files to PostgresDB has started...")
 
     dir_path = app_settings.imports_data_dir_path
     file_path = os.path.join(dir_path, "200001_NFe.zip")
     extracted_data_dir_path = os.path.join(dir_path, "extracted")
-    unzip_file_tool = UnzipFileTool()
-    (message, result) = unzip_file_tool._run(
+    list_files_from_zip_archive_tool = ListFilesFromZipArchiveTool()
+    tool_output: ToolOutput = list_files_from_zip_archive_tool._run(
         file_path=file_path, destionation_dir_path=extracted_data_dir_path
     )
-    extracted_file_paths: list[str] = list()
-    if result is None:
-        raise Exception(message)
-    extracted_file_paths = result
-
-    # mongodb_uri_template = "mongodb://{username}:{password}@{host}:{port}"
-    # mongodb_uri = mongodb_uri_template.format(
-    #     username=quote(mongodb_settings.username),
-    #     password=quote(mongodb_settings.password),
-    #     host=mongodb_settings.host,
-    #     port=mongodb_settings.port,
-    # )
-    # connect_to_mongodb_tool = ConnectToMongoDBTool()
-    # (message, result) = await connect_to_mongodb_tool._arun(
-    #     uri=mongodb_uri,
-    #     database_name=mongodb_settings.database,
-    #     documents=[InvoiceDocument, InvoiceItemDocument],
-    # )
-    # database: AsyncIOMotorDatabase | None = None
-    # if result is None:
-    #     raise Exception(message)
-    # database = result
+    if tool_output.result is None:
+        logger.error(tool_output.message)
+        return
+    extracted_file_paths: list[str] = tool_output.result
 
     map_files_to_ingestion_args_tool = MapFilesToIngestionArgsTool()
-    (message, result) = map_files_to_ingestion_args_tool._run(
+    tool_output: ToolOutput = map_files_to_ingestion_args_tool._run(
         file_paths=extracted_file_paths
     )
-    if result is None:
-        raise Exception(message)
-    ingestion_args_list = result
+    if tool_output.result is None:
+        logger.error(tool_output.message)
+        return
+    ingestion_args_dict: dict[
+        Tuple[int, str], list[InvoiceIngestionArgs, InvoiceItemIngestionArgs]
+    ] = tool_output.result
 
-    map_ingestion_args_to_models_tool = MapIngestionArgsToModelDictTool()
-    (message, result) = map_ingestion_args_to_models_tool._run(
-        ingestion_args_list=ingestion_args_list
+    map_ingestion_args_to_models_tool = MapIngestionArgsToModelsTool()
+    tool_output: ToolOutput = map_ingestion_args_to_models_tool._run(
+        ingestion_args_dict=ingestion_args_dict
     )
-    if result is None:
-        raise Exception(message)
-    print(f"result: {result}")
-    # document_class_name = ingestion_args.document_class.Settings.name
-    # if documents_map.get(document_class_name, None) is None:
-    #     documents_map[document_class_name] = result
-    # else:
-    #     documents_map[document_class_name] += result
-
-    insert_records_to_postgresdb_tool = InsertRecordsToPostgresDBTool()
-    (message, result) = await insert_records_to_postgresdb_tool._arun(
-        model_classes=result
+    if tool_output.result is None:
+        logger.error(tool_output.message)
+        return
+    models_dict: dict[Tuple[int, str], list[InvoiceModel | InvoiceItemModel]] = (
+        tool_output.result
     )
-    if result is None:
-        raise Exception(message)
 
-    # disconnect_from_mongodb_tool = DisconnectFromMongoDBTool()
-    # (message, result) = disconnect_from_mongodb_tool._run(database=database)
-    # if "Error" in message:
-    #     raise Exception(message)
+    postgresdb_settings = PostgresDBSettings()
+    postgresdb = PostgresDB(postgresdb_settings=postgresdb_settings)
+    insert_models_into_postgresdb_tool = InsertModelsIntoPostgresDBTool(
+        postgresdb=postgresdb
+    )
+    tool_output: ToolOutput = await insert_models_into_postgresdb_tool._arun(
+        models_dict=models_dict
+    )
+    if tool_output.result is None:
+        logger.error(tool_output.message)
+        return
 
 
 if __name__ == "__main__":

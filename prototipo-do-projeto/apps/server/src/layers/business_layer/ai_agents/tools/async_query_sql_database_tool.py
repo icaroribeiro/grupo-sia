@@ -1,26 +1,26 @@
-from fastapi import Depends
 from sqlalchemy import text
-from dependency_injector.wiring import Provide, inject
 from langchain_community.tools.sql_database.tool import QuerySQLDatabaseTool
-from langchain_core.language_models import BaseLanguageModel
-from src.layers.core_logic_layer.container.container import Container
 from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB
+from langchain_core.language_models import BaseChatModel
+from src.layers.core_logic_layer.logging import logger
 
 
 class AsyncQuerySQLDatabaseTool(QuerySQLDatabaseTool):
-    @inject
     def __init__(
         self,
-        db: PostgresDB = Depends(Provide[Container.postgresdb]),
-        llm: BaseLanguageModel = None,
+        postgresdb: PostgresDB,
+        llm: BaseChatModel = None,
     ):
-        super().__init__(db=db, llm=llm)
-        self.db = db
+        super().__init__(db=postgresdb, llm=llm)
+        self.name = "async_query_sql_database_tool"
+        self.db = postgresdb
 
     async def _arun(self, query: str) -> str:
+        logger.info("The AsyncQuerySQLDatabaseTool call has started...")
         try:
-            async with self.db.async_session() as session:
-                result = await session.execute(text(query))
+            async with self.db.async_session() as async_session:
+                result = await async_session.execute(text(query))
+                logger.info("The AsyncQuerySQLDatabaseTool has finished.")
                 return str([dict(row) for row in result.mappings().all()])
         except Exception as e:
             return f"Error: {str(e)}"

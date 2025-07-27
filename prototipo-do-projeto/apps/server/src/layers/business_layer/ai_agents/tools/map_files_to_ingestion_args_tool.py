@@ -4,6 +4,7 @@ from typing import Tuple
 
 from langchain_core.tools import BaseTool
 
+from src.layers.business_layer.ai_agents.models.tool_output import ToolOutput
 from src.layers.core_logic_layer.logging import logger
 
 from pydantic import BaseModel, Field
@@ -23,28 +24,21 @@ from src.layers.data_access_layer.postgresdb.models.invoice_model import Invoice
 class MapFilesToIngestionArgsInput(BaseModel):
     """Input schema for MapFilesToIngestionArgsTool."""
 
-    file_paths: list[str] = Field(..., description="Paths to the ZIP file.")
+    file_paths: list[str] = Field(..., description="Paths to the CSV files.")
 
 
 class MapFilesToIngestionArgsTool(BaseTool):
     name: str = "map_files_to_ingestion_args_tool"
     description: str = """
-    Map CSV files to a dictionary of ingestion arguments.
+    Map CSV files to a dictionary of lists of ingestion arguments.
     Returns:
-        Tuple[str, dict[Tuple[int, str], list[InvoiceIngestionArgs | InvoiceItemIngestionArgs]] | None]:
-        A string for status message indicating success or failure along with the map of 
-        ingestion arguments on success or 'None' on failure.
+        ToolOutput: An object containing a status message indicating success, warning or failure
+        (string) and result (a dictionary of lists of ingestion arguments on success or None on failure).
     """
     args_schema: Type[BaseModel] = MapFilesToIngestionArgsInput
 
-    def _run(
-        self, file_paths: list[str]
-    ) -> Tuple[
-        str,
-        dict[Tuple[int, str], list[InvoiceIngestionArgs | InvoiceItemIngestionArgs]]
-        | None,
-    ]:
-        logger.info("The MapFilesToIngestionArgsTool call started initiating...")
+    def _run(self, file_paths: list[str]) -> ToolOutput:
+        logger.info("The MapFilesToIngestionArgsTool call has started...")
         suffix_to_args: dict[
             Tuple[int, str], list[InvoiceIngestionArgs | InvoiceItemIngestionArgs]
         ] = {
@@ -59,6 +53,9 @@ class MapFilesToIngestionArgsTool(BaseTool):
                 matched = False
                 file_name = os.path.basename(file_path)
                 for tuple_, args_class in suffix_to_args.items():
+                    if ingestion_args_dict.get(tuple_) is None:
+                        ingestion_args_dict[tuple_] = list()
+
                     if re.match(rf"\d{{6}}_{tuple_[1]}\.csv$", file_name):
                         model_class: InvoiceModel | InvoiceItemModel
                         match tuple_[1]:
@@ -70,7 +67,7 @@ class MapFilesToIngestionArgsTool(BaseTool):
                                 matched = True
                             case _:
                                 continue
-                        ingestion_args_dict[tuple_[0]].append(
+                        ingestion_args_dict[tuple_].append(
                             args_class(file_path=file_path, model_class=model_class)
                         )
                         break
@@ -82,17 +79,12 @@ class MapFilesToIngestionArgsTool(BaseTool):
                     logger.warning(message)
             message = f"Success: Files {file_paths} mapped to ingestion arguments list"
             logger.info(message)
-            return (message, ingestion_args_dict)
+            logger.info("The MapFilesToIngestionArgsTool call has finished.")
+            return ToolOutput(message=message, result=ingestion_args_dict)
         except Exception as error:
-            message = f"Error: Failed to map files to ingestion arguments list: {error}"
+            message = f"Error: Failed to map files {file_paths} to ingestion arguments dict: {error}"
             logger.error(message)
-            return (message, None)
+            return ToolOutput(message=message, result=None)
 
-    async def _arun(
-        self, file_paths: list[str]
-    ) -> Tuple[
-        str,
-        dict[Tuple[int, str], list[InvoiceIngestionArgs | InvoiceItemIngestionArgs]]
-        | None,
-    ]:
+    async def _arun(self, file_paths: list[str]) -> ToolOutput:
         return self._run(file_paths=file_paths)

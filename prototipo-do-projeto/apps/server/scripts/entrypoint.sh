@@ -3,10 +3,10 @@ set -e # Exit immediately if a command exits with a non-zero status
 
 echo "Starting container entrypoint..."
 
-echo "Initiating Mongo database..."
-uv run scripts/init_mongodb.py
+echo "Migrate Postgres database..."
+uv run scripts/migrate_postgresdb.py
 
-echo "Running server application..."
+echo "Run Server application..."
 uv run scripts/run_server.py
 
 echo "All scripts finished."
