@@ -18,7 +18,7 @@ from src.layers.business_layer.ai_agents.tools.insert_to_mongodb_tool import (
 from src.layers.business_layer.ai_agents.tools.list_documents_from_csv_tool import (
     ListDocumentsFromCSVTool,
 )
-from src.layers.business_layer.ai_agents.tools.map_csv_to_ingestion_args_tool import (
+from src.layers.business_layer.ai_agents.tools.map_files_to_ingestion_args_tool import (
     MapCSVToIngestionArgsTool,
 )
 from src.layers.business_layer.ai_agents.tools.unzip_file_tool import UnzipFileTool
@@ -65,8 +65,8 @@ async def main() -> None:
     database = result
 
     documents_map: dict[str, list[Document]] = dict()
-    map_csv_to_ingestion_args_tool = MapCSVToIngestionArgsTool()
-    (message, result) = map_csv_to_ingestion_args_tool._run(
+    map_files_to_ingestion_args_tool = MapCSVToIngestionArgsTool()
+    (message, result) = map_files_to_ingestion_args_tool._run(
         file_paths=extracted_file_paths
     )
     if result is None:

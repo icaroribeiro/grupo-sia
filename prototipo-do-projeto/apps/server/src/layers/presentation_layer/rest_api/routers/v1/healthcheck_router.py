@@ -1,11 +1,8 @@
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, Response, status
-# from motor.motor_asyncio import AsyncIOMotorClient
-
 from src.layers.core_logic_layer.container.container import Container
 from sqlalchemy import text
 from src.layers.core_logic_layer.logging import logger
-from src.layers.data_access_layer.postgresdb.models.consumer_model import Consumer
 from src.layers.presentation_layer.rest_api.schemas.healthcheck_schema import (
     HealthcheckResponse,
 )
@@ -23,29 +20,17 @@ router = APIRouter()
 @inject
 async def healthcheck(
     response: Response,
-    # mongodb_client_resource: AsyncIOMotorClient = Depends(
-    #     Provide[Container.mongodb_client_resource]
-    # ),
     postgresdb_async_session: AsyncSession = Depends(
         Provide[Container.postgresdb_async_session]
     ),
 ):
     healthcheck_response: HealthcheckResponse
     try:
-        print("AAAAAAAA")
-        # await mongodb_client_resource["admin"].command("ping")
-        result = await postgresdb_async_session.execute(statement=text("""SELECT 1"""))
-        print(f"result: {result}")
-        for data in result:
-            if data[0] == 1:
-                print("funciona!")
-                async with postgresdb_async_session as session:
-                    result = await session.get(Consumer, 2)
-                    # result = await postgresdb_async_session.execute(query)
-                    print(result.name)
-
-                healthcheck_response = HealthcheckResponse()
-                return healthcheck_response
+        async with postgresdb_async_session as async_session:
+            sql_statement = text("""SELECT 1""")
+            await async_session.execute(statement=sql_statement)
+            healthcheck_response = HealthcheckResponse()
+            return healthcheck_response
     except Exception as error:
         message = f"Error: Failed to check if application is healthy: {error}"
         logger.error(message)

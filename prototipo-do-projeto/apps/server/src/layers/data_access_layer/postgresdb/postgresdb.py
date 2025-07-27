@@ -31,14 +31,31 @@ class PostgresDB(SQLDatabase):
 
     @asynccontextmanager
     async def async_session(self) -> AsyncGenerator[AsyncSession, None]:
-        logger.info("PostgresDB async session startup initiating...")
+        logger.info("PostgresDB async session establishment initiating...")
         try:
             async with self.__async_sessionmaker() as async_session:
-                message = "Success: PostgresDB async session startup complete."
+                message = "Success: PostgresDB async session establishment complete."
                 logger.info(message)
                 yield async_session
         except Exception as error:
-            message = f"Error: Failed to initiate PostgresDB async session: {error}"
+            message = f"Error: Failed to establish PostgresDB async session: {error}"
+            logger.error(message)
+            raise Exception(message)
+
+    async def close(self):
+        logger.info("PostgresDB closure initiating...")
+        try:
+            self.__sync_engine.dispose()
+            self.__sync_engine = None
+            async with self.async_session() as session:
+                await session.close()
+            await self.__async_engine.dispose()
+            self.__async_engine = None
+            self.__async_sessionmaker = None
+            message = "Success: PostgresDB closure complete."
+            logger.info(message)
+        except Exception as error:
+            message = f"Error: Failed to close PostgresDB: {error}"
             logger.error(message)
             raise Exception(message)
 
@@ -52,14 +69,6 @@ class PostgresDB(SQLDatabase):
             elif fetch == "one":
                 return dict(result.mappings().first()) if result.rowcount > 0 else {}
             return str(result)
-
-    async def close(self):
-        if self._engine is None:
-            raise Exception("")
-        await self._engine.dispose()
-
-        self._engine = None
-        self._sessionmaker = None
 
     @staticmethod
     def __create_engine(postgresdb_settings: PostgresDBSettings) -> Engine:

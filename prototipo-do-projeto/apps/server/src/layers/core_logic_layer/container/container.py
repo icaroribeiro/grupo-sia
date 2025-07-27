@@ -4,9 +4,16 @@
 from typing import AsyncGenerator
 from dependency_injector import containers, providers
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.layers.business_layer.ai_agents.agents.data_analysis_worker_agent import (
-    DataAnalysisWorkerAgent,
+from src.layers.business_layer.ai_agents.agents.data_ingestion_agent import (
+    DataIngestionAgent,
 )
+from src.layers.business_layer.ai_agents.tools.map_ingestion_args_to_models_tool import (
+    MapIngestionArgsToModelDictTool,
+)
+from src.layers.business_layer.ai_agents.tools.map_files_to_ingestion_args_tool import (
+    MapFilesToIngestionArgsTool,
+)
+from src.layers.business_layer.ai_agents.tools.unzip_file_tool import UnzipFileTool
 from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB
 
 # from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
@@ -75,8 +82,20 @@ class Container(containers.DeclarativeContainer):
 
     chat_model = providers.Singleton(ChatModel, ai_settings=config.ai_settings)
 
-    data_analysis_worker_agent = providers.Singleton(
-        DataAnalysisWorkerAgent, llm=chat_model.provided.llm
+    unzip_file_tool = providers.Singleton(UnzipFileTool)
+
+    map_files_to_ingestion_args_list = providers.Singleton(MapFilesToIngestionArgsTool)
+
+    list_models_from_file = providers.Singleton(MapIngestionArgsToModelDictTool)
+
+    data_ingestion_agent = providers.Singleton(
+        DataIngestionAgent,
+        llm=chat_model.provided.llm,
+        tools=[
+            unzip_file_tool(),
+            map_files_to_ingestion_args_list(),
+            list_models_from_file(),
+        ],
     )
 
     # worker_agent_1 = providers.Singleton(WorkerAgent_1, llm=llm.provided.llm)

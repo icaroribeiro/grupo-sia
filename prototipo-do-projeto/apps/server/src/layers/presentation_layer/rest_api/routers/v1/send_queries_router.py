@@ -1,17 +1,11 @@
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, Response, status
-from langchain_core.prompts import ChatPromptTemplate
 from src.layers.core_logic_layer.logging import logger
-from langchain_core.prompts import MessagesPlaceholder
 from langchain_core.messages import AIMessage, ToolMessage  # noqa: F401
 
 # from src.layers.business_layer.ai_agents.tools.test_tools import (
 #     GetIcarosAgeTool,
 # )
-from langgraph.prebuilt import create_react_agent
-from src.layers.business_layer.ai_agents.toolkits.async_sql_database_toolkit import (
-    AsyncSQLDatabaseToolkit,
-)
 from src.layers.core_logic_layer.container.container import Container
 from src.layers.presentation_layer.rest_api.schemas.send_queries_schema import (
     SendQueryRequest,
@@ -20,9 +14,6 @@ from src.layers.presentation_layer.rest_api.schemas.send_queries_schema import (
 # from typing import AsyncGenerator
 
 # from beanie import Document
-from src.layers.business_layer.ai_agents.agents.data_analysis_worker_agent import (
-    DataAnalysisWorkerAgent,
-)
 from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB
 # from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 # from src.layers.business_layer.ai_agents.agents.worker_agents import (
@@ -55,42 +46,39 @@ async def send_query(
     send_query_request: SendQueryRequest,
     config: dict = Depends(Provide[Container.config]),
     postgresdb: PostgresDB = Depends(Provide[Container.postgresdb]),
-    data_analysis_worker_agent: DataAnalysisWorkerAgent = Depends(
-        Provide[Container.data_analysis_worker_agent]
-    ),
 ):
     logger.info(f"send_query_request.query: {send_query_request.query}")
 
-    toolkit = AsyncSQLDatabaseToolkit(
-        postgresdb=postgresdb, llm=data_analysis_worker_agent.llm
-    )
-    tools = toolkit.get_tools()
+    # toolkit = AsyncSQLDatabaseToolkit(
+    #     postgresdb=postgresdb, llm=data_analysis_worker_agent.llm
+    # )
+    # tools = toolkit.get_tools()
 
-    # Create LangGraph agent
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                "You are a SQL assistant. Use the provided tools to query the database and answer questions.",
-            ),
-            MessagesPlaceholder(variable_name="messages"),  # Use messages from state
-        ]
-    )
-    agent = create_react_agent(data_analysis_worker_agent.llm, tools, prompt=prompt)
+    # # Create LangGraph agent
+    # prompt = ChatPromptTemplate.from_messages(
+    #     [
+    #         (
+    #             "system",
+    #             "You are a SQL assistant. Use the provided tools to query the database and answer questions.",
+    #         ),
+    #         MessagesPlaceholder(variable_name="messages"),  # Use messages from state
+    #     ]
+    # )
+    # agent = create_react_agent(data_analysis_worker_agent.llm, tools, prompt=prompt)
 
-    result = await agent.ainvoke(
-        {"messages": [{"role": "user", "content": send_query_request.query}]}
-    )
+    # result = await agent.ainvoke(
+    #     {"messages": [{"role": "user", "content": send_query_request.query}]}
+    # )
 
     answer = ""
-    for message in result["messages"]:
-        if isinstance(message, AIMessage):
-            if message.content:
-                print(f"Agent response: {message.content}")
-                answer = message.content
-            if message.tool_calls:
-                print(f"Tool call: {message.tool_calls}")
-        elif isinstance(message, ToolMessage):
-            print(f"Tool response: {message.content} (Tool: {message.name})")
+    # for message in result["messages"]:
+    #     if isinstance(message, AIMessage):
+    #         if message.content:
+    #             print(f"Agent response: {message.content}")
+    #             answer = message.content
+    #         if message.tool_calls:
+    #             print(f"Tool call: {message.tool_calls}")
+    #     elif isinstance(message, ToolMessage):
+    #         print(f"Tool response: {message.content} (Tool: {message.name})")
 
     return SendQueryResponse(answer=answer)

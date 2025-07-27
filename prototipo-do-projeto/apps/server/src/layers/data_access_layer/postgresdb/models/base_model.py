@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
-
-# from sqlalchemy import DateTime, func
+import uuid
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import DateTime, func
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from src.layers.core_logic_layer.logging import logger
@@ -12,22 +13,22 @@ class BaseModel(AsyncAttrs, DeclarativeBase):
 
     __abstract__ = True
 
-    id: Mapped[int] = mapped_column(primary_key=True, name="id")
-    # created_at: Mapped[datetime] = mapped_column(
-    #     DateTime(timezone=True),
-    #     nullable=False,
-    #     default=func.now(),
-    #     server_default=func.now(),
-    #     name="data_criacao",
-    # )
-    # updated_at: Mapped[datetime] = mapped_column(
-    #     DateTime(timezone=True),
-    #     nullable=False,
-    #     default=func.now(),
-    #     server_default=func.now(),
-    #     onupdate=func.now(),
-    #     name="data_atualizacao",
-    # )
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, name="id"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=func.now(),
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=func.now(),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
 
     async def pre_save(self, session: AsyncSession) -> None:
         """Update timestamp before saving"""

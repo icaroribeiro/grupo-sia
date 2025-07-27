@@ -1,11 +1,7 @@
 from typing import Type
-
-from beanie import Document
 from pydantic import BaseModel, Field
 
-from src.layers.data_access_layer.mongodb.documents.invoice_document import (
-    InvoiceDocument,
-)
+from src.layers.data_access_layer.postgresdb.models.invoice_model import InvoiceModel
 
 
 class InvoiceIngestionArgs(BaseModel):
@@ -13,6 +9,6 @@ class InvoiceIngestionArgs(BaseModel):
         ...,
         description="Path to the CSV file (format: YYYYMM_NFe_NotaFiscal.csv)",
     )
-    document_class: Type[Document] = Field(
-        default=InvoiceDocument, description="Beanie document class (Invoice)"
+    model_class: Type[InvoiceModel] = Field(
+        default=InvoiceModel, description="SQLAlchemy InvoiceModel class."
     )

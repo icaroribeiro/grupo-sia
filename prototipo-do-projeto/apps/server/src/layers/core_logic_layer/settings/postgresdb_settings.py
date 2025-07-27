@@ -11,7 +11,7 @@ class PostgresDBSettings(BaseSettings):
         env_ignore_extra=True,
     )
 
-    driver: str = Field(default="postgresql+asyncpg")
+    driver: str = Field(default="postgresql")
     username: str = Field(default="postgresdbuser")
     password: str = Field(default="postgresdbpassword")
     host: str = Field(default="localhost")
