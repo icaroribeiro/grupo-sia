@@ -1,22 +1,23 @@
 from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator, Sequence
 
+from langchain_community.utilities.sql_database import SQLDatabase
+from sqlalchemy import URL, Engine, create_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+
+from src.layers.core_logic_layer.logging import logger
 from src.layers.core_logic_layer.settings.postgresdb_settings import (
     PostgresDBSettings,
 )
 
-from src.layers.core_logic_layer.logging import logger
-from sqlalchemy import URL, Engine
-from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine
-from sqlalchemy.ext.asyncio import async_sessionmaker
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy import create_engine
-from langchain_community.utilities.sql_database import SQLDatabase
-
 
 class PostgresDB(SQLDatabase):
     def __init__(self, postgresdb_settings: PostgresDBSettings):
-        print(f"postgresdb_settings: {postgresdb_settings}")
         self.__sync_engine = self.__create_engine(
             postgresdb_settings=postgresdb_settings
         )

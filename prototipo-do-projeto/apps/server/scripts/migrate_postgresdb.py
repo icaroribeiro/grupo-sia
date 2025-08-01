@@ -2,6 +2,7 @@ import asyncio
 import os
 
 from sqlalchemy import text
+
 from src.layers.core_logic_layer.logging import logger
 from src.layers.core_logic_layer.settings.postgresdb_settings import PostgresDBSettings
 from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB

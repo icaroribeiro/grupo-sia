@@ -1,8 +1,7 @@
 from langchain_core.language_models import BaseChatModel
-
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import BaseTool
 from langgraph.prebuilt import create_react_agent
-from langchain_core.prompts import ChatPromptTemplate
 
 
 class DataAnalysisAgent:

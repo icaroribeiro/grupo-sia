@@ -1,12 +1,11 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.layers.data_access_layer.postgresdb.models.base_model import BaseModel
-from typing import Any
-from sqlalchemy import UniqueConstraint
 
 
 class InvoiceItemModel(BaseModel):

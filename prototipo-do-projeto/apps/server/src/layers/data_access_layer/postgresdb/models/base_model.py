@@ -1,11 +1,12 @@
-from datetime import datetime, timezone
 import uuid
-from sqlalchemy.dialects.postgresql import UUID
+from datetime import datetime, timezone
+
 from sqlalchemy import DateTime, func
-from sqlalchemy.ext.asyncio import AsyncAttrs
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
 from src.layers.core_logic_layer.logging import logger
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class BaseModel(AsyncAttrs, DeclarativeBase):

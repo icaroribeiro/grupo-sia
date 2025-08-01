@@ -2,8 +2,10 @@
 
 # from beanie import Document
 from typing import AsyncGenerator
+
 from dependency_injector import containers, providers
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.layers.business_layer.ai_agents.agents.data_analysis_agent import (
     DataAnalysisAgent,
 )
@@ -13,17 +15,19 @@ from src.layers.business_layer.ai_agents.agents.data_ingestion_agent import (
 from src.layers.business_layer.ai_agents.toolkits.async_sql_database_toolkit import (
     AsyncSQLDatabaseToolkit,
 )
-from src.layers.business_layer.ai_agents.tools.map_files_to_ingestion_args_tool import (
-    MapFilesToIngestionArgsTool,
-)
-from src.layers.business_layer.ai_agents.tools.list_files_from_zip_archive_tool import (
-    ListFilesFromZipArchiveTool,
-)
-from src.layers.business_layer.ai_agents.tools.map_ingestion_args_to_models_tool import (
-    MapIngestionArgsToModelsTool,
-)
-from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB
 
+# from src.layers.business_layer.ai_agents.tools.insert_records_into_database_tool import (
+#     InsertRecordsIntoDatabaseTool,
+# )
+# from src.layers.business_layer.ai_agents.tools.map_csvs_to_ingestion_args_tool import (
+#     MapCSVsToIngestionArgsTool,
+# )
+# from src.layers.business_layer.ai_agents.tools.map_ingestion_args_to_db_models_tool import (
+#     MapIngestionArgsToDBModelsTool,
+# )
+# from src.layers.business_layer.ai_agents.tools.unzip_files_from_zip_archive_tool import (
+#     UnzipFilesFromZipArchiveTool,
+# )
 # from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 # from src.layers.business_layer.ai_agents.agents.worker_agents import (
 #     WorkerAgent_1,
@@ -37,41 +41,23 @@ from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB
 # from src.layers.business_layer.ai_agents.graphs.subgraph_1 import Subgraph_1
 # from src.layers.business_layer.ai_agents.graphs.subgraph_2 import Subgraph_2
 # from src.layers.business_layer.ai_agents.graphs.parent_graph_1 import ParentGraph_1
+from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow import (
+    DataIngestionWorkflow,
+    InsertRecordsIntoDatabaseTool,
+    InsertRecordsIntoDatabaseTool2,
+    MapCSVsToDBModelsTool,
+    MapCSVsToIngestionArgsTool,
+    MapIngestionArgsToDBModelsTool,
+    UnzipFilesFromZipArchiveTool,
+)
 from src.layers.core_logic_layer.chat_model.chat_model import ChatModel
+from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB
+
 # from src.layers.data_access_layer.mongodb.mongodb import MongoDB
 
 
 class Container(containers.DeclarativeContainer):
     config = providers.Configuration()
-
-    # mongodb = providers.Singleton(MongoDB, mongodb_settings=config.mongodb_settings)
-
-    # async def init_mongodb_client(
-    #     mongodb: providers.Singleton,
-    # ) -> AsyncGenerator[AsyncIOMotorClient, None]:
-    #     async for client in mongodb.client:
-    #         yield client
-
-    # mongodb_client_resource = providers.Resource(
-    #     init_mongodb_client,
-    #     mongodb=mongodb,
-    # )
-
-    # async def init_mongodb_database(
-    #     mongodb: providers.Singleton, config: providers.Configuration
-    # ) -> AsyncGenerator[AsyncIOMotorDatabase, None]:
-    #     database_name: str = config["mongodb_settings"].database
-    #     documents: list[Document] = config["mongodb_beanie_documents"]
-    #     async for database in mongodb.init_database(
-    #         database_name=database_name, documents=documents
-    #     ):
-    #         yield database
-
-    # mongodb_database_resource = providers.Resource(
-    #     init_mongodb_database,
-    #     mongodb=mongodb,
-    #     config=config,
-    # )
 
     postgresdb = providers.Singleton(
         PostgresDB, postgresdb_settings=config.postgresdb_settings
@@ -90,17 +76,41 @@ class Container(containers.DeclarativeContainer):
 
     chat_model = providers.Singleton(ChatModel, ai_settings=config.ai_settings)
 
-    list_files_from_zip_archive_tool = providers.Singleton(ListFilesFromZipArchiveTool)
-    map_files_to_ingestion_args_list = providers.Singleton(MapFilesToIngestionArgsTool)
-    list_models_from_file = providers.Singleton(MapIngestionArgsToModelsTool)
+    unzip_files_from_zip_archive_tool = providers.Singleton(
+        UnzipFilesFromZipArchiveTool
+    )
+    map_csvs_to_ingestion_args_tool = providers.Singleton(MapCSVsToIngestionArgsTool)
+    map_ingestion_args_to_db_models_tool = providers.Singleton(
+        MapIngestionArgsToDBModelsTool
+    )
+    insert_records_into_database_tool = providers.Singleton(
+        InsertRecordsIntoDatabaseTool,
+        postgresdb=postgresdb,
+    )
+    insert_records_into_database_tool_2 = providers.Singleton(
+        InsertRecordsIntoDatabaseTool2,
+        postgresdb=postgresdb,
+    )
+    map_csvs_to_db_models_tool = providers.Singleton(MapCSVsToDBModelsTool)
     data_ingestion_agent = providers.Singleton(
         DataIngestionAgent,
         llm=chat_model.provided.llm,
-        tools=[
-            list_files_from_zip_archive_tool(),
-            map_files_to_ingestion_args_list(),
-            list_models_from_file(),
-        ],
+        tools=providers.List(
+            unzip_files_from_zip_archive_tool,
+            map_csvs_to_ingestion_args_tool,
+            map_ingestion_args_to_db_models_tool,
+            # insert_records_into_database_tool,
+        ),
+    )
+    data_ingestion_workflow = providers.Singleton(
+        DataIngestionWorkflow,
+        llm=chat_model.provided.llm,
+        unzip_files_from_zip_archive_tool=unzip_files_from_zip_archive_tool,
+        map_csvs_to_ingestion_args_tool=map_csvs_to_ingestion_args_tool,
+        map_ingestion_args_to_db_models_tool=map_ingestion_args_to_db_models_tool,
+        insert_records_into_database_tool=insert_records_into_database_tool,
+        map_csvs_to_db_models_tool=map_csvs_to_db_models_tool,
+        insert_records_into_database_tool_2=insert_records_into_database_tool_2,
     )
 
     async_sql_database_toolkit = providers.Singleton(
@@ -108,7 +118,6 @@ class Container(containers.DeclarativeContainer):
         postgresdb=postgresdb,
         llm=chat_model.provided.llm,
     )
-
     data_analysis_agent = providers.Singleton(
         DataAnalysisAgent,
         llm=chat_model.provided.llm,

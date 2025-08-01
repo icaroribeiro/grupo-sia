@@ -1,8 +1,7 @@
 from langchain_core.language_models import BaseChatModel
-
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import BaseTool
 from langgraph.prebuilt import create_react_agent
-from langchain_core.prompts import ChatPromptTemplate
 
 
 class DataIngestionAgent:
@@ -15,6 +14,10 @@ class DataIngestionAgent:
                     You are a Data Ingestion Assistant specialized in efficiently handling data ingestion tasks.
                     You have access to the following tools to perform your activities:
                     {tool_descriptions}
+        
+                    The input will be a JSON string containing `file_path` and `destination_dir_path`. 
+                    Parse the input, extract these fields, and start the workflow by calling the `unzip_files_from_zip_archive_tool` with the provided `file_path` and `destination_dir_path`.
+                    If the input is invalid or missing required fields, return an error message.
                     """,
                 )
             ]

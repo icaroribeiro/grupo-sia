@@ -1,10 +1,11 @@
-from decimal import Decimal
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import Integer, Numeric, String, DateTime
-from sqlalchemy.orm import Mapped, mapped_column
 from pydantic import ConfigDict
+from sqlalchemy import DateTime, Integer, Numeric, String
+from sqlalchemy.orm import Mapped, mapped_column
+
 from src.layers.data_access_layer.postgresdb.models.base_model import BaseModel
 
 

@@ -3,9 +3,9 @@ from langchain_community.tools.sql_database.tool import (
     ListSQLDatabaseTool,
     QuerySQLCheckerTool,
 )
+from langchain_core.language_models import BaseChatModel
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel
-from langchain_core.language_models import BaseChatModel
 
 from src.layers.business_layer.ai_agents.tools.async_query_sql_database_tool import (
     AsyncQuerySQLDatabaseTool,
@@ -14,9 +14,9 @@ from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB
 
 
 class AsyncSQLDatabaseToolkit(BaseModel):
-    def __init__(self, postgresdb: PostgresDB, llm: BaseChatModel):
-        self.__postgresdb = postgresdb
+    def __init__(self, llm: BaseChatModel, postgresdb: PostgresDB):
         self.__llm = llm
+        self.__postgresdb = postgresdb
 
     def get_tools(self) -> list[BaseTool]:
         return [

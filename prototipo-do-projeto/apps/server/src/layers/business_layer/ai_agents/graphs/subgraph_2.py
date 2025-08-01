@@ -1,17 +1,17 @@
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
+from langgraph.prebuilt import ToolNode
 
+from src.layers.business_layer.ai_agents.agents.sub_agent_1 import (
+    SubAgent_1,
+)
 from src.layers.business_layer.ai_agents.agents.worker_agents import (
     WorkerAgent_2,
     WorkerAgent_3,
 )
-from src.layers.business_layer.ai_agents.agents.sub_agent_1 import (
-    SubAgent_1,
-)
 from src.layers.business_layer.ai_agents.graphs.base_subgraph import BaseSubgraph
 from src.layers.business_layer.ai_agents.models.state import SubgraphState
-from langgraph.prebuilt import ToolNode
 
 
 class Subgraph_2(BaseSubgraph):

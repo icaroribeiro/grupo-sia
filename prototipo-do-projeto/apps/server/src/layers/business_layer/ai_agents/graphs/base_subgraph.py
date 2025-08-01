@@ -7,12 +7,12 @@ from langchain_core.messages import (
     SystemMessage,
 )
 from langchain_core.runnables import Runnable
+from langgraph.graph.state import CompiledStateGraph
 
 from src.layers.business_layer.ai_agents.models.state import (
     SubgraphState,
 )
 from src.layers.core_logic_layer.logging import logger
-from langgraph.graph.state import CompiledStateGraph
 
 
 class BaseSubgraph:

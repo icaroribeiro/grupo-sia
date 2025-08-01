@@ -1,8 +1,10 @@
 import asyncio
 from logging.config import fileConfig
-from sqlalchemy import pool, URL
+
+from sqlalchemy import URL, pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
+
 from alembic import context
 from src.layers.core_logic_layer.settings.postgresdb_settings import PostgresDBSettings
 
