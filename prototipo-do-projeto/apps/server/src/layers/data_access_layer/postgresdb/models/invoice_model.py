@@ -2,7 +2,6 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from pydantic import ConfigDict
 from sqlalchemy import DateTime, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -113,49 +112,53 @@ class InvoiceModel(BaseModel):
         return cls.__tablename__
 
     @classmethod
-    def get_csv_columns_to_dtypes(cls) -> dict[str, str]:
-        return {
-            "CPF/CNPJ Emitente": str,
-            "INSCRIÇÃO ESTADUAL EMITENTE": str,
-            "CNPJ DESTINATÁRIO": str,
-            "NÚMERO PRODUTO": str,
-            "CÓDIGO NCM/SH": str,
-            "CFOP": str,
-        }
-
-    @classmethod
-    def get_csv_columns_to_model_fields(cls) -> dict[str, dict[str, Any]]:
-        return {
-            "CHAVE DE ACESSO": {"field": "access_key"},
-            "MODELO": {"field": "model"},
-            "SÉRIE": {"field": "series"},
-            "NÚMERO": {"field": "number"},
-            "NATUREZA DA OPERAÇÃO": {"field": "operation_nature"},
-            "DATA EMISSÃO": {
-                "field": "issue_date",
-                "converter": cls.parse_br_datetime,
-            },
-            "EVENTO MAIS RECENTE": {"field": "latest_event"},
-            "DATA/HORA EVENTO MAIS RECENTE": {
-                "field": "latest_event_datetime",
-                "converter": cls.parse_br_datetime,
-            },
-            "CPF/CNPJ Emitente": {"field": "emitter_cnpj_cpf"},
-            "RAZÃO SOCIAL EMITENTE": {"field": "emitter_corporate_name"},
-            "INSCRIÇÃO ESTADUAL EMITENTE": {"field": "emitter_state_registration"},
-            "UF EMITENTE": {"field": "emitter_uf"},
-            "MUNICÍPIO EMITENTE": {"field": "emitter_municipality"},
-            "CNPJ DESTINATÁRIO": {"field": "recipient_cnpj"},
-            "NOME DESTINATÁRIO": {"field": "recipient_name"},
-            "UF DESTINATÁRIO": {"field": "recipient_uf"},
-            "INDICADOR IE DESTINATÁRIO": {"field": "recipient_ie_indicator"},
-            "DESTINO DA OPERAÇÃO": {"field": "operation_destination"},
-            "CONSUMIDOR FINAL": {"field": "final_consumer"},
-            "PRESENÇA DO COMPRADOR": {"field": "buyer_presence"},
-            "VALOR NOTA FISCAL": {
-                "field": "total_invoice_value",
-                "converter": cls.parse_br_float,
-            },
-        }
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    def from_data(cls, data: dict[str, Any]) -> "InvoiceModel":
+        return cls(
+            access_key=cls.assign_value(data=data, key="access_key", type_=String),
+            model=cls.assign_value(data=data, key="model", type_=String),
+            series=cls.assign_value(data=data, key="series", type_=Integer),
+            number=cls.assign_value(data=data, key="number", type_=Integer),
+            operation_nature=cls.assign_value(
+                data=data, key="operation_nature", type_=String
+            ),
+            issue_date=cls.assign_value(data=data, key="issue_date", type_=DateTime),
+            latest_event=cls.assign_value(data=data, key="latest_event", type_=String),
+            latest_event_datetime=cls.assign_value(
+                data=data, key="latest_event_datetime", type_=DateTime
+            ),
+            emitter_cnpj_cpf=cls.assign_value(
+                data=data, key="emitter_cnpj_cpf", type_=String
+            ),
+            emitter_corporate_name=cls.assign_value(
+                data=data, key="emitter_corporate_name", type_=String
+            ),
+            emitter_state_registration=cls.assign_value(
+                data=data, key="emitter_state_registration", type_=String
+            ),
+            emitter_uf=cls.assign_value(data=data, key="emitter_uf", type_=String),
+            emitter_municipality=cls.assign_value(
+                data=data, key="emitter_municipality", type_=String
+            ),
+            recipient_cnpj=cls.assign_value(
+                data=data, key="recipient_cnpj", type_=String
+            ),
+            recipient_name=cls.assign_value(
+                data=data, key="recipient_name", type_=String
+            ),
+            recipient_uf=cls.assign_value(data=data, key="recipient_uf", type_=String),
+            recipient_ie_indicator=cls.assign_value(
+                data=data, key="recipient_ie_indicator", type_=String
+            ),
+            operation_destination=cls.assign_value(
+                data=data, key="operation_destination", type_=String
+            ),
+            final_consumer=cls.assign_value(
+                data=data, key="final_consumer", type_=String
+            ),
+            buyer_presence=cls.assign_value(
+                data=data, key="buyer_presence", type_=String
+            ),
+            total_invoice_value=cls.assign_value(
+                data=data, key="total_invoice_value", type_=Numeric
+            ),
+        )

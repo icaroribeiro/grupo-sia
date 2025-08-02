@@ -9,9 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.layers.business_layer.ai_agents.agents.data_analysis_agent import (
     DataAnalysisAgent,
 )
-from src.layers.business_layer.ai_agents.agents.data_ingestion_agent import (
-    DataIngestionAgent,
-)
 from src.layers.business_layer.ai_agents.toolkits.async_sql_database_toolkit import (
     AsyncSQLDatabaseToolkit,
 )
@@ -44,10 +41,7 @@ from src.layers.business_layer.ai_agents.toolkits.async_sql_database_toolkit imp
 from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow import (
     DataIngestionWorkflow,
     InsertRecordsIntoDatabaseTool,
-    InsertRecordsIntoDatabaseTool2,
-    MapCSVsToDBModelsTool,
     MapCSVsToIngestionArgsTool,
-    MapIngestionArgsToDBModelsTool,
     UnzipFilesFromZipArchiveTool,
 )
 from src.layers.core_logic_layer.chat_model.chat_model import ChatModel
@@ -80,37 +74,46 @@ class Container(containers.DeclarativeContainer):
         UnzipFilesFromZipArchiveTool
     )
     map_csvs_to_ingestion_args_tool = providers.Singleton(MapCSVsToIngestionArgsTool)
-    map_ingestion_args_to_db_models_tool = providers.Singleton(
-        MapIngestionArgsToDBModelsTool
-    )
+    # map_ingestion_args_to_db_models_tool = providers.Singleton(
+    #     MapIngestionArgsToDBModelsTool
+    # )
     insert_records_into_database_tool = providers.Singleton(
         InsertRecordsIntoDatabaseTool,
         postgresdb=postgresdb,
     )
-    insert_records_into_database_tool_2 = providers.Singleton(
-        InsertRecordsIntoDatabaseTool2,
-        postgresdb=postgresdb,
-    )
-    map_csvs_to_db_models_tool = providers.Singleton(MapCSVsToDBModelsTool)
-    data_ingestion_agent = providers.Singleton(
-        DataIngestionAgent,
-        llm=chat_model.provided.llm,
-        tools=providers.List(
-            unzip_files_from_zip_archive_tool,
-            map_csvs_to_ingestion_args_tool,
-            map_ingestion_args_to_db_models_tool,
-            # insert_records_into_database_tool,
-        ),
-    )
+    # insert_records_into_database_tool_2 = providers.Singleton(
+    #     InsertRecordsIntoDatabaseTool2,
+    #     postgresdb=postgresdb,
+    # )
+    # map_csvs_to_pydantic_models_tool = providers.Singleton(
+    #     MapCSVsToPydanticModelsTool,
+    # )
+    # map_csvs_to_db_models_tool = providers.Singleton(MapCSVsToDBModelsTool)
+    # insert_records_into_database_tool_3 = providers.Singleton(
+    #     InsertRecordsIntoDatabaseTool3,
+    #     postgresdb=postgresdb,
+    # )
+    # data_ingestion_agent = providers.Singleton(
+    #     DataIngestionAgent,
+    #     llm=chat_model.provided.llm,
+    #     tools=providers.List(
+    #         unzip_files_from_zip_archive_tool,
+    #         map_csvs_to_ingestion_args_tool,
+    #         map_ingestion_args_to_db_models_tool,
+    #         # insert_records_into_database_tool,
+    #     ),
+    # )
     data_ingestion_workflow = providers.Singleton(
         DataIngestionWorkflow,
         llm=chat_model.provided.llm,
         unzip_files_from_zip_archive_tool=unzip_files_from_zip_archive_tool,
         map_csvs_to_ingestion_args_tool=map_csvs_to_ingestion_args_tool,
-        map_ingestion_args_to_db_models_tool=map_ingestion_args_to_db_models_tool,
+        # map_ingestion_args_to_db_models_tool=map_ingestion_args_to_db_models_tool,
         insert_records_into_database_tool=insert_records_into_database_tool,
-        map_csvs_to_db_models_tool=map_csvs_to_db_models_tool,
-        insert_records_into_database_tool_2=insert_records_into_database_tool_2,
+        # map_csvs_to_db_models_tool=map_csvs_to_db_models_tool,
+        # insert_records_into_database_tool_2=insert_records_into_database_tool_2,
+        # map_csvs_to_pydantic_models_tool=map_csvs_to_pydantic_models_tool,
+        # insert_records_into_database_tool_3=insert_records_into_database_tool_3,
     )
 
     async_sql_database_toolkit = providers.Singleton(

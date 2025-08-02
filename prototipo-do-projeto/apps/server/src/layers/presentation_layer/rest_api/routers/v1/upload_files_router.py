@@ -71,8 +71,8 @@ async def upload_zip_file(
     prompt = """
     Perform the following tasks in order:
     1. Unzip the file located at '{file_path}' to the directory '{destination_dir_path}' using the 'unzip_files_from_zip_archive_tool'.
-    2. Map a list of paths of extracted CSV files to a dictionary of database models using the 'map_csvs_to_db_models_tool'.
-    3. Insert database records into Postgres database using the 'insert_records_into_database_tool'.
+    2. Map a list of paths of extracted CSV files to a dictionary of lists of ingestion arguments using the 'map_csvs_to_ingestion_args_tool'.
+    3. Insert database records into database using the 'insert_records_into_database_tool'.
     """
     input_message = prompt.format(
         file_path=file_path, destination_dir_path=destination_dir_path

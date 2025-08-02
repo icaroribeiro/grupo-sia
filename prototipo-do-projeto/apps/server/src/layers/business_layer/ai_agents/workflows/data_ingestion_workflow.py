@@ -1,55 +1,42 @@
-import functools
 import os
 import re
 import uuid
 import zipfile
 from typing import Annotated, Any, Sequence, Type, TypedDict
-
 import pandas as pd
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import BaseTool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
 from langgraph.graph.message import add_messages
-from langgraph.prebuilt import ToolNode
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.exc import IntegrityError
-from src.layers.core_logic_layer.logging import logger
-from src.layers.data_access_layer.postgresdb.models.invoice_item_model import (
+from src.layers.business_layer.ai_agents.models.invoice_item_model import (
     InvoiceItemModel,
 )
-from src.layers.data_access_layer.postgresdb.models.invoice_model import InvoiceModel
+from src.layers.business_layer.ai_agents.models.invoice_model import InvoiceModel
+from src.layers.core_logic_layer.logging import logger
+from src.layers.data_access_layer.postgresdb.models.invoice_item_model import (
+    InvoiceItemModel as SQLAlchemyInvoiceItemModel,
+)
+from src.layers.data_access_layer.postgresdb.models.invoice_model import (
+    InvoiceModel as SQLAlchemyInvoiceModel,
+)
 from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB
 
 
 # --- Pydantic model definitions with the fix ---
 class InvoiceIngestionArgs(BaseModel):
-    file_path: str = Field(
-        ...,
-        description="Path to the CSV file (format: YYYYMM_NFe_NotaFiscal.csv)",
-    )
-    # The default value is removed to resolve the Pydantic warning.
-    # The class will be assigned a value at runtime.
-    model_class_name: str = Field(..., description="SQLAlchemy InvoiceModel class.")
+    table_name: str = Field(default="invoice", description="Database table name.")
+    model: InvoiceModel = Field(..., description="Pydantic InvoiceModel class.")
 
 
 class InvoiceItemIngestionArgs(BaseModel):
-    file_path: str = Field(
-        ...,
-        description="Path to the CSV file (format: YYYYMM_NFe_NotaFiscalItem.csv)",
-    )
-    # The default value is removed to resolve the Pydantic warning.
-    # The class will be assigned a value at runtime.
-    model_class_name: str = Field(..., description="SQLAlchemy InvoiceItemModel class.")
-
-
-class WorkflowState(TypedDict):
-    messages: Annotated[Sequence[BaseMessage], add_messages]
-    next: str
-    tool_output: dict
+    table_name: str = Field(default="invoice_item", description="Database table name.")
+    model: InvoiceItemModel = Field(..., description="Pydantic InvoiceItemModel class.")
 
 
 class ToolOutput(BaseModel):
@@ -57,6 +44,12 @@ class ToolOutput(BaseModel):
     result: Any = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class WorkflowState(TypedDict):
+    messages: Annotated[Sequence[BaseMessage], add_messages]
+    next: str
+    tool_output: ToolOutput
 
 
 class UnzipFilesFromZipArchiveInput(BaseModel):
@@ -126,342 +119,128 @@ class MapCSVsToIngestionArgsInput(BaseModel):
 class MapCSVsToIngestionArgsTool(BaseTool):
     name: str = "map_csvs_to_ingestion_args_tool"
     description: str = """
-    Map a list of paths of extracted CSV files to a dictionary of ingestion arguments.
+    Map a list of paths of extracted CSV files to a dictionary of lists of ingestion arguments.
     Returns:
-        ToolOutput: An object containing a status message indicating success, warning, or failure
-        and a result dictionary with integer keys and lists of ingestion arguments.
+        ToolOutput: An object containing a status message indicating success, warning or failure
+        (string) and result (dictionary with integer keys and lists of ingestion arguments on success or None on failure.)
     """
     args_schema: Type[BaseModel] = MapCSVsToIngestionArgsInput
 
     def _run(self, file_paths: list[str]) -> ToolOutput:
         logger.info("The MapCSVsToIngestionArgsTool call has started...")
-        # The 'NFe_NotaFiscalEvento' entry has been removed from this mapping.
         suffix_to_args: dict[
-            tuple[int, str], Type[InvoiceIngestionArgs | InvoiceItemIngestionArgs]
+            tuple[int, str],
+            tuple[
+                InvoiceIngestionArgs | InvoiceItemIngestionArgs,
+                InvoiceModel | InvoiceItemModel,
+            ],
         ] = {
-            (0, "NFe_NotaFiscal"): InvoiceIngestionArgs,
-            (1, "NFe_NotaFiscalItem"): InvoiceItemIngestionArgs,
+            (0, "NFe_NotaFiscal"): (InvoiceIngestionArgs, InvoiceModel),
+            (1, "NFe_NotaFiscalItem"): (InvoiceItemIngestionArgs, InvoiceItemModel),
         }
         ingestion_args_dict: dict[
             int, list[InvoiceIngestionArgs | InvoiceItemIngestionArgs]
         ] = dict()
-        try:
-            for file_path in file_paths:
-                matched = False
-                file_name = os.path.basename(file_path)
-                for tuple_key, args_class in suffix_to_args.items():
-                    if ingestion_args_dict.get(tuple_key[0]) is None:
-                        ingestion_args_dict[tuple_key[0]] = []
 
-                    if re.match(rf"\d{{6}}_{tuple_key[1]}\.csv$", file_name):
-                        model_class: Type[InvoiceModel | InvoiceItemModel]
-                        if tuple_key[1] == "NFe_NotaFiscal":
-                            model_class = InvoiceModel
-                        elif tuple_key[1] == "NFe_NotaFiscalItem":
-                            model_class = InvoiceItemModel
-                        else:
-                            continue
-                        args_class_instance = args_class(
-                            file_path=file_path, model_class_name=model_class.__name__
+        for file_path in file_paths:
+            file_name = os.path.basename(file_path)
+            for (key, suffix), (args_class, model_class) in suffix_to_args.items():
+                if ingestion_args_dict.get(key) is None:
+                    ingestion_args_dict[key] = []
+
+                if re.match(rf"\d{{6}}_{suffix}\.csv$", file_name):
+                    try:
+                        df = pd.read_csv(
+                            file_path,
+                            encoding="latin1",
+                            sep=";",
+                            dtype=model_class.get_csv_columns_to_dtypes()
+                            if hasattr(model_class, "get_csv_columns_to_dtypes")
+                            else str,
                         )
-                        ingestion_args_dict[tuple_key[0]].append(args_class_instance)
-                        matched = True
-                        break
-                if not matched:
-                    message = (
-                        f"Warning: File {file_name} does not match expected format "
-                        "(YYYYMM_NFe_NotaFiscal.csv or YYYYMM_NFe_NotaFiscalItem.csv)"
-                    )
-                    logger.warning(message)
-            message = f"Success: Files {file_paths} mapped to ingestion arguments list"
-            logger.info(message)
-            logger.info("The MapCSVsToIngestionArgsTool call has finished.")
-            return ToolOutput(message=message, result=ingestion_args_dict)
-        except Exception as error:
-            message = f"Error: Failed to map files {file_paths} to ingestion arguments dict: {error}"
-            logger.error(message)
-            logger.info("The MapCSVsToIngestionArgsTool call has finished.")
-            return ToolOutput(message=message, result={})
+                    except FileNotFoundError as error:
+                        message = f"Error: Failed to find file at {file_path}: {error}"
+                        logger.error(message)
+                        return ToolOutput(message=message, result=None)
+                    except UnicodeDecodeError as error:
+                        message = f"Error: Failed to decode data from file {file_path}: {error}"
+                        logger.error(message)
+                        return ToolOutput(message=message, result=None)
+                    except Exception as error:
+                        message = f"Error: Failed to read file {file_path}: {error}"
+                        logger.error(message)
+                        return ToolOutput(message=message, result=None)
+
+                    try:
+                        for index, row in df.iterrows():
+                            try:
+                                model_data = {}
+                                for (
+                                    csv_col,
+                                    doc_field_info,
+                                ) in model_class.get_csv_columns_to_model_fields().items():
+                                    field_name = doc_field_info["field"]
+                                    converter = doc_field_info.get("converter")
+                                    value = row.get(csv_col)
+                                    if value is pd.NA or pd.isna(value):
+                                        value = None
+
+                                    if converter:
+                                        try:
+                                            value = converter(value)
+                                        except ValueError as error:
+                                            message = f"Warning: Could not convert '{value}' for field '{field_name}' in row {index + 1} of {file_path}: {error}"
+                                            logger.warning(message)
+                                            continue
+                                    model_data[field_name] = value
+                                model = model_class(**model_data)
+                                ingestion_args_dict[key].append(args_class(model=model))
+                            except Exception as error:
+                                message = f"Error: Failed to process row {index + 1} from {file_path}: {error}"
+                                logger.error(message)
+                                continue
+                        message = f"Success: Models mapped from file {file_path}"
+                    except Exception as error:
+                        message = f"Error: Failed to map ingestion arguments dict {ingestion_args_dict} to models dict: {error}"
+                        logger.error(message)
+                        return ToolOutput(message=message, result=None)
+
+        serialized_models_dict = {
+            key: [
+                {
+                    "table_name": ingestion_arg.table_name,
+                    "model": ingestion_arg.model.model_dump(),
+                }
+                for ingestion_arg in ingestion_args
+            ]
+            for key, ingestion_args in ingestion_args_dict.items()
+        }
+
+        logger.info("The MapCSVsToPydanticModelsTool call has finished.")
+        return ToolOutput(message=message, result=serialized_models_dict)
 
     async def _arun(self, file_paths: list[str]) -> ToolOutput:
         return self._run(file_paths=file_paths)
 
 
-class MapCSVsToDBModelsInput(BaseModel):
-    """Input schema for MapCSVsToDBModelsTool."""
-
-    file_paths: list[str] = Field(
-        ..., description="List of paths of extracted CSV files."
-    )
-
-
-class MapCSVsToDBModelsTool(BaseTool):
-    name: str = "map_csvs_to_db_models_tool"
-    description: str = """
-    Map a list of paths of extracted CSV files to a dictionary of Database models. 
-    Returns:
-        ToolOutput: An object containing a status message indicating success, warning or failure
-        (string) and result (dictionary with integer keys and lists of Database models on success or None on failure.)
-    """
-    args_schema: Type[BaseModel] = MapCSVsToDBModelsInput
-
-    def _run(self, file_paths: list[str]) -> ToolOutput:
-        logger.info("The MapCSVsToDBModelsTool call has started...")
-        # The 'NFe_NotaFiscalEvento' entry has been removed from this mapping.
-        suffix_to_args: dict[
-            tuple[int, str], Type[InvoiceIngestionArgs | InvoiceItemIngestionArgs]
-        ] = {
-            (0, "NFe_NotaFiscal"): InvoiceIngestionArgs,
-            (1, "NFe_NotaFiscalItem"): InvoiceItemIngestionArgs,
-        }
-        ingestion_args_dict: dict[
-            int, list[InvoiceIngestionArgs | InvoiceItemIngestionArgs]
-        ] = dict()
-        try:
-            for file_path in file_paths:
-                matched = False
-                file_name = os.path.basename(file_path)
-                for tuple_key, args_class in suffix_to_args.items():
-                    if ingestion_args_dict.get(tuple_key[0]) is None:
-                        ingestion_args_dict[tuple_key[0]] = []
-
-                    if re.match(rf"\d{{6}}_{tuple_key[1]}\.csv$", file_name):
-                        model_class: Type[InvoiceModel | InvoiceItemModel]
-                        if tuple_key[1] == "NFe_NotaFiscal":
-                            model_class = InvoiceModel
-                        elif tuple_key[1] == "NFe_NotaFiscalItem":
-                            model_class = InvoiceItemModel
-                        else:
-                            continue
-                        args_class_instance = args_class(
-                            file_path=file_path, model_class_name=model_class.__name__
-                        )
-                        ingestion_args_dict[tuple_key[0]].append(args_class_instance)
-                        matched = True
-                        break
-                if not matched:
-                    message = (
-                        f"Warning: File {file_name} does not match expected format "
-                        "(YYYYMM_NFe_NotaFiscal.csv or YYYYMM_NFe_NotaFiscalItem.csv)"
-                    )
-                    logger.warning(message)
-            message = f"Success: Files {file_paths} mapped to ingestion arguments list"
-            logger.info(message)
-            logger.info("The MapCSVsToIngestionArgsTool call has finished.")
-        except Exception as error:
-            message = f"Error: Failed to map files {file_paths} to ingestion arguments dict: {error}"
-            logger.error(message)
-            logger.info("The MapCSVsToIngestionArgsTool call has finished.")
-            return ToolOutput(message=message, result={})
-
-        models_dict: dict[int, list[Type[InvoiceModel] | Type[InvoiceItemModel]]] = (
-            dict()
-        )
-        for key, ingestion_args_list in ingestion_args_dict.items():
-            if models_dict.get(key) is None:
-                models_dict[key] = list()
-
-            for ingestion_args in ingestion_args_list:
-                file_path = ingestion_args.file_path
-                model_class_name = ingestion_args.model_class_name
-                model_class: Type[InvoiceModel] | Type[InvoiceItemModel]
-                match model_class_name:
-                    case InvoiceModel.__name__:
-                        model_class = InvoiceModel
-                    case InvoiceItemModel.__name__:
-                        model_class = InvoiceItemModel
-                    case _:
-                        raise Exception()
-                df: pd.DataFrame
-                try:
-                    df = pd.read_csv(
-                        file_path,
-                        encoding="latin1",
-                        sep=";",
-                        dtype=model_class.get_csv_columns_to_dtypes(),
-                    )
-                except FileNotFoundError as error:
-                    message = f"Error: Failed to find file at {file_path}: {error}"
-                    logger.error(message)
-                    return ToolOutput(message=message, result=None)
-                except UnicodeDecodeError as error:
-                    message = (
-                        f"Error: Failed to decode data from file {file_path}: {error}"
-                    )
-                    logger.error(message)
-                    return ToolOutput(message=message, result=None)
-                except Exception as error:
-                    message = f"Error: Failed to read file {file_path}: {error}"
-                    logger.error(message)
-                    return ToolOutput(message=message, result=None)
-
-                try:
-                    for index, row in df.iterrows():
-                        try:
-                            model_data = {}
-                            for (
-                                csv_col,
-                                doc_field_info,
-                            ) in model_class.get_csv_columns_to_model_fields().items():
-                                field_name = doc_field_info["field"]
-                                converter = doc_field_info.get("converter")
-                                value = row.get(csv_col)
-                                if value is pd.NA or pd.isna(value):
-                                    value = None
-
-                                if converter:
-                                    try:
-                                        value = converter(value)
-                                    except ValueError as error:
-                                        message = f"Warning: Could not convert '{value}' for field '{field_name}' in row {index + 1} of {file_path}: {error}"
-                                        logger.warning(message)
-                                        continue
-                                model_data[field_name] = value
-                            model = model_class(**model_data)
-                            models_dict[key].append(model)
-                        except Exception as error:
-                            message = f"Error: Failed to process row {index + 1} from {file_path}: {error}"
-                            logger.error(message)
-                            continue
-                    message = f"Success: Models mapped from file {file_path}"
-                except Exception as error:
-                    message = f"Error: Failed to map ingestion arguments dict {ingestion_args_dict} to models dict: {error}"
-                    logger.error(message)
-                    return ToolOutput(message=message, result=None)
-        logger.info("The MapIngestionArgsToDBModelsTool call has finished.")
-        return ToolOutput(message=message, result=models_dict)
-
-    async def _arun(self, file_paths: list[str]) -> ToolOutput:
-        return self._run(file_paths=file_paths)
-
-
-class MapIngestionArgsToDBModelsInput(BaseModel):
-    """Input schema for MapIngestionArgsToDBModelsTool."""
-
-    ingestion_args_dict: dict[
-        int, list[InvoiceIngestionArgs | InvoiceItemIngestionArgs]
-    ] = Field(..., description="A dictionary of ingestion arguments.")
-
-
-class MapIngestionArgsToDBModelsTool(BaseTool):
-    name: str = "map_ingestion_args_to_db_models_tool"
-    description: str = """
-    Map a dictionary of ingestion arguments to a dictionary of database models. 
-    Returns:
-        ToolOutput: An object containing a status message indicating success, warning or failure
-        (string) and result (dictionary with integer keys and lists of database models on success or None on failure.)
-    """
-    args_schema: Type[BaseModel] = MapIngestionArgsToDBModelsInput
-
-    def _run(
-        self,
-        ingestion_args_dict: dict[
-            int, list[InvoiceIngestionArgs | InvoiceItemIngestionArgs]
-        ],
-    ) -> ToolOutput:
-        logger.info("The MapIngestionArgsToDBModelsTool call has started...")
-        models_dict: dict[int, list[InvoiceModel | InvoiceItemModel]] = dict()
-        for key, ingestion_args_list in ingestion_args_dict.items():
-            if models_dict.get(key) is None:
-                models_dict[key] = list()
-
-            for ingestion_args in ingestion_args_list:
-                file_path = ingestion_args.file_path
-                model_class_name = ingestion_args.model_class_name
-                model_class: InvoiceModel | InvoiceItemModel
-                match model_class_name:
-                    case InvoiceModel.__name__:
-                        model_class = InvoiceModel
-                    case InvoiceItemModel.__name__:
-                        model_class = InvoiceItemModel
-                    case _:
-                        raise Exception()
-                df: pd.DataFrame
-                try:
-                    df = pd.read_csv(
-                        file_path,
-                        encoding="latin1",
-                        sep=";",
-                        dtype=model_class.get_csv_columns_to_dtypes(),
-                    )
-                except FileNotFoundError as error:
-                    message = f"Error: Failed to find file at {file_path}: {error}"
-                    logger.error(message)
-                    return ToolOutput(message=message, result=None)
-                except UnicodeDecodeError as error:
-                    message = (
-                        f"Error: Failed to decode data from file {file_path}: {error}"
-                    )
-                    logger.error(message)
-                    return ToolOutput(message=message, result=None)
-                except Exception as error:
-                    message = f"Error: Failed to read file {file_path}: {error}"
-                    logger.error(message)
-                    return ToolOutput(message=message, result=None)
-
-                try:
-                    for index, row in df.iterrows():
-                        try:
-                            model_data = {}
-                            for (
-                                csv_col,
-                                doc_field_info,
-                            ) in model_class.get_csv_columns_to_model_fields().items():
-                                field_name = doc_field_info["field"]
-                                converter = doc_field_info.get("converter")
-                                value = row.get(csv_col)
-                                if value is pd.NA or pd.isna(value):
-                                    value = None
-
-                                if converter:
-                                    try:
-                                        value = converter(value)
-                                    except ValueError as error:
-                                        message = f"Warning: Could not convert '{value}' for field '{field_name}' in row {index + 1} of {file_path}: {error}"
-                                        logger.warning(message)
-                                        continue
-                                model_data[field_name] = value
-                            model = model_class(**model_data)
-                            models_dict[key].append(model)
-                        except Exception as error:
-                            message = f"Error: Failed to process row {index + 1} from {file_path}: {error}"
-                            logger.error(message)
-                            continue
-                    message = f"Success: Models mapped from file {file_path}"
-                except Exception as error:
-                    message = f"Error: Failed to map ingestion arguments dict {ingestion_args_dict} to models dict: {error}"
-                    logger.error(message)
-                    return ToolOutput(message=message, result=None)
-        logger.info("The MapIngestionArgsToDBModelsTool call has finished.")
-        return ToolOutput(message=message, result=models_dict)
-
-    async def _arun(
-        self,
-        ingestion_args_dict: dict[
-            int, list[InvoiceIngestionArgs | InvoiceItemIngestionArgs]
-        ],
-    ) -> ToolOutput:
-        return self._run(ingestion_args_dict=ingestion_args_dict)
-
-
-class InsertRecordsIntoPostgresDBInput(BaseModel):
+class InsertRecordsIntoDatabaseInput(BaseModel):
     """Input schema for InsertRecordsIntoDatabaseTool."""
 
     ingestion_args_dict: dict[
         int, list[InvoiceIngestionArgs | InvoiceItemIngestionArgs]
-    ] = Field(..., description="A dictionary of ingestion arguments.")
+    ] = Field(..., description="A dictionary of lists of ingestion arguments.")
 
 
 class InsertRecordsIntoDatabaseTool(BaseTool):
     name: str = "insert_records_into_database_tool"
     description: str = """
-    Insert database models into Postgres database.
+    Insert SQLAlchemy database models into Postgres database.
     Returns:
         ToolOutput: An object containing a status message indicating success, warning or failure
         (string) and result (total number of inserted records on success or None on failure).
     """
     postgresdb: PostgresDB
-    args_schema: Type[BaseModel] = InsertRecordsIntoPostgresDBInput
+    args_schema: Type[BaseModel] = InsertRecordsIntoDatabaseInput
 
     def __init__(self, postgresdb: PostgresDB):
         super().__init__(postgresdb=postgresdb)
@@ -469,89 +248,43 @@ class InsertRecordsIntoDatabaseTool(BaseTool):
 
     async def _arun(
         self,
-        ingestion_args_dict: dict[
-            int, list[InvoiceIngestionArgs | InvoiceItemIngestionArgs]
-        ],
+        ingestion_args_dict: dict[int, list[dict[str, Any]]],
     ) -> ToolOutput:
         logger.info("The InsertRecordsIntoDatabaseTool call has started...")
-        models_dict: dict[int, list[InvoiceModel | InvoiceItemModel]] = dict()
+        sqlalchemy_models_dict: dict[
+            int, list[SQLAlchemyInvoiceModel | SQLAlchemyInvoiceItemModel]
+        ] = dict()
+
         for key, ingestion_args_list in ingestion_args_dict.items():
-            if models_dict.get(key) is None:
-                models_dict[key] = list()
+            if sqlalchemy_models_dict.get(key) is None:
+                sqlalchemy_models_dict[key] = []
 
             for ingestion_args in ingestion_args_list:
-                file_path = ingestion_args.file_path
-                model_class_name = ingestion_args.model_class_name
-                model_class: InvoiceModel | InvoiceItemModel
-                match model_class_name:
-                    case InvoiceModel.__name__:
-                        model_class = InvoiceModel
-                    case InvoiceItemModel.__name__:
-                        model_class = InvoiceItemModel
-                    case _:
-                        raise Exception()
-                df: pd.DataFrame
-                try:
-                    df = pd.read_csv(
-                        file_path,
-                        encoding="latin1",
-                        sep=";",
-                        dtype=model_class.get_csv_columns_to_dtypes(),
-                    )
-                except FileNotFoundError as error:
-                    message = f"Error: Failed to find file at {file_path}: {error}"
-                    logger.error(message)
-                    return ToolOutput(message=message, result=None)
-                except UnicodeDecodeError as error:
-                    message = (
-                        f"Error: Failed to decode data from file {file_path}: {error}"
-                    )
-                    logger.error(message)
-                    return ToolOutput(message=message, result=None)
-                except Exception as error:
-                    message = f"Error: Failed to read file {file_path}: {error}"
+                table_name = ingestion_args["table_name"]
+                model_class: Type[SQLAlchemyInvoiceModel | SQLAlchemyInvoiceItemModel]
+                # Replace match with if-elif
+                if table_name == SQLAlchemyInvoiceModel.get_table_name():
+                    model_class = SQLAlchemyInvoiceModel
+                elif table_name == SQLAlchemyInvoiceItemModel.get_table_name():
+                    model_class = SQLAlchemyInvoiceItemModel
+                else:
+                    message = f"Error: Invalid table name {table_name}"
                     logger.error(message)
                     return ToolOutput(message=message, result=None)
 
                 try:
-                    for index, row in df.iterrows():
-                        try:
-                            model_data = {}
-                            for (
-                                csv_col,
-                                doc_field_info,
-                            ) in model_class.get_csv_columns_to_model_fields().items():
-                                field_name = doc_field_info["field"]
-                                converter = doc_field_info.get("converter")
-                                value = row.get(csv_col)
-                                if value is pd.NA or pd.isna(value):
-                                    value = None
-
-                                if converter:
-                                    try:
-                                        value = converter(value)
-                                    except ValueError as error:
-                                        message = f"Warning: Could not convert '{value}' for field '{field_name}' in row {index + 1} of {file_path}: {error}"
-                                        logger.warning(message)
-                                        continue
-                                model_data[field_name] = value
-                            model = model_class(**model_data)
-                            models_dict[key].append(model)
-                        except Exception as error:
-                            message = f"Error: Failed to process row {index + 1} from {file_path}: {error}"
-                            logger.error(message)
-                            continue
-                    message = f"Success: Models mapped from file {file_path}"
+                    model = model_class.from_data(data=ingestion_args["model"])
+                    sqlalchemy_models_dict[key].append(model)
                 except Exception as error:
-                    message = f"Error: Failed to map ingestion arguments dict {ingestion_args_dict} to models dict: {error}"
+                    message = f"Error: Failed to create SQLAlchemy model from args {ingestion_args}: {error}"
                     logger.error(message)
-                    return ToolOutput(message=message, result=None)
+                    continue
 
         count_map: dict[str, int] = dict()
         try:
             async with self.postgresdb.async_session() as async_session:
-                if len(models_dict) > 0:
-                    for _, models in sorted(models_dict.items()):
+                if len(sqlalchemy_models_dict) > 0:
+                    for _, models in sorted(sqlalchemy_models_dict.items()):
                         for model in models:
                             if count_map.get(model.get_table_name(), None) is None:
                                 count_map[model.get_table_name()] = 0
@@ -559,13 +292,14 @@ class InsertRecordsIntoDatabaseTool(BaseTool):
                                 async_session.add(model)
                                 count_map[model.get_table_name()] += 1
                             except IntegrityError:
-                                message = "Warning: Model already exists. "
-                                f"Skipping duplicate model: {getattr(model, 'access_key', 'N/A')}"
+                                message = f"Warning: Model already exists. Skipping duplicate model: {getattr(model, 'access_key', 'N/A')}"
                                 logger.warning(message)
                                 continue
                             except Exception as error:
                                 await async_session.rollback()
-                                message = f"Error: Failed to insert model {model} into PostgresDB: {error}"
+                                message = (
+                                    f"Error: Failed to insert model {model}: {error}"
+                                )
                                 logger.error(message)
                                 return ToolOutput(message=message, result=None)
                         try:
@@ -574,22 +308,13 @@ class InsertRecordsIntoDatabaseTool(BaseTool):
                             logger.info(message)
                         except Exception as error:
                             await async_session.rollback()
-                            message = f"Error: Failed to commit the current transaction in progress: {error}"
+                            message = f"Error: Failed to commit the current transaction: {error}"
                             logger.error(message)
                             return ToolOutput(message=message, result=None)
         except Exception as error:
             message = f"Error: Failed to establish database connection: {error}"
             logger.error(message)
             return ToolOutput(message=message, result=None)
-
-        # try:
-        #     await self.postgresdb.close()
-        #     message = "Success: Database connection closure complete."
-        #     logger.info(message)
-        # except Exception as error:
-        #     message = f"Error: Failed to close database connection: {error}"
-        #     logger.error(message)
-        #     return ToolOutput(message=message, result=None)
 
         if len(count_map) > 0:
             total_count: int = 0
@@ -607,103 +332,7 @@ class InsertRecordsIntoDatabaseTool(BaseTool):
 
     def _run(
         self,
-        ingestion_args_dict: dict[
-            int, list[InvoiceIngestionArgs | InvoiceItemIngestionArgs]
-        ],
-    ) -> ToolOutput:
-        message = "Warning: Synchronous execution is not supported. Use _arun instead."
-        logger.warning(message)
-        raise NotImplementedError(message)
-
-
-class InsertRecordsIntoPostgresDBInput2(BaseModel):
-    """Input schema for InsertRecordsIntoDatabaseTool2."""
-
-    models_dict: dict[int, list[Type[InvoiceModel] | Type[InvoiceItemModel]]] = Field(
-        ..., description="A dictionary of lists of database models."
-    )
-
-
-class InsertRecordsIntoDatabaseTool2(BaseTool):
-    name: str = "insert_records_into_database_tool_2"
-    description: str = """
-    Insert database models into Postgres database.
-    Returns:
-        ToolOutput: An object containing a status message indicating success, warning or failure
-        (string) and result (total number of inserted records on success or None on failure).
-    """
-    postgresdb: PostgresDB
-    args_schema: Type[BaseModel] = InsertRecordsIntoPostgresDBInput2
-
-    def __init__(self, postgresdb: PostgresDB):
-        super().__init__(postgresdb=postgresdb)
-        self.postgresdb = postgresdb
-
-    async def _arun(
-        self,
-        models_dict: dict[int, list[Type[InvoiceModel] | Type[InvoiceItemModel]]],
-    ) -> ToolOutput:
-        logger.info("The InsertRecordsIntoDatabaseTool2 call has started...")
-        count_map: dict[str, int] = dict()
-        try:
-            async with self.postgresdb.async_session() as async_session:
-                if len(models_dict) > 0:
-                    for _, models in sorted(models_dict.items()):
-                        for model in models:
-                            if count_map.get(model.get_table_name(), None) is None:
-                                count_map[model.get_table_name()] = 0
-                            try:
-                                async_session.add(model)
-                                count_map[model.get_table_name()] += 1
-                            except IntegrityError:
-                                message = "Warning: Model already exists. "
-                                f"Skipping duplicate model: {getattr(model, 'access_key', 'N/A')}"
-                                logger.warning(message)
-                                continue
-                            except Exception as error:
-                                await async_session.rollback()
-                                message = f"Error: Failed to insert model {model} into PostgresDB: {error}"
-                                logger.error(message)
-                                return ToolOutput(message=message, result=None)
-                        try:
-                            await async_session.commit()
-                            message = f"Success: All {model.get_table_name()} table records have been committed."
-                            logger.error(message)
-                        except Exception as error:
-                            await async_session.rollback()
-                            message = f"Error: Failed to commit the current transaction in progress: {error}"
-                            logger.error(message)
-                            return ToolOutput(message=message, result=None)
-        except Exception as error:
-            message = f"Error: Failed to establish database connection: {error}"
-            logger.error(message)
-            return ToolOutput(message=message, result=None)
-
-        # try:
-        #     await self.postgresdb.close()
-        #     message = "Success: Database connection closure complete."
-        #     logger.info(message)
-        # except Exception as error:
-        #     message = f"Error: Failed to close database connection: {error}"
-        #     logger.error(message)
-        #     return ToolOutput(message=message, result=None)
-
-        if len(count_map) > 0:
-            total_count: int = 0
-            for model_name, count in count_map.items():
-                message = f"Success: {count} record(s) inserted into {model_name} table"
-                logger.info(message)
-            message = f"Success: Total of {total_count} record(s) inserted into Postgres database"
-            logger.info("The InsertRecordsIntoDatabaseTool call has finished.")
-            return ToolOutput(message=message, result=total_count)
-        else:
-            message = "Warning: No records to insert into Postgres database."
-            logger.warning(message)
-            return ToolOutput(message=message, result=0)
-
-    def _run(
-        self,
-        models_dict: dict[int, list[Type[InvoiceModel] | Type[InvoiceItemModel]]],
+        ingestion_args_dict: dict[int, list[dict]],
     ) -> ToolOutput:
         message = "Warning: Synchronous execution is not supported. Use _arun instead."
         logger.warning(message)
@@ -716,29 +345,17 @@ class DataIngestionWorkflow:
         llm: BaseChatModel,
         unzip_files_from_zip_archive_tool: UnzipFilesFromZipArchiveTool,
         map_csvs_to_ingestion_args_tool: MapCSVsToIngestionArgsTool,
-        map_ingestion_args_to_db_models_tool: MapIngestionArgsToDBModelsTool,
         insert_records_into_database_tool: InsertRecordsIntoDatabaseTool,
-        map_csvs_to_db_models_tool: MapCSVsToDBModelsTool,
-        insert_records_into_database_tool_2: InsertRecordsIntoDatabaseTool2,
-        # ... other tools would go here
     ):
         self.__name = "data_ingestion_workflow"
         self.llm = llm
 
-        # Assign tools to instance variables for clarity
         self.unzip_tool = unzip_files_from_zip_archive_tool
         self.map_csvs_tool = map_csvs_to_ingestion_args_tool
-        self.map_models_tool = map_ingestion_args_to_db_models_tool
         self.insert_database_tool = insert_records_into_database_tool
-        self.map_db_models_tool = map_csvs_to_db_models_tool
-        self.insert_database_tool_2 = insert_records_into_database_tool_2
-
-        # Group tools for workers and the main tool executor
         self.worker_1_tools = [self.unzip_tool]
-        # self.worker_2_tools = [self.map_csvs_tool]
-        self.worker_2_tools = [self.map_db_models_tool]
-        # self.worker_3_tools = [self.insert_database_tool]
-        self.worker_3_tools = [self.insert_database_tool_2]
+        self.worker_2_tools = [self.map_csvs_tool]
+        self.worker_3_tools = [self.insert_database_tool]
         self.all_tools = self.worker_1_tools + self.worker_2_tools + self.worker_3_tools
 
         self.__graph = self._build_graph()
@@ -827,24 +444,34 @@ class DataIngestionWorkflow:
                 "next": "tools"
                 if hasattr(response, "tool_calls") and response.tool_calls
                 else "supervisor",
-                "tool_output": state.get("tool_output", {}),
+                "tool_output": state.get("tool_output", ToolOutput()),
             }
 
         # --- 3. Define Worker Node 2 (Mapping Tasks) - MODIFIED ---
         def call_worker_node_2(state: WorkflowState):
             print("---WORKER NODE 2 (MAPPING AGENT)---")
+            # CHANGE START: Escaped curly braces and moved partial to invoke
             prompt = ChatPromptTemplate.from_messages(
                 [
                     (
                         "system",
-                        "You are a data mapping specialist. A previous tool call has unzipped files. Your task is to use the 'map_csvs_to_db_models_tool' with the unzipped file paths from the tool output to map the data to database models. Use the tool output from the state if available: {tool_output}",
+                        "You are a data mapping specialist. A previous tool call has unzipped files. Your task is to use the 'map_csvs_to_ingestion_args_tool' with the unzipped file paths from the tool output to map the data to ingestion arguments. The unzipped file paths are available in the 'result' attribute of the tool output from the state: {tool_output_result}. "
+                        "Ensure your tool call uses 'file_paths' as the argument name, like so: 'map_csvs_to_ingestion_args_tool(file_paths={{...}})'.",
                     ),
                     MessagesPlaceholder(variable_name="messages"),
                 ]
-            ).partial(tool_output=str(state.get("tool_output", {})))
+            )
             llm_with_tools = self.llm.bind_tools(self.worker_2_tools)
             chain = prompt | llm_with_tools
-            response = chain.invoke({"messages": state["messages"]})
+            response = chain.invoke(
+                {
+                    "messages": state["messages"],
+                    "tool_output_result": str(
+                        state.get("tool_output", ToolOutput()).result
+                    ),
+                }
+            )
+            # CHANGE END
             if hasattr(response, "tool_calls") and response.tool_calls:
                 seen = set()
                 unique_tool_calls = []
@@ -855,30 +482,40 @@ class DataIngestionWorkflow:
                         unique_tool_calls.append(tool_call)
                 response.tool_calls = unique_tool_calls
 
-            print(f"\n\ntool_output: {state.get('tool_output', {})}")
+            print(f"\n\ntool_output: {state.get('tool_output', ToolOutput())}")
             return {
                 "messages": state["messages"] + [response],
                 "next": "tools"
                 if hasattr(response, "tool_calls") and response.tool_calls
                 else "supervisor",
-                "tool_output": state.get("tool_output", {}),
+                "tool_output": state.get("tool_output", ToolOutput()),
             }
 
         # --- 4. Define Worker Node 3 (Inserting Task)
         def call_worker_node_3(state: WorkflowState):
             print("---WORKER NODE 3 (INSERTING AGENT)---")
+            # CHANGE START: Escaped curly braces and moved partial to invoke
             prompt = ChatPromptTemplate.from_messages(
                 [
                     (
                         "system",
-                        "You are a data insertion specialist. Use the 'insert_records_into_database_tool_2' with the mapped database models from the previous tool output: {tool_output}. Ensure the 'models_dict' is included in the tool call arguments.",
+                        "You are a data insertion specialist. Use the 'insert_records_into_database_tool' with a dictionary of lists of ingestion arguments from the previous tool output. The dictionary is in the 'result' attribute of the tool output from the state: {tool_output_result}. "
+                        "Ensure your tool call uses 'ingestion_args_dict' as the argument name, like so: 'insert_records_into_database_tool(ingestion_args_dict={{...}})'.",
                     ),
                     MessagesPlaceholder(variable_name="messages"),
                 ]
-            ).partial(tool_output=str(state.get("tool_output", {})))
+            )
             llm_with_tools = self.llm.bind_tools(self.worker_3_tools)
             chain = prompt | llm_with_tools
-            response = chain.invoke({"messages": state["messages"]})
+            response = chain.invoke(
+                {
+                    "messages": state["messages"],
+                    "tool_output_result": str(
+                        state.get("tool_output", ToolOutput()).result
+                    ),
+                }
+            )
+            # CHANGE END
             if hasattr(response, "tool_calls") and response.tool_calls:
                 seen = set()
                 unique_tool_calls = []
@@ -889,37 +526,163 @@ class DataIngestionWorkflow:
                         unique_tool_calls.append(tool_call)
                 response.tool_calls = unique_tool_calls
 
-            print(f"\n\ntool_output: {state.get('tool_output', {})}")
+            print(f"\n\ntool_output: {state.get('tool_output', ToolOutput())}")
             return {
                 "messages": state["messages"] + [response],
                 "next": "tools"
                 if hasattr(response, "tool_calls") and response.tool_calls
                 else "supervisor",
-                "tool_output": state.get("tool_output", {}),  # Preserve tool output
+                "tool_output": state.get(
+                    "tool_output", ToolOutput()
+                ),  # Preserve tool output
             }
 
-        # 5. Define the Tool Executor Node (handles all tools)
-        # tool_executor = ToolNode(self.all_tools)
+        # def _parse_tool_output_string(output_string: str) -> dict:
+        #     """
+        #     Parses a custom tool output string of the format 'message="..." result=[...]'
+        #     and returns a dictionary. Used as fallback for string outputs.
+        #     """
+        #     parsed_dict = {}
+        #     message_match = re.search(r"message='(.*?)'", output_string, re.DOTALL)
+        #     if message_match:
+        #         parsed_dict["message"] = message_match.group(1)
+
+        #     result_match = re.search(
+        #         r"result=({.*?}|\[.*?\]|None)", output_string, re.DOTALL
+        #     )
+        #     if result_match:
+        #         try:
+        #             parsed_dict["result"] = ast.literal_eval(result_match.group(1))
+        #         except (ValueError, SyntaxError) as e:
+        #             logger.error(f"Error parsing result literal from string: {e}")
+        #             parsed_dict["result"] = None
+
+        #     return parsed_dict
+
+        # async def tool_executor_node(state: WorkflowState):
+        #     print("---TOOL EXECUTOR---")
+        #     tool_executor = ToolNode(self.all_tools)
+        #     last_message = state["messages"][-1]
+        #     if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+        #         tool_outputs = await tool_executor.ainvoke({"messages": [last_message]})
+        #         # Extract the tool output (assuming single tool call for simplicity)
+        #         tool_output = (
+        #             tool_outputs["messages"][0].content
+        #             if tool_outputs["messages"]
+        #             else {}
+        #         )
+        #         print(f" --> tool_output: {tool_output}")
+        #         return {
+        #             "messages": state["messages"] + tool_outputs["messages"],
+        #             "tool_output": tool_output
+        #         }
+        #     return state
+
         async def tool_executor_node(state: WorkflowState):
             print("---TOOL EXECUTOR---")
-            tool_executor = ToolNode(self.all_tools)
             last_message = state["messages"][-1]
+            tool_messages_to_add = []
+
+            # Default tool_output
+            tool_output = state.get(
+                "tool_output", ToolOutput(message="No tool call executed.", result=None)
+            )
+
             if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-                tool_outputs = await tool_executor.ainvoke({"messages": [last_message]})
-                # Extract the tool output (assuming single tool call for simplicity)
-                tool_output = (
-                    tool_outputs["messages"][0].content
-                    if tool_outputs["messages"]
-                    else {}
-                )
-                print(f" --> tool_output: {tool_output}")
-                return {
-                    "messages": state["messages"] + tool_outputs["messages"],
-                    "tool_output": tool_output
-                    if isinstance(tool_output, dict)
-                    else {"result": tool_output},
-                }
-            return state
+                for tool_call in last_message.tool_calls:
+                    tool_name = tool_call["name"]
+                    tool_args = tool_call["args"]
+                    tool = next(
+                        (t for t in self.all_tools if t.name == tool_name), None
+                    )
+                    if not tool:
+                        logger.error(f"Tool {tool_name} not found")
+                        tool_messages_to_add.append(
+                            ToolMessage(
+                                content=f"Error: Tool {tool_name} not found",
+                                tool_call_id=tool_call["id"],
+                            )
+                        )
+                        continue
+                    try:
+                        result = await tool._arun(**tool_args)
+                        if isinstance(result, ToolOutput):
+                            tool_output = result
+
+                        if isinstance(result, dict):
+                            tool_output = ToolOutput(
+                                message=result.get("message", "Message not provided."),
+                                result=result.get("result", None),
+                            )
+
+                        tool_messages_to_add.append(
+                            ToolMessage(
+                                content=str(
+                                    tool_output
+                                ),  # Serialize for message history
+                                tool_call_id=tool_call["id"],
+                            )
+                        )
+                    except Exception as e:
+                        logger.error(f"Error executing tool {tool_name}: {e}")
+                        tool_output = ToolOutput(
+                            message=f"Error executing tool {tool_name}: {str(e)}",
+                            result=None,
+                        )
+                        tool_messages_to_add.append(
+                            ToolMessage(
+                                content=str(tool_output), tool_call_id=tool_call["id"]
+                            )
+                        )
+
+            print(f" --> tool_output: {tool_output}")
+            return {
+                "messages": state["messages"] + tool_messages_to_add,
+                "tool_output": tool_output,
+            }
+
+        # async def tool_executor_node(state: dict[str, Any]) -> dict[str, Any]:
+        #     """Execute tools using ToolNode and return updated state with ToolOutput."""
+        #     print("---TOOL EXECUTOR---")
+        #     tool_executor = ToolNode(self.all_tools)
+        #     last_message = state["messages"][-1]
+        #     tool_output = state.get(
+        #         "tool_output", ToolOutput(message="No tool call executed.")
+        #     )
+
+        #     if not (hasattr(last_message, "tool_calls") and last_message.tool_calls):
+        #         print(f" --> tool_output: {tool_output}")
+        #         return {"messages": state["messages"], "tool_output": tool_output}
+
+        #     try:
+        #         tool_outputs = await tool_executor.ainvoke({"messages": [last_message]})
+        #         # Extract the first tool output (assuming single tool call for simplicity)
+        #         raw_output = (
+        #             tool_outputs["messages"][0].content
+        #             if tool_outputs["messages"]
+        #             else "No output received."
+        #         )
+
+        #         # Convert to ToolOutput
+        #         if isinstance(raw_output, ToolOutput):
+        #             tool_output = raw_output
+        #         elif isinstance(raw_output, dict):
+        #             tool_output = ToolOutput(
+        #                 message=raw_output.get("message", "Message not provided."),
+        #                 result=raw_output.get("result"),
+        #             )
+        #         else:
+        #             tool_output = ToolOutput(message=str(raw_output))
+
+        #     except Exception as e:
+        #         logger.error(f"Error executing tool: {e}")
+        #         tool_output = ToolOutput(message=f"Error executing tool: {str(e)}")
+
+        #     print(f" --> tool_output: {tool_output}")
+        #     return {
+        #         "messages": state["messages"] + tool_outputs["messages"],
+        #         "tool_output": tool_output,
+        #     }
 
         # 6. Build the Graph
         workflow.add_node("supervisor", call_supervisor)
@@ -942,46 +705,46 @@ class DataIngestionWorkflow:
             },
         )
 
-        def call_tools(
-            state: WorkflowState,
-            routes_to: str,
-        ) -> str:
-            last_message = state["messages"][-1]
-            logger.info(f"Last message: {last_message}")
-            return (
-                "tools"
-                if hasattr(last_message, "tool_calls") and last_message.tool_calls
-                else routes_to
-            )
+        # def call_tools(
+        #     state: WorkflowState,
+        #     routes_to: str,
+        # ) -> str:
+        #     last_message = state["messages"][-1]
+        #     logger.info(f"Last message: {last_message}")
+        #     return (
+        #         "tools"
+        #         if hasattr(last_message, "tool_calls") and last_message.tool_calls
+        #         else routes_to
+        #     )
 
         # Edges from workers to the tool executor
-        # workflow.add_edge("worker_node_1", "tools")
-        # workflow.add_edge("worker_node_2", "tools")
-        # workflow.add_edge("worker_node_3", "tools")
-        workflow.add_conditional_edges(
-            "worker_node_1",
-            path=functools.partial(call_tools, routes_to="supervisor"),
-            path_map={
-                "tools": "tools",
-                "supervisor": "supervisor",
-            },
-        )
-        workflow.add_conditional_edges(
-            "worker_node_2",
-            path=functools.partial(call_tools, routes_to="supervisor"),
-            path_map={
-                "tools": "tools",
-                "supervisor": "supervisor",
-            },
-        )
-        workflow.add_conditional_edges(
-            "worker_node_3",
-            path=functools.partial(call_tools, routes_to="supervisor"),
-            path_map={
-                "tools": "tools",
-                "supervisor": "supervisor",
-            },
-        )
+        workflow.add_edge("worker_node_1", "tools")
+        workflow.add_edge("worker_node_2", "tools")
+        workflow.add_edge("worker_node_3", "tools")
+        # workflow.add_conditional_edges(
+        #     "worker_node_1",
+        #     path=functools.partial(call_tools, routes_to="supervisor"),
+        #     path_map={
+        #         "tools": "tools",
+        #         "supervisor": "supervisor",
+        #     },
+        # )
+        # workflow.add_conditional_edges(
+        #     "worker_node_2",
+        #     path=functools.partial(call_tools, routes_to="supervisor"),
+        #     path_map={
+        #         "tools": "tools",
+        #         "supervisor": "supervisor",
+        #     },
+        # )
+        # workflow.add_conditional_edges(
+        #     "worker_node_3",
+        #     path=functools.partial(call_tools, routes_to="supervisor"),
+        #     path_map={
+        #         "tools": "tools",
+        #         "supervisor": "supervisor",
+        #     },
+        # )
 
         # After any tool is executed, always loop back to the supervisor
         workflow.add_edge("tools", "supervisor")
