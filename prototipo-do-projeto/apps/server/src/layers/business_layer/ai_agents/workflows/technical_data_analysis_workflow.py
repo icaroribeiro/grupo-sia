@@ -18,6 +18,7 @@ from src.layers.core_logic_layer.logging import logger
 class WorkflowState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
     next: str
+    format_instructions: str | None = None
 
 
 class Agent(BaseModel):
@@ -25,9 +26,9 @@ class Agent(BaseModel):
     tools: list[BaseTool] | None = None
 
 
-class GeneralDataAnalysisWorkflow:
+class TechnicalDataAnalysisWorkflow:
     def __init__(self, llm: BaseChatModel, async_sql_database_tools: list[BaseTool]):
-        self.name = "GeneralDataAnalysisWorkflow"
+        self.name = "TechnicalDataAnalysisWorkflow"
         self.llm = llm
         self.supervisor = Agent(name="supervisor")
         self.assistant_1 = Agent(name="assistant_1", tools=async_sql_database_tools)
@@ -68,9 +69,10 @@ class GeneralDataAnalysisWorkflow:
                     2.  Your task is to determine the NEXT step.
                     
                     **Routing Logic:**
-                    - If the **last message in the conversation** is a final, conclusive answer to the user's original request, route to FINISH. A final answer will be a human-readable message, not a tool-calling message or a tool output.
-                    - If the task requires a new action or a different assistant to proceed, route to the appropriate assistant (e.g., `assistant_1`).
-                    
+                    - First, inspect the **last message** in the conversation.
+                    - If the last message is an AIMessage (from an assistant) and it **does NOT contain tool_calls**, it means the assistant has provided the final answer. In this case, your ONLY job is to route to FINISH.
+                    - Otherwise, determine the next best assistant to continue the task and route to them.
+
                     Respond in the following JSON format:
                     ```json
                         {{"next": "<next_node>"}}
@@ -95,6 +97,8 @@ class GeneralDataAnalysisWorkflow:
         logger.info(f"Calling {self.assistant_1.name} (Data Analysis Agent)...")
         messages = state["messages"]
         logger.info(f"messages: {messages}")
+        # Retrieve format instructions from the state, defaulting to an empty string
+        format_instructions = state.get("format_instructions", "")
         prompt = ChatPromptTemplate.from_messages(
             [
                 (
@@ -105,6 +109,7 @@ class GeneralDataAnalysisWorkflow:
                     **Immediately call the tool to get the necessary information.**
                     Do not try to answer without using a tool first.
                     Once the tool has been used and you have the final answer, provide it directly without calling any more tools.
+                    \n\n{format_instructions}
                     """,
                 ),
                 MessagesPlaceholder(variable_name="messages"),
@@ -112,7 +117,9 @@ class GeneralDataAnalysisWorkflow:
         )
         llm_with_tools = self.llm.bind_tools(self.assistant_1.tools)
         chain = prompt | llm_with_tools
-        response = chain.invoke({"messages": messages})
+        response = chain.invoke(
+            {"messages": messages, "format_instructions": format_instructions}
+        )
 
         # The agent's response is the key to routing.
         # We don't need to return 'next' here, the conditional edge will handle it.
@@ -192,11 +199,18 @@ class GeneralDataAnalysisWorkflow:
     def graph(self):
         return self.__graph
 
-    async def run(self, input_message: str) -> dict:
+    async def run(
+        self, input_message: str, format_instructions_str: str | None = None
+    ) -> dict:
         logger.info(f"Starting {self.name} with input: '{input_message[:100]}...'")
+
         input_messages = [HumanMessage(content=input_message)]
         thread_id = str(uuid.uuid4())
-        input_state = {"messages": input_messages}
+
+        input_state = {
+            "messages": input_messages,
+            "format_instructions": format_instructions_str,
+        }
 
         result = await self.__graph.ainvoke(
             input_state,

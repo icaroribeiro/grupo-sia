@@ -3,6 +3,7 @@ from decimal import Decimal
 from typing import Any
 
 from pydantic import Field
+
 from src.layers.business_layer.ai_agents.models.base_model import BaseModel
 from src.layers.core_logic_layer.logging import logger
 

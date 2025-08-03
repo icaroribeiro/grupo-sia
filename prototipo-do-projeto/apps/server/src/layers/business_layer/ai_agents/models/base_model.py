@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from pydantic import BaseModel
+
 from src.layers.core_logic_layer.logging import logger
 
 
