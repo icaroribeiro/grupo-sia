@@ -44,6 +44,9 @@ from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow impor
     MapCSVsToIngestionArgsTool,
     UnzipFilesFromZipArchiveTool,
 )
+from src.layers.business_layer.ai_agents.workflows.general_data_analysis_workflow import (
+    GeneralDataAnalysisWorkflow,
+)
 from src.layers.core_logic_layer.chat_model.chat_model import ChatModel
 from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB
 
@@ -125,6 +128,12 @@ class Container(containers.DeclarativeContainer):
         DataAnalysisAgent,
         llm=chat_model.provided.llm,
         tools=async_sql_database_toolkit.provided.get_tools.call(),
+    )
+
+    general_data_analysis_workflow = providers.Singleton(
+        GeneralDataAnalysisWorkflow,
+        llm=chat_model.provided.llm,
+        async_sql_database_tools=async_sql_database_toolkit.provided.get_tools.call(),
     )
 
     # worker_agent_1 = providers.Singleton(WorkerAgent_1, llm=llm.provided.llm)

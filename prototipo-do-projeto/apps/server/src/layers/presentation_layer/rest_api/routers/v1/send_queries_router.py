@@ -5,10 +5,12 @@ from langchain_core.messages import AIMessage, ToolMessage  # noqa: F401
 # from src.layers.business_layer.ai_agents.tools.test_tools import (
 #     GetIcarosAgeTool,
 # )
-from langchain_core.prompts import ChatPromptTemplate
 
 from src.layers.business_layer.ai_agents.agents.data_analysis_agent import (
     DataAnalysisAgent,
+)
+from src.layers.business_layer.ai_agents.workflows.general_data_analysis_workflow import (
+    GeneralDataAnalysisWorkflow,
 )
 from src.layers.core_logic_layer.container.container import Container
 from src.layers.core_logic_layer.logging import logger
@@ -49,29 +51,20 @@ router = APIRouter()
 async def send_general_queries(
     response: Response,
     send_query_request: SendQueryRequest,
-    data_analysis_agent: DataAnalysisAgent = Depends(
-        Provide[Container.data_analysis_agent]
+    general_data_analysis_workflow: GeneralDataAnalysisWorkflow = Depends(
+        Provide[Container.general_data_analysis_workflow]
     ),
 ):
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "human",
-                """
-                Respond to the following question objectively:
-                {query}
-                """,
-            ),
-        ]
-    )
-    formatted_content = prompt.format(query=send_query_request.query)
-    agent = data_analysis_agent.agent
-    result = await agent.ainvoke(
-        {"messages": [{"role": "user", "content": formatted_content}]}
-    )
-    content: str = result["messages"][-1].content
-    logger.info(f"content: {content}")
-    return SendQueryResponse(answer=content)
+    prompt = """
+    Respond to the following question objectively:
+    {query}
+    """
+    input_message = prompt.format(query=send_query_request.query)
+
+    result = await general_data_analysis_workflow.run(input_message=input_message)
+    answer: str = result["messages"][-1].content
+    logger.info(f"Answer: {answer}")
+    return SendQueryResponse(answer=answer)
 
 
 @router.post(
@@ -88,18 +81,22 @@ async def send_technical_queries(
         Provide[Container.data_analysis_agent]
     ),
 ):
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "human",
-                """
-                Respond to the following question with only a valid SQL statement, 
-                without any additional explanation or information:
-                {query}
-                """,
-            ),
-        ]
-    )
+    # prompt = ChatPromptTemplate.from_messages(
+    #     [
+    #         (
+    #             "human",
+    #             """
+    #             Respond to the following question with only a valid SQL statement,
+    #             without any additional explanation or information:
+    #             {query}
+    #             """,
+    #         ),
+    #     ]
+    # )
+    prompt = """
+    Respond to the following question objectively:
+    {query}
+    """
     formatted_content = prompt.format(query=send_query_request.query)
     agent = data_analysis_agent.agent
     result = await agent.ainvoke(

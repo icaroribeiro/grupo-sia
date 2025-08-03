@@ -14,6 +14,7 @@ from langgraph.graph import END, StateGraph
 from langgraph.graph.message import add_messages
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.exc import IntegrityError
+
 from src.layers.business_layer.ai_agents.models.invoice_item_model import (
     InvoiceItemModel,
 )
@@ -561,22 +562,185 @@ class DataIngestionWorkflow:
 
         # async def tool_executor_node(state: WorkflowState):
         #     print("---TOOL EXECUTOR---")
+        #     last_message = state["messages"][-1]
+        #     tool_messages_to_add = []
+
+        #     # Default tool_output
+        #     tool_output = state.get(
+        #         "tool_output", ToolOutput(message="No tool call executed.", result=None)
+        #     )
+
+        #     if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+        #         for tool_call in last_message.tool_calls:
+        #             tool_name = tool_call["name"]
+        #             tool_args = tool_call["args"]
+        #             tool = next(
+        #                 (t for t in self.all_tools if t.name == tool_name), None
+        #             )
+        #             if not tool:
+        #                 logger.error(f"Tool {tool_name} not found")
+        #                 tool_messages_to_add.append(
+        #                     ToolMessage(
+        #                         content=f"Error: Tool {tool_name} not found",
+        #                         tool_call_id=tool_call["id"],
+        #                     )
+        #                 )
+        #                 continue
+        #             try:
+        #                 result = await tool._arun(**tool_args)
+        #                 if isinstance(result, ToolOutput):
+        #                     tool_output = result
+        #                 elif isinstance(result, dict):
+        #                     tool_output = ToolOutput(
+        #                         message=result.get("message", "Message not provided."),
+        #                         result=result.get("result", None),
+        #                     )
+        #                 else:
+        #                     parsed_dict = _parse_tool_output_string(str(result))
+        #                     tool_output = ToolOutput(
+        #                         message=parsed_dict.get(
+        #                             "message", "Could not parse string output."
+        #                         ),
+        #                         result=parsed_dict.get("result", None),
+        #                     )
+        #                 tool_messages_to_add.append(
+        #                     ToolMessage(
+        #                         content=str(
+        #                             tool_output
+        #                         ),  # Serialize for message history
+        #                         tool_call_id=tool_call["id"],
+        #                     )
+        #                 )
+        #             except Exception as e:
+        #                 logger.error(f"Error executing tool {tool_name}: {e}")
+        #                 tool_output = ToolOutput(
+        #                     message=f"Error executing tool {tool_name}: {str(e)}",
+        #                     result=None,
+        #                 )
+        #                 tool_messages_to_add.append(
+        #                     ToolMessage(
+        #                         content=str(tool_output), tool_call_id=tool_call["id"]
+        #                     )
+        #                 )
+
+        #     print(f" --> tool_output: {tool_output}")
+        #     return {
+        #         "messages": state["messages"] + tool_messages_to_add,
+        #         "tool_output": tool_output,
+        #     }
+
+        # async def tool_executor_node(state: dict[str, Any]) -> dict[str, Any]:
+        #     # ... (code before the try block) ...
+
+        #     try:
+        #         tool_outputs = await tool_executor.ainvoke({"messages": [last_message]})
+        #         print(f" ******** tool_outputs: {tool_outputs}")
+
+        #         # Check if there are messages to process
+        #         if not tool_outputs["messages"]:
+        #             tool_output = ToolOutput(
+        #                 message="No output received from tool executor."
+        #             )
+        #         else:
+        #             first_tool_message = tool_outputs["messages"][0]
+        #             print(f" ******** first_tool_message: {first_tool_message}")
+
+        #             if isinstance(first_tool_message, ToolMessage):
+        #                 # Handle both success and error cases from the tool
+        #                 if first_tool_message.status == "error":
+        #                     tool_output = ToolOutput(
+        #                         message=f"Tool execution failed: {first_tool_message.content}",
+        #                         result=None,
+        #                     )
+        #                 else:
+        #                     # Parse the content string manually
+        #                     try:
+        #                         # Use a regular expression to find the 'message' and 'result' parts
+        #                         match = re.match(
+        #                             r"message='(.*?)' result=(.*)",
+        #                             first_tool_message.content,
+        #                         )
+        #                         if match:
+        #                             message_part = match.group(1)
+        #                             result_part = match.group(2)
+
+        #                             # Safely evaluate the result part, which should be a list or dict
+        #                             parsed_result = ast.literal_eval(result_part)
+
+        #                             tool_output = ToolOutput(
+        #                                 message=message_part,
+        #                                 result=parsed_result,
+        #                             )
+        #                         else:
+        #                             # Fallback if the regex doesn't match the expected format
+        #                             tool_output = ToolOutput(
+        #                                 message=first_tool_message.content
+        #                             )
+        #                     except (ValueError, SyntaxError) as e:
+        #                         print(f"Error parsing tool output: {e}")
+        #                         # Fallback if ast.literal_eval fails
+        #                         tool_output = ToolOutput(
+        #                             message=first_tool_message.content
+        #                         )
+        #             else:
+        #                 # If the message is not a ToolMessage, just use its content.
+        #                 tool_output = ToolOutput(
+        #                     message=str(first_tool_message.content)
+        #                 )
+
+        #     except Exception as e:
+        #         logger.error(f"Error executing tool: {e}")
+        #         tool_output = ToolOutput(message=f"Error executing tool: {str(e)}")
+
+        #     print(f" --> tool_output: {tool_output}")
+        #     return {
+        #         "messages": state["messages"] + tool_outputs["messages"],
+        #         "tool_output": tool_output,
+        #     }
+
+        # async def tool_executor_node(state: dict[str, Any]) -> dict[str, Any]:
+        #     """Execute tools using ToolNode and return updated state with ToolOutput."""
+        #     print("---TOOL EXECUTOR---")
         #     tool_executor = ToolNode(self.all_tools)
         #     last_message = state["messages"][-1]
-        #     if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+        #     tool_output = state.get(
+        #         "tool_output", ToolOutput(message="No tool call executed.")
+        #     )
+
+        #     if not (hasattr(last_message, "tool_calls") and last_message.tool_calls):
+        #         print(f" --> tool_output: {tool_output}")
+        #         return {"messages": state["messages"], "tool_output": tool_output}
+
+        #     try:
         #         tool_outputs = await tool_executor.ainvoke({"messages": [last_message]})
-        #         # Extract the tool output (assuming single tool call for simplicity)
-        #         tool_output = (
+        #         print(f" ******** tool_outputs: {tool_outputs}")
+        #         # Extract the first tool output (assuming single tool call for simplicity)
+        #         raw_output = (
         #             tool_outputs["messages"][0].content
         #             if tool_outputs["messages"]
-        #             else {}
+        #             else "No output received."
         #         )
-        #         print(f" --> tool_output: {tool_output}")
-        #         return {
-        #             "messages": state["messages"] + tool_outputs["messages"],
-        #             "tool_output": tool_output
-        #         }
-        #     return state
+
+        #         # Convert to ToolOutput
+        #         if isinstance(raw_output, ToolOutput):
+        #             tool_output = raw_output
+        #         elif isinstance(raw_output, dict):
+        #             tool_output = ToolOutput(
+        #                 message=raw_output.get("message", "Message not provided."),
+        #                 result=raw_output.get("result"),
+        #             )
+        #         else:
+        #             tool_output = ToolOutput(message=str(raw_output))
+
+        #     except Exception as e:
+        #         logger.error(f"Error executing tool: {e}")
+        #         tool_output = ToolOutput(message=f"Error executing tool: {str(e)}")
+
+        #     print(f" --> tool_output: {tool_output}")
+        #     return {
+        #         "messages": state["messages"] + tool_outputs["messages"],
+        #         "tool_output": tool_output,
+        #     }
 
         async def tool_executor_node(state: WorkflowState):
             print("---TOOL EXECUTOR---")
@@ -640,49 +804,6 @@ class DataIngestionWorkflow:
                 "messages": state["messages"] + tool_messages_to_add,
                 "tool_output": tool_output,
             }
-
-        # async def tool_executor_node(state: dict[str, Any]) -> dict[str, Any]:
-        #     """Execute tools using ToolNode and return updated state with ToolOutput."""
-        #     print("---TOOL EXECUTOR---")
-        #     tool_executor = ToolNode(self.all_tools)
-        #     last_message = state["messages"][-1]
-        #     tool_output = state.get(
-        #         "tool_output", ToolOutput(message="No tool call executed.")
-        #     )
-
-        #     if not (hasattr(last_message, "tool_calls") and last_message.tool_calls):
-        #         print(f" --> tool_output: {tool_output}")
-        #         return {"messages": state["messages"], "tool_output": tool_output}
-
-        #     try:
-        #         tool_outputs = await tool_executor.ainvoke({"messages": [last_message]})
-        #         # Extract the first tool output (assuming single tool call for simplicity)
-        #         raw_output = (
-        #             tool_outputs["messages"][0].content
-        #             if tool_outputs["messages"]
-        #             else "No output received."
-        #         )
-
-        #         # Convert to ToolOutput
-        #         if isinstance(raw_output, ToolOutput):
-        #             tool_output = raw_output
-        #         elif isinstance(raw_output, dict):
-        #             tool_output = ToolOutput(
-        #                 message=raw_output.get("message", "Message not provided."),
-        #                 result=raw_output.get("result"),
-        #             )
-        #         else:
-        #             tool_output = ToolOutput(message=str(raw_output))
-
-        #     except Exception as e:
-        #         logger.error(f"Error executing tool: {e}")
-        #         tool_output = ToolOutput(message=f"Error executing tool: {str(e)}")
-
-        #     print(f" --> tool_output: {tool_output}")
-        #     return {
-        #         "messages": state["messages"] + tool_outputs["messages"],
-        #         "tool_output": tool_output,
-        #     }
 
         # 6. Build the Graph
         workflow.add_node("supervisor", call_supervisor)
