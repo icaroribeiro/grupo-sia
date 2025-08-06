@@ -25,9 +25,9 @@ async def test(
 ):
     prompt = """
     Perform the following tasks in order:
-    1. 'assistant_1' is only responsible for generate only one random number.
-    2. 'assistant_2' is only responsible for respond the number and tell me if it's prime or not.
-    The assistants cannot perform other assigments other than the above.
+    1. Generate only one random number.
+    2. Respond the number and tell me if it's prime or not.
+    Each assistant can perform only one task and nothing beyond those described above..
     """
     input_message = prompt
 

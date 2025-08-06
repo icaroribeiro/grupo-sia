@@ -203,10 +203,9 @@ class TestWorkflow:
                     You have access to the following tools to perform your activities:
                     {tool_descriptions}
 
-                     **Your Mission:**
-                    - Your only purpose is to receive a request and then report the result of your tools' execution to the supervisor.
-                    - **NEVER** respond with any result other than the tool's output or call other tools.
-                    - **UNDER NO CIRCUMSTANCES** execute the same tool more than once in a row.
+                    Your mission is to find the necessary input from the conversation history, choose the appropriate tool from your available set to process that input, and then stop.
+                    The required input will be provided in a JSON object from a previous assistant. You must extract the value from the **'result'** field of the **'tool_output'** object. This value should be used as the primary input argument for the tool you select.
+                    Your task is complete once you have called a tool and processed the input.
                     """,
                 ),
                 MessagesPlaceholder(variable_name="messages"),
@@ -304,13 +303,24 @@ class TestWorkflow:
                     "system",
                     """
                     You are an expert in checking if a number is prime.
-                    Your only task is to find the number in the conversation history (it will be in a JSON object under the **'tool_output'** key from a previous assistant), use the `is_prime_number_tool` on that number, and then stop.
+                    You have access to the following tools to perform your activities:
+                    {tool_descriptions}
+
+                    Your mission is to find the necessary input from the conversation history, choose the appropriate tool from your available set to process that input, and then stop.
+                    The required input will be provided in a JSON object from a previous assistant. You must extract the value from the **'result'** field of the **'tool_output'** object. This value should be used as the primary input argument for the tool you select.
+                    Your task is complete once you have called a tool and processed the input.
                     """,
                 ),
                 MessagesPlaceholder(variable_name="messages"),
             ]
+        ).partial(
+            tool_descriptions="\n".join(
+                [
+                    f"- `{tool.name}`: {tool.description.strip()}"
+                    for tool in self.assistant_2.tools
+                ]
+            )
         )
-        # END OF CHANGE
         llm_with_tools = self.llm.bind_tools(self.assistant_2.tools)
         chain = prompt | llm_with_tools
         response = chain.invoke({"messages": messages})
