@@ -66,7 +66,7 @@ async def send_general_queries(
 
     result = await general_data_analysis_workflow.run(input_message=input_message)
     answer: str = result["messages"][-1].content
-    logger.info(f"Answer: {answer}")
+    logger.info(f"Final result: {answer}")
     return SendGeneralQueryResponse(answer=answer)
 
 
@@ -108,5 +108,5 @@ async def send_technical_queries(
         input_message=input_message, format_instructions_str=format_instructions_str
     )
     answer: str = result["messages"][-1].content
-    logger.info(f"Answer: {answer}")
+    logger.info(f"Final result: {answer}")
     return SendTechnicalQueryResponse(answer=json.loads(s=answer))

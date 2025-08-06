@@ -3,8 +3,8 @@ import os
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, File, Response, UploadFile, status
 
-from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow import (
-    DataIngestionWorkflow,
+from src.layers.business_layer.ai_agents.workflows.database_data_ingestion_workflow import (
+    DatabaseDataIngestionWorkflow,
 )
 from src.layers.core_logic_layer.container.container import Container
 from src.layers.core_logic_layer.logging import logger
@@ -27,8 +27,8 @@ async def upload_zip_file(
     response: Response,
     file: UploadFile = File(...),
     config: dict = Depends(Provide[Container.config]),
-    data_ingestion_workflow: DataIngestionWorkflow = Depends(
-        Provide[Container.data_ingestion_workflow]
+    database_data_ingestion_workflow: DatabaseDataIngestionWorkflow = Depends(
+        Provide[Container.database_data_ingestion_workflow]
     ),
 ):
     if file.content_type != "application/zip":
@@ -53,40 +53,22 @@ async def upload_zip_file(
         logger.error(message)
         raise ServerError(message=message)
 
-    # initial_state = {
-    #     "messages": [HumanMessage(content="Start data ingestion workflow")],
-    #     "next": "entry_node",
-    #     "tool_output": None,
-    #     "file_path": file_path,
-    #     "destination_dir_path": destination_dir_path,
-    # }
-
-    # input_message = json.dumps(
-    #     {
-    #         "file_path": file_path,
-    #         "destination_dir_path": destination_dir_path,
-    #     }
-    # )
-
     prompt = """
     Perform the following tasks in order:
-    1. Unzip the file located at '{file_path}' to the directory '{destination_dir_path}' using the 'unzip_files_from_zip_archive_tool'.
-    2. Map a list of paths of extracted CSV files to a dictionary of lists of ingestion arguments using the 'map_csvs_to_ingestion_args_tool'.
-    3. Insert database records into database using the 'insert_records_into_database_tool'.
+    1. Unzip the file located at '{file_path}' to the directory '{destination_dir_path}' using the 'UnzipFilesFromZipArchiveTool'.
+    2. Read the content of all files using 'ReadFileTool'.
     """
     input_message = prompt.format(
         file_path=file_path, destination_dir_path=destination_dir_path
     )
 
-    result = await data_ingestion_workflow.run(input_message=input_message)
-
-    print(
-        "Final Result:",
-        result["messages"][-1].content,
-    )
-
+    result = await database_data_ingestion_workflow.run(input_message=input_message)
+    answer: str = result["messages"][-1].content
+    logger.info(f"Final result: {answer}")
     return UploadFileResponse(status="Uploaded")
 
+    # 2. Map a list of paths of extracted CSV files to a dictionary of lists of ingestion arguments using the 'map_csvs_to_ingestion_args_tool'.
+    # 3. Insert database records into database using the 'insert_records_into_database_tool'.
     # 2. Map a list of paths of extracted CSV files to a dictionary of ingestion arguments using the 'map_csvs_to_ingestion_args_tool'.
 
     # 3. Map a dictionary of ingestion arguments to a dictionary of SQLALchemy database models using the 'map_ingestion_args_to_db_models_tool'.
