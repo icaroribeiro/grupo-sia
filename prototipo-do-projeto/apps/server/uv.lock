@@ -746,6 +746,19 @@ wheels = [
 ]
 
 [[package]]
+name = "langgraph-supervisor"
+version = "0.0.28"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "langchain-core" },
+    { name = "langgraph" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e1/68/22a491f4ad72c75c77014219073c77bf580892a75934488e7543b730bdde/langgraph_supervisor-0.0.28.tar.gz", hash = "sha256:58af7c66fd184bf8adaff14ea31270ba576ae0b6809537a74b9fa6cc217b28e3", size = 20968 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/43/7c/434c06894f8585e7d869dbefdcfc80ec446ff5edde1844085c611dfa896b/langgraph_supervisor-0.0.28-py3-none-any.whl", hash = "sha256:4daaeef17dadf2fe701b7d8ff1b76623dafd80a0a605870c163f67a18f30641e", size = 15925 },
+]
+
+[[package]]
 name = "langsmith"
 version = "0.4.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1361,6 +1374,7 @@ dependencies = [
     { name = "langchain-mongodb" },
     { name = "langchain-openai" },
     { name = "langgraph" },
+    { name = "langgraph-supervisor" },
     { name = "langsmith" },
     { name = "motor" },
     { name = "pandas" },
@@ -1386,6 +1400,7 @@ requires-dist = [
     { name = "langchain-mongodb", specifier = ">=0.6.2" },
     { name = "langchain-openai", specifier = ">=0.3.27" },
     { name = "langgraph", specifier = ">=0.5.2" },
+    { name = "langgraph-supervisor", specifier = ">=0.0.28" },
     { name = "langsmith", specifier = ">=0.4.4" },
     { name = "motor", specifier = ">=3.7.1" },
     { name = "pandas", specifier = ">=2.3.0" },

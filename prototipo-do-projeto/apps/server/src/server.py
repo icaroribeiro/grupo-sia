@@ -1,21 +1,25 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 
+from src.layers.business_layer.ai_agents.models.invoice_ingestion_config_model import (
+    InvoiceIngestionConfig,
+)
+from src.layers.business_layer.ai_agents.models.invoice_item_ingestion_config_model import (
+    InvoiceItemIngestionConfig,
+)
 from src.layers.core_logic_layer.container.container import Container
 from src.layers.core_logic_layer.logging import logger
 from src.layers.core_logic_layer.settings import (
     ai_settings,
     app_settings,
-    # mongodb_settings,
     postgresdb_settings,
 )
-
-# from src.layers.data_access_layer.mongodb.documents.invoice_document import (
-#     InvoiceDocument,
-# )
-# from src.layers.data_access_layer.mongodb.documents.invoice_item_document import (
-#     InvoiceItemDocument,
-# )
+from src.layers.data_access_layer.postgresdb.models.invoice_item_model import (
+    InvoiceItemModel as SQLAlchemyInvoiceItemModel,
+)
+from src.layers.data_access_layer.postgresdb.models.invoice_model import (
+    InvoiceModel as SQLAlchemyInvoiceModel,
+)
 from src.layers.presentation_layer.rest_api.handlers.api_exception_handler import (
     ExceptionHandler,
 )
@@ -53,11 +57,20 @@ class Server:
         logger.info("Application startup initiating...")
         self._container.config.app_settings.from_value(app_settings)
         self._container.config.ai_settings.from_value(ai_settings)
-        # self._container.config.mongodb_settings.from_value(mongodb_settings)
-        # self._container.config.mongodb_beanie_documents.from_value(
-        #     [InvoiceDocument, InvoiceItemDocument]
-        # )
         self._container.config.postgresdb_settings.from_value(postgresdb_settings)
+        self._container.config.ingestion_config_dict.from_value(
+            {
+                0: InvoiceIngestionConfig().model_dump(),
+                1: InvoiceItemIngestionConfig().model_dump(),
+            }
+        )
+        self._container.config.sqlalchemy_model_by_table_name.from_value(
+            {
+                SQLAlchemyInvoiceModel.get_table_name(): SQLAlchemyInvoiceModel,
+                SQLAlchemyInvoiceItemModel.get_table_name(): SQLAlchemyInvoiceItemModel,
+            }
+        )
+
         self._container.wire(
             packages=[
                 "src.layers.presentation_layer.rest_api.routers.v1",

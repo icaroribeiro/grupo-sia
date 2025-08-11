@@ -10,18 +10,19 @@ class AsyncQuerySQLDatabaseTool(QuerySQLDatabaseTool):
     def __init__(
         self,
         postgresdb: PostgresDB,
-        llm: BaseChatModel = None,
+        llm: BaseChatModel,
     ):
         super().__init__(db=postgresdb, llm=llm)
         self.name = "async_query_sql_database_tool"
         self.db = postgresdb
 
     async def _arun(self, query: str) -> str:
-        logger.info("The AsyncQuerySQLDatabaseTool call has started...")
+        logger.info(f"Calling {self.name}...")
         try:
             async with self.db.async_session() as async_session:
                 result = await async_session.execute(text(query))
-                logger.info("The AsyncQuerySQLDatabaseTool has finished.")
                 return str([dict(row) for row in result.mappings().all()])
-        except Exception as e:
-            return f"Error: {str(e)}"
+        except Exception as error:
+            message = f"Error: {str(error)}"
+            logger.error(message)
+            raise

@@ -2,13 +2,22 @@ from typing import AsyncGenerator
 
 from dependency_injector import containers, providers
 from sqlalchemy.ext.asyncio import AsyncSession
+from src.layers.business_layer.ai_agents.llm.llm import LLM
 from src.layers.business_layer.ai_agents.toolkits.async_sql_database_toolkit import (
     AsyncSQLDatabaseToolkit,
 )
-from src.layers.business_layer.ai_agents.workflows.database_data_ingestion_workflow import (
-    DatabaseDataIngestionWorkflow,
-    ReadFileTool,
+from src.layers.business_layer.ai_agents.tools.insert_ingestion_args_into_database_tool import (
+    InsertIngestionArgsIntoDatabaseTool,
+)
+from src.layers.business_layer.ai_agents.tools.map_csvs_to_ingestion_args_tool import (
+    MapCSVsToIngestionArgsTool,
+)
+from src.layers.business_layer.ai_agents.tools.unzip_files_from_zip_archive_tool import (
     UnzipFilesFromZipArchiveTool,
+)
+from src.layers.business_layer.ai_agents.workflows.database_ingestion_workflow import (
+    DatabaseIngestionWorkflow,
+    DatabaseIngestionWorkflow2,
 )
 from src.layers.business_layer.ai_agents.workflows.general_data_analysis_workflow import (
     GeneralDataAnalysisWorkflow,
@@ -21,12 +30,14 @@ from src.layers.business_layer.ai_agents.workflows.test_workflow import (
     IsPrimeNumberTool,
     TestWorkflow,
 )
-from src.layers.core_logic_layer.chat_model.chat_model import ChatModel
+from src.layers.business_layer.ai_agents.workflows.test_workflow_1 import TestWorkflow1
 from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB
 
 
 class Container(containers.DeclarativeContainer):
     config = providers.Configuration()
+
+    llm = providers.Singleton(LLM, ai_settings=config.ai_settings)
 
     postgresdb = providers.Singleton(
         PostgresDB, postgresdb_settings=config.postgresdb_settings
@@ -43,54 +54,32 @@ class Container(containers.DeclarativeContainer):
         postgresdb=postgresdb,
     )
 
-    chat_model = providers.Singleton(ChatModel, ai_settings=config.ai_settings)
-
     unzip_files_from_zip_archive_tool = providers.Singleton(
         UnzipFilesFromZipArchiveTool
     )
-    read_file_tool = providers.Singleton(ReadFileTool)
-    # map_csvs_to_ingestion_args_tool = providers.Singleton(MapCSVsToIngestionArgsTool)
-    # map_ingestion_args_to_db_models_tool = providers.Singleton(
-    #     MapIngestionArgsToDBModelsTool
-    # )
-    # insert_records_into_database_tool = providers.Singleton(
-    #     InsertRecordsIntoDatabaseTool,
-    #     postgresdb=postgresdb,
-    # )
-    # insert_records_into_database_tool_2 = providers.Singleton(
-    #     InsertRecordsIntoDatabaseTool2,
-    #     postgresdb=postgresdb,
-    # )
-    # map_csvs_to_pydantic_models_tool = providers.Singleton(
-    #     MapCSVsToPydanticModelsTool,
-    # )
-    # map_csvs_to_db_models_tool = providers.Singleton(MapCSVsToDBModelsTool)
-    # insert_records_into_database_tool_3 = providers.Singleton(
-    #     InsertRecordsIntoDatabaseTool3,
-    #     postgresdb=postgresdb,
-    # )
-    # data_ingestion_agent = providers.Singleton(
-    #     DataIngestionAgent,
-    #     llm=chat_model.provided.llm,
-    #     tools=providers.List(
-    #         unzip_files_from_zip_archive_tool,
-    #         map_csvs_to_ingestion_args_tool,
-    #         map_ingestion_args_to_db_models_tool,
-    #         # insert_records_into_database_tool,
-    #     ),
-    # )
-    database_data_ingestion_workflow = providers.Singleton(
-        DatabaseDataIngestionWorkflow,
-        llm=chat_model.provided.llm,
+    map_csvs_to_ingestion_args_tool = providers.Singleton(
+        MapCSVsToIngestionArgsTool, ingestion_config_dict=config.ingestion_config_dict
+    )
+    insert_ingestion_args_into_database_tool = providers.Singleton(
+        InsertIngestionArgsIntoDatabaseTool,
+        postgresdb=postgresdb,
+        sqlalchemy_model_by_table_name=config.sqlalchemy_model_by_table_name,
+    )
+
+    database_ingestion_workflow = providers.Singleton(
+        DatabaseIngestionWorkflow,
+        chat_model=llm.provided.chat_model,
         unzip_files_from_zip_archive_tool=unzip_files_from_zip_archive_tool,
-        read_file_tool=read_file_tool,
-        # map_csvs_to_ingestion_args_tool=map_csvs_to_ingestion_args_tool,
-        # map_ingestion_args_to_db_models_tool=map_ingestion_args_to_db_models_tool,
-        # insert_records_into_database_tool=insert_records_into_database_tool,
-        # map_csvs_to_db_models_tool=map_csvs_to_db_models_tool,
-        # insert_records_into_database_tool_2=insert_records_into_database_tool_2,
-        # map_csvs_to_pydantic_models_tool=map_csvs_to_pydantic_models_tool,
-        # insert_records_into_database_tool_3=insert_records_into_database_tool_3,
+        map_csvs_to_ingestion_args_tool=map_csvs_to_ingestion_args_tool,
+        insert_ingestion_args_into_database_tool=insert_ingestion_args_into_database_tool,
+    )
+
+    database_ingestion_workflow_2 = providers.Singleton(
+        DatabaseIngestionWorkflow2,
+        chat_model=llm.provided.chat_model,
+        unzip_files_from_zip_archive_tool=unzip_files_from_zip_archive_tool,
+        map_csvs_to_ingestion_args_tool=map_csvs_to_ingestion_args_tool,
+        insert_ingestion_args_into_database_tool=insert_ingestion_args_into_database_tool,
     )
 
     create_random_number_tool = providers.Singleton(CreateRandomNumberTool)
@@ -98,32 +87,32 @@ class Container(containers.DeclarativeContainer):
 
     test_workflow = providers.Singleton(
         TestWorkflow,
-        llm=chat_model.provided.llm,
+        chat_model=llm.provided.chat_model,
         create_random_number_tool=create_random_number_tool,
         is_prime_number_tool=is_prime_number_tool,
-        # map_csvs_to_ingestion_args_tool=map_csvs_to_ingestion_args_tool,
-        # map_ingestion_args_to_db_models_tool=map_ingestion_args_to_db_models_tool,
-        # insert_records_into_database_tool=insert_records_into_database_tool,
-        # map_csvs_to_db_models_tool=map_csvs_to_db_models_tool,
-        # insert_records_into_database_tool_2=insert_records_into_database_tool_2,
-        # map_csvs_to_pydantic_models_tool=map_csvs_to_pydantic_models_tool,
-        # insert_records_into_database_tool_3=insert_records_into_database_tool_3,
+    )
+
+    test_workflow_1 = providers.Singleton(
+        TestWorkflow1,
+        chat_model=llm.provided.chat_model,
+        create_random_number_tool=create_random_number_tool,
+        is_prime_number_tool=is_prime_number_tool,
     )
 
     async_sql_database_toolkit = providers.Singleton(
         AsyncSQLDatabaseToolkit,
         postgresdb=postgresdb,
-        llm=chat_model.provided.llm,
+        chat_model=llm.provided.chat_model,
     )
 
     general_data_analysis_workflow = providers.Singleton(
         GeneralDataAnalysisWorkflow,
-        llm=chat_model.provided.llm,
+        chat_model=llm.provided.chat_model,
         async_sql_database_tools=async_sql_database_toolkit.provided.get_tools.call(),
     )
 
     technical_data_analysis_workflow = providers.Singleton(
         TechnicalDataAnalysisWorkflow,
-        llm=chat_model.provided.llm,
+        chat_model=llm.provided.chat_model,
         async_sql_database_tools=async_sql_database_toolkit.provided.get_tools.call(),
     )

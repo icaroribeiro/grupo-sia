@@ -30,6 +30,7 @@ class WorkflowState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
     next: str
     sender: str
+    format_instructions: str | None = None
 
 
 class Agent(BaseModel):
@@ -74,7 +75,7 @@ class IsPrimeNumberTool(BaseTool):
         return self._run(num)
 
 
-class TestWorkflow:
+class TestWorkflow1:
     def __init__(
         self,
         llm: BaseChatModel,
@@ -87,6 +88,7 @@ class TestWorkflow:
         self.assistant_1 = Agent(name="assistant_1", tools=[create_random_number_tool])
         self.assistant_2 = Agent(name="assistant_2", tools=[is_prime_number_tool])
         self.assistant_names = [self.assistant_1.name, self.assistant_2.name]
+        self.reporter = Agent(name="reporter")
         self.__graph = self._build_graph()
 
     def __call_supervisor(self, state: WorkflowState):
@@ -109,18 +111,19 @@ class TestWorkflow:
                     - If the last message is a JSON object with a **'tool_output'** key, it means a tool has run.
                     - Analyze the **'tool_output'** to decide the next step.
                     - If the request is not yet complete, route to the appropriate assistant.
-                    
-                    Respond with a JSON object with a single key 'next' mapping to one of [{assistant_names_str}, FINISH] as follows:
+                    - Once the request is complete, route to the {reporter_name} to respond user request using format instructions
+                    Respond with a JSON object with a single key 'next' mapping to one of [{assistant_names_str}, {reporter_name}, FINISH] as follows:
                     ```json
                         {{"next": "<next_node>"}}
                     ```
-                    where <next_node> is the node to route to (e.g., {assistant_1_name} or FINISH).
+                    where <next_node> is the node to route to (e.g., {assistant_1_name}, {reporter_name} or FINISH).
                     """,
                 ),
                 MessagesPlaceholder(variable_name="messages"),
             ]
         ).partial(
             assistant_names_str=assistant_names_str,
+            reporter_name=self.reporter.name,
             assistant_1_name=self.assistant_1.name,
         )
         # END OF CHANGE
@@ -322,7 +325,48 @@ class TestWorkflow:
         llm_with_tools = self.llm.bind_tools(self.assistant_2.tools)
         chain = prompt | llm_with_tools
         response = chain.invoke({"messages": messages})
+
+        # Deduplicate tool calls before updating the state
+        # This ensures that only unique tool calls (based on name and arguments) are
+        # passed to the tools node.
+        if hasattr(response, "tool_calls") and response.tool_calls:
+            seen = set()
+            unique_tool_calls = []
+            for tool_call in response.tool_calls:
+                tool_key = (tool_call["name"], str(tool_call["args"]))
+                if tool_key not in seen:
+                    seen.add(tool_key)
+                    unique_tool_calls.append(tool_call)
+            response.tool_calls = unique_tool_calls
+
         return {"messages": [response], "sender": self.assistant_2.name}
+
+    def __call_reporter(self, state: WorkflowState):
+        logger.info(f"Calling {self.reporter.name}...")
+        messages = state["messages"]
+
+        logger.info(f"messages: {messages}")
+        # Retrieve format instructions from the state, defaulting to an empty string
+        format_instructions = state.get("format_instructions", "")
+        logger.info(f"format_instructions: {format_instructions}")
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    """
+                    You are a reporter.
+                    Once you have the final answer, please provide it directly using the formatting rules if any.
+                    \n\n{format_instructions}
+                    """,
+                ),
+                MessagesPlaceholder(variable_name="messages"),
+            ]
+        )
+        chain = prompt | self.llm
+        response = chain.invoke(
+            {"messages": messages, "format_instructions": format_instructions}
+        )
+        return {"messages": [response], "sender": self.reporter.name}
 
     def __route_from_supervisor(self, state: WorkflowState):
         logger.info(f"Routing from {self.supervisor.name}...")
@@ -368,6 +412,7 @@ class TestWorkflow:
         workflow.add_node(self.supervisor.name, self.__call_supervisor)
         workflow.add_node(self.assistant_1.name, self.__call_assistant_1)
         workflow.add_node(self.assistant_2.name, self.__call_assistant_2)
+        workflow.add_node(self.reporter.name, self.__call_reporter)
         workflow.add_node(
             node="tools",
             action=ToolNode(self.assistant_1.tools + self.assistant_2.tools),
@@ -376,6 +421,7 @@ class TestWorkflow:
         workflow.set_entry_point(self.supervisor.name)
 
         routing_map = {name: name for name in self.assistant_names}
+        routing_map[self.reporter.name] = self.reporter.name
         routing_map["FINISH"] = END
         workflow.add_conditional_edges(
             self.supervisor.name,
@@ -408,11 +454,18 @@ class TestWorkflow:
     def graph(self):
         return self.__graph
 
-    async def run(self, input_message: str) -> dict:
+    async def run(
+        self, input_message: str, format_instructions_str: str | None
+    ) -> dict:
         logger.info(f"Starting {self.name} with input: '{input_message[:100]}...'")
+
         input_messages = [HumanMessage(content=input_message)]
         thread_id = str(uuid.uuid4())
-        input_state = {"messages": input_messages}
+
+        input_state = {
+            "messages": input_messages,
+            "format_instructions": format_instructions_str,
+        }
 
         result = await self.__graph.ainvoke(
             input_state,
