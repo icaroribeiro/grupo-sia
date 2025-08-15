@@ -1,4 +1,4 @@
-# Common tasks.
+# General tasks.
 set-env:
 	.\scripts\set_env.bat
 
@@ -6,17 +6,13 @@ format:
 	ruff check --select I --fix . \
 	ruff format .
 
-# MongoDB tasks.
-init-mongodb:
-	uv run scripts/init_mongodb.py
-
-create-migration:
-	beanie new-migration -n $(MIGRATION_NAME) -p mongodb/migrations
-
-roll-one-forward-migration:
-	beanie migrate -uri 'mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_HOST}:${MONGODB_PORT}' -db ${MONGODB_DATABASE} -p mongodb/migrations --distance 1 --forward --no-use-transaction
-
 # Server tasks.
+import-csv:
+	uv run scripts/import_csv_to_postgresdb.py
+
+migrate-db:
+	uv run scripts/migrate_postgresdb.py
+
 run-server:
 	uv run scripts/run_server.py
 

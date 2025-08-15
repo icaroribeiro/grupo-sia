@@ -17,7 +17,6 @@ class BaseWorkflow:
         is_subgraph = False
         if isinstance(update, tuple):
             ns, update = update
-            # skip parent graph updates in the printouts
             if len(ns) == 0:
                 return
 

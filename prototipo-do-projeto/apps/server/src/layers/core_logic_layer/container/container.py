@@ -15,9 +15,8 @@ from src.layers.business_layer.ai_agents.tools.map_csvs_to_ingestion_args_tool i
 from src.layers.business_layer.ai_agents.tools.unzip_files_from_zip_archive_tool import (
     UnzipFilesFromZipArchiveTool,
 )
-from src.layers.business_layer.ai_agents.workflows.database_ingestion_workflow import (
-    DatabaseIngestionWorkflow,
-    DatabaseIngestionWorkflow2,
+from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow import (
+    DataIngestionWorkflow,
 )
 from src.layers.business_layer.ai_agents.workflows.general_data_analysis_workflow import (
     GeneralDataAnalysisWorkflow,
@@ -25,12 +24,6 @@ from src.layers.business_layer.ai_agents.workflows.general_data_analysis_workflo
 from src.layers.business_layer.ai_agents.workflows.technical_data_analysis_workflow import (
     TechnicalDataAnalysisWorkflow,
 )
-from src.layers.business_layer.ai_agents.workflows.test_workflow import (
-    CreateRandomNumberTool,
-    IsPrimeNumberTool,
-    TestWorkflow,
-)
-from src.layers.business_layer.ai_agents.workflows.test_workflow_1 import TestWorkflow1
 from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB
 
 
@@ -66,37 +59,12 @@ class Container(containers.DeclarativeContainer):
         sqlalchemy_model_by_table_name=config.sqlalchemy_model_by_table_name,
     )
 
-    database_ingestion_workflow = providers.Singleton(
-        DatabaseIngestionWorkflow,
+    data_ingestion_workflow = providers.Singleton(
+        DataIngestionWorkflow,
         chat_model=llm.provided.chat_model,
         unzip_files_from_zip_archive_tool=unzip_files_from_zip_archive_tool,
         map_csvs_to_ingestion_args_tool=map_csvs_to_ingestion_args_tool,
         insert_ingestion_args_into_database_tool=insert_ingestion_args_into_database_tool,
-    )
-
-    database_ingestion_workflow_2 = providers.Singleton(
-        DatabaseIngestionWorkflow2,
-        chat_model=llm.provided.chat_model,
-        unzip_files_from_zip_archive_tool=unzip_files_from_zip_archive_tool,
-        map_csvs_to_ingestion_args_tool=map_csvs_to_ingestion_args_tool,
-        insert_ingestion_args_into_database_tool=insert_ingestion_args_into_database_tool,
-    )
-
-    create_random_number_tool = providers.Singleton(CreateRandomNumberTool)
-    is_prime_number_tool = providers.Singleton(IsPrimeNumberTool)
-
-    test_workflow = providers.Singleton(
-        TestWorkflow,
-        chat_model=llm.provided.chat_model,
-        create_random_number_tool=create_random_number_tool,
-        is_prime_number_tool=is_prime_number_tool,
-    )
-
-    test_workflow_1 = providers.Singleton(
-        TestWorkflow1,
-        chat_model=llm.provided.chat_model,
-        create_random_number_tool=create_random_number_tool,
-        is_prime_number_tool=is_prime_number_tool,
     )
 
     async_sql_database_toolkit = providers.Singleton(
