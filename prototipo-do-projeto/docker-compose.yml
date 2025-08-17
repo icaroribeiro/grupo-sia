@@ -17,19 +17,6 @@ services:
   #   volumes:
   #     - app:/opt/app
 
-  # mongodb:
-  #   container_name: mongodb-container
-  #   build:
-  #     context: mongodb
-  #     dockerfile: Dockerfile.mongodb
-  #   env_file:
-  #     - mongodb/.env
-  #   restart: always
-  #   ports:
-  #     - "27017:27017"
-  #   volumes:
-  #     - mongodb_data:/data/mongodb
-
   postgresdb:
     container_name: postgresdb-container
     build:
@@ -45,5 +32,4 @@ services:
 
 volumes:
   # app:
-  # mongodb_data:
   postgresdb_data:
