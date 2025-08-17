@@ -1,6 +1,6 @@
 # grupo-sia
 
-Este é o repositório compartilhado do Curso "Criando Agentes Inteligentes com IA Generativa" do I2A2 para a entrega de atividades do Grupo SIA (Soluções Inteligentes Autônomas).
+Este é o repositório do Grupo SIA (Soluções Inteligentes Autônomas) utilizado para a entrega de atividades do curso "Criando Agentes Inteligentes com IA Generativa" do Instituto I2A2.
 
 ## Grupo SIA (Soluções Inteligentes Autônomas)
 
@@ -10,3 +10,4 @@ Este é o repositório compartilhado do Curso "Criando Agentes Inteligentes com 
 | --- | ------------------------- | ------------------------ |
 | 1   | Ícaro Ribeiro             | icaroribeiro@hotmail.com |
 | 2   | Vivian Tavares de Andrade | viviantaan@yahoo.com.br  |
+| 3   | Rafael Pereira Silva      | rafaelps.fis@gmail.com   |

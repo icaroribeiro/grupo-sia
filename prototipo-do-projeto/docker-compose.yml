@@ -1,0 +1,49 @@
+services:
+  # app:
+  #   container_name: app-container
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.app
+  #   environment:
+  #     - APP_HOST=0.0.0.0
+  #     - MONGO_HOST=mongodb
+  #   env_file:
+  #     - ./.env
+  #   restart: always
+  #   ports:
+  #     - 8501:8501
+  #   depends_on:
+  #     - mongodb
+  #   volumes:
+  #     - app:/opt/app
+
+  # mongodb:
+  #   container_name: mongodb-container
+  #   build:
+  #     context: mongodb
+  #     dockerfile: Dockerfile.mongodb
+  #   env_file:
+  #     - mongodb/.env
+  #   restart: always
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongodb_data:/data/mongodb
+
+  postgresdb:
+    container_name: postgresdb-container
+    build:
+      context: postgresdb
+      dockerfile: Dockerfile.postgresdb
+    env_file:
+      - postgresdb/.env
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgresdb_data:/data/postgresdb
+
+volumes:
+  # app:
+  # mongodb_data:
+  postgresdb_data:
