@@ -8,6 +8,7 @@ dependencies = [
     "dependency-injector>=4.48.1",
     "langchain-community>=0.3.27",
     "langchain-experimental>=0.3.4",
+    "langchain-google-genai>=2.1.9",
     "langchain-openai>=0.3.30",
     "langgraph>=0.6.5",
     "openpyxl>=3.1.5",

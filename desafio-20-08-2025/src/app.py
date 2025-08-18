@@ -47,7 +47,7 @@ def create_input_dataframes_from_files(
                             "employee_id",
                             "admission_date",
                             "job_title",
-                            "column_header_4",
+                            "column_4",
                         ],
                         index_col=None,
                     )
@@ -63,8 +63,8 @@ def create_input_dataframes_from_files(
                         names=[
                             "employee_id",
                             "situation_desc",
-                            "column_header_3",
-                            "column_header_4",
+                            "column_3",
+                            "column_4",
                         ],
                         index_col=None,
                     )
@@ -129,7 +129,7 @@ def create_input_dataframes_from_files(
                     df = pd.read_excel(
                         file_path,
                         header=0,
-                        names=["employee_id", "job_title", "column_header_3"],
+                        names=["employee_id", "job_title", "column_3"],
                         index_col=None,
                     )
                     # Drop the last column using iloc
@@ -141,7 +141,7 @@ def create_input_dataframes_from_files(
                     df = pd.read_excel(
                         file_path,
                         header=0,
-                        names=["register", "value", "column_header_3"],
+                        names=["register", "value", "column_3"],
                         index_col=None,
                     )
                     # Drop the last two columns using iloc
@@ -221,8 +221,10 @@ class App:
             create_input_dataframes_from_files(app_settings.input_data_dir_path)
         )
 
+        # Part 1
+        # ----------
         custom_prefix: str = """
-            You are an assistant specialized in efficiently data processing.
+            You are an assistant specialized in efficiently data processing with Pandas framework.
             You have access to the following pandas DataFrames to perform your activities:
 
                 {dataframes_descriptions}
@@ -230,23 +232,17 @@ class App:
         dataframes_list = []
         sorted_items = sorted(
             {
-                0: "employee_admission_data",
-                1: "employee_absense_data",
-                2: "apprentice_employee_data",
-                3: "active_employee_data",
-                4: "employee_dismissal_data",
-                5: "intern_employee_data",
-                6: "employee_abroad_data",
-                7: "employee_vacation_data",
-                8: "syndicate_data",
+                1: "active_employee_data",
+                2: "employee_admission_data",
+                3: "employee_dismissal_data",
             }.items()
         )
         for key, value in sorted_items:
             df_params = dataframes_dict[value]
             dataframes_list.append(
-                f"{key + 1}. df{key + 1} ({df_params.name}) {df_params.description}"
-                if key == 0
-                else f"                {key + 1}. df{key + 1} ({df_params.name}) {df_params.description}"
+                f"{key}. df{key} ({df_params.name}) {df_params.description}"
+                if key == 1
+                else f"                {key}. df{key} ({df_params.name}) {df_params.description}"
             )
         formatted_custom_prefix: str = custom_prefix.format(
             dataframes_descriptions="\n".join(dataframes_list),
@@ -254,65 +250,235 @@ class App:
         logger.info(f"formatted_custom_prefix:\n{formatted_custom_prefix}")
 
         custom_suffix = """
-            After performing your tasks, rename the columns in resulting dataframe to their Portuguese translations as follows:
-            - 'employee_id' should be translated to 'Matricula'
-            - 'syndicate_name' should be translated to 'Sindicato do Colaborador'
-
-            Finally, save the resulting dataframe to a CSV file at the path '{output_path}'.
-            
-            Ensure the CSV file is properly formatted, with no index column included in the output.
+            Critical rules:
+            - Execute all steps provided in the prompt in the correct order.
+            - Do not ask for confirmation or provide intermediate results.
+            - Once all steps are complete, save the dfPartial DataFrame as a CSV file and return the final answer.
             """
-        formatted_custom_suffix: str = custom_suffix.format(
-            output_path=os.path.join(
-                app_settings.output_data_dir_path, "VR MENSAL 05.2025_FINAL.csv"
-            ),
-        )
-        logger.info(f"formatted_custom_suffix:\n{formatted_custom_suffix}")
-
-        meal_voucher_dataframe_agent = create_pandas_dataframe_agent(
-            llm=llm.chat_model,
-            df=[dataframes_dict[value].content for _, value in sorted_items],
-            agent_type=AgentType.OPENAI_FUNCTIONS,
-            allow_dangerous_code=True,
-            prefix=formatted_custom_prefix,
-            suffix=formatted_custom_suffix,
-            verbose=True,
-        )
+        logger.info(f"custom_suffix:\n{custom_suffix}")
 
         input: str = """
             Your task is to gather data from dataframes and consolidate a single basis for purchasing meal value:
             To do this, perform the following steps in order:
 
-            1. From the df4 DataFrame, you must filter and remove only the rows where the value in the 'job_title' column contains a substring 'DIRETOR';
-            2. From the the resulting DataFrame, do the folowing tasks:
-            - You must filter only the rows where the value in the 'employee_id' column is the equal to the value in the 'employee_id' column of df6 Dataframe;
-            - You must filter only the rows where the value in the 'job_title' column is 'ESTAGIARIO';
-            - You must remove the selected rows.
-            3. From the the resulting DataFrame, do the folowing tasks:
-            - You must filter only the rows where the value in the 'employee_id' column is the equal to the value in the 'employee_id' column of df3 Dataframe;
-            - You must filter only the rows where the value in the 'job_title' column is 'APRENDIZ';
-            - You must remove the selected rows.
-            4. From the the resulting DataFrame, do the folowing tasks:
-            - You must filter and only the rows where the value in the 'employee_id' column is the equal to the value in the 'employee_id' column of df2 Dataframe;
-            - You must remove the selected rows.
-            5. From the the resulting DataFrame, do the folowing tasks:
-            - You must filter only the rows where the value in the 'employee_id' column is the equal to the value in the 'register' column of df7 Dataframe;
-            - You must remove the selected rows.
-            # Dismissal rules:
-            6. From the resulting DataFrame, do the following tasks:
-            - You must perform LEFT merge (Left Outer Join) operation with df5 DataFrame to join both dataframes;
-            - You must combine the values in the 'employee_id' column of resulting DataFrame that are equal to the values in the 'employee_id' column of df5 Dataframe.
-            - You must combine the values in the 'employee_id' column of resulting DataFrame that are equal to the values in the 'employee_id' column of df5 Dataframe.
-            7. Based on the resulting DataFrame, you must generate a new DataFrame only with the following columns in order:
-            - 'employee_id'
-
+            1. From the df1 and df2 DataFrames, do the following tasks:
+            - You must rename 'job_title' column of df1 DataFrame to 'job_title_df1' and 'job_title' column of df2 DataFrame to 'job_title_df2'
+            - You must perform LEFT merge (Left Outer Join) operation with df1 and df2 DataFrames on 'employee_id' column to join both dataframes;
+            - You must identify if there are any rows in the df2 DataFrame that do not exist in the df1 DataFrame based on 'employee_id' columns and concatenate them if any.
+            2. From the resulting and df3 DataFrames, do the following tasks:
+            - You must perform LEFT merge (Left Outer Join) operation with the resulting and df3 DataFrame on 'employee_id' column to join both dataframes;
+            - You must identify if there are any rows in the df3 DataFrame that do not exist in the LEFT DataFrame based on 'employee_id' columns and concatenate them if any.
+            3. From the resulting DataFrame, do the following tasks: 
+            - You must generate a new DataFrame only with the following columns from resulting DataFrame in order:
+                - 'employee_id'
+                - 'admission_date'
+                - 'job_title_df1'
+                - 'job_title_df2'
+                - 'termination_date'
+                - 'termination_notice'
+           
+            After performing the steps, you MUST save the new DataFrame to a CSV file at the path '{output_path}'.
             """
-        logger.info(f"input:\n{input}")
-
-        result = meal_voucher_dataframe_agent.invoke(input=input)
-        logger.info(f"result: {result}")
-
-        result = meal_voucher_dataframe_agent.invoke(
-            input="Informe uma lista com os números dos dias considerados como 'dias úteis' do calendário em maio de 2025"
+        formatted_input: str = input.format(
+            output_path=os.path.join(
+                app_settings.output_data_dir_path, "VR MENSAL 05.2025_partial_1.csv"
+            ),
         )
+        logger.info(f"formatted_input: {formatted_input}")
+
+        agent_df_partial_1 = create_pandas_dataframe_agent(
+            llm=llm.chat_model,
+            df=[dataframes_dict[value].content for _, value in sorted_items],
+            agent_type=AgentType.OPENAI_FUNCTIONS,
+            allow_dangerous_code=True,
+            prefix=formatted_custom_prefix,
+            suffix=custom_suffix,
+            verbose=True,
+        )
+
+        result = agent_df_partial_1.invoke(input=formatted_input)
         logger.info(f"result: {result}")
+
+        # Part 2
+        # ----------
+        custom_prefix: str = """
+            You are an assistant specialized in efficiently data processing with Pandas framework.
+            You have access to the following pandas DataFrames to perform your activities:
+
+                {dataframes_descriptions}
+            """
+        dataframes_list = []
+        sorted_items = sorted(
+            {
+                1: "active_employee_data",
+                2: "employee_admission_data",
+                3: "employee_dismissal_data",
+            }.items()
+        )
+        for key, value in sorted_items:
+            df_params = dataframes_dict[value]
+            dataframes_list.append(
+                f"{key}. df{key} ({df_params.name}) {df_params.description}"
+                if key == 1
+                else f"                {key}. df{key} ({df_params.name}) {df_params.description}"
+            )
+        formatted_custom_prefix: str = custom_prefix.format(
+            dataframes_descriptions="\n".join(dataframes_list),
+        )
+        logger.info(f"formatted_custom_prefix:\n{formatted_custom_prefix}")
+
+        custom_suffix = """
+            Critical rules:
+            - Execute all steps provided in the prompt in the correct order.
+            - Do not ask for confirmation or provide intermediate results.
+            - Once all steps are complete, save the dfPartial DataFrame as a CSV file and return the final answer.
+            """
+        logger.info(f"custom_suffix:\n{custom_suffix}")
+
+        input: str = """
+            Your task is to gather data from dataframes and consolidate a single basis for purchasing meal value:
+            To do this, perform the following steps in order:
+
+
+                    #     3. From the resulting and df3 DataFrames, do the following tasks:
+        #     - You must rename 'job_title' column of df3 DataFrame to 'job_title_df3'
+        #     - You must perform LEFT merge (Left Outer Join) operation with the resulting and df3 DataFrames on 'employee_id' column to join both dataframes;
+        #     - You must identify if there are any rows in the df3 DataFrame that do not exist in the LEFT DataFrame based on 'employee_id' columns and concatenate them if any.
+        #     4. From the resulting and df6 DataFrames, do the following tasks:
+        #     - You must rename 'job_title' column of df6 DataFrame to 'job_title_df6'
+        #     - You must perform LEFT merge (Left Outer Join) operation with the resulting and df6 DataFrames on 'employee_id' column to join both dataframes;
+        #     - You must identify if there are any rows in the df6 DataFrame that do not exist in the LEFT DataFrame based on 'employee_id' columns and concatenate them if any.
+        #     5. From the resulting and df8 DataFrames, do the following tasks:
+        #     - You must rename 'situation_desc' column of df8 DataFrame to 'situation_desc_df8'
+        #     - You must perform LEFT merge (Left Outer Join) operation with the resulting and df8 DataFrames on 'employee_id' column to join both dataframes;
+        #     - You must identify if there are any rows in the df8 DataFrame that do not exist in the LEFT DataFrame based on 'employee_id' columns and concatenate them if any.
+        #     6. From the resulting and df2 DataFrames, do the following tasks:
+        #     - You must rename 'situation_desc' column of df2 DataFrame to 'situation_desc_df2'
+        #     - You must add 'absense_days' column to df2 DataFrame and fill all its rows with the value 0
+        #     - You must perform LEFT merge (Left Outer Join) operation with the resulting and df2 DataFrames on 'employee_id' column to join both dataframes;
+        #     - You must identify if there are any rows in the df2 DataFrame that do not exist in the LEFT DataFrame based on 'employee_id' columns and concatenate them if any.
+        #     7. From the resulting DataFrame, do the following tasks:
+        #     - You must generate a new DataFrame (dfPartial) only with the following columns from resulting DataFrame in order:
+        #         - 'employee_id'
+        #         - 'admission_date'
+        #         - 'job_title_df4'
+        #         - 'job_title_df1'
+        #         - 'termination_date'
+        #         - 'termination_notice'
+        #         - 'job_title_df3'
+        #         - 'job_title_df6'
+        #         - 'situation_desc_df8'
+        #         - 'vacation_days'
+        #         - 'situation_desc_df2'
+        #         - 'absense_days'
+        #     8. From the dfPartial DataFrame, do the following tasks:
+        #     - You must generate a new DataFrame (dfFinal) only with the following columns from dfPartial DataFrame in order:
+        #         - 'employee_id'
+        #         - 'admission_date'
+        #         - 'job_title_df4'
+        #         - 'job_title_df1'
+        #         - 'termination_date'
+        #         - 'termination_notice'
+        #         - 'job_title_df3'
+        #         - 'job_title_df6'
+        #         - 'situation_desc_df8'
+        #         - 'vacation_days'
+        #         - 'situation_desc_df2'
+        #         - 'absense_days'
+
+
+                   
+            After performing the steps, you MUST save the new DataFrame to a CSV file at the path '{output_path}'.
+            """
+        formatted_input: str = input.format(
+            output_path=os.path.join(
+                app_settings.output_data_dir_path, "VR MENSAL 05.2025_partial_2.csv"
+            ),
+        )
+        logger.info(f"formatted_input: {formatted_input}")
+
+        agent_df_partial_1 = create_pandas_dataframe_agent(
+            llm=llm.chat_model,
+            df=[dataframes_dict[value].content for _, value in sorted_items],
+            agent_type=AgentType.OPENAI_FUNCTIONS,
+            allow_dangerous_code=True,
+            prefix=formatted_custom_prefix,
+            suffix=custom_suffix,
+            verbose=True,
+        )
+
+        result = agent_df_partial_1.invoke(input=formatted_input)
+        logger.info(f"result: {result}")
+
+        # custom_prefix: str = """
+        #     You are an assistant specialized in efficiently data processing.
+        #     You have access to the following pandas DataFrames to perform your activities:
+
+        #         {dataframes_descriptions}
+        #     """
+        # dataframes_list = []
+        # sorted_items = sorted(
+        #     {
+        #         0: "employee_admission_data",
+        #         1: "employee_absense_data",
+        #         2: "apprentice_employee_data",
+        #         3: "active_employee_data",
+        #         4: "employee_dismissal_data",
+        #         5: "intern_employee_data",
+        #         6: "employee_abroad_data",
+        #         7: "employee_vacation_data",
+        #         8: "syndicate_data",
+        #     }.items()
+        # )
+        # for key, value in sorted_items:
+        #     df_params = dataframes_dict[value]
+        #     dataframes_list.append(
+        #         f"{key}. df{key} ({df_params.name}) {df_params.description}"
+        #         if key == 1
+        #         else f"                {key}. df{key} ({df_params.name}) {df_params.description}"
+        #     )
+        # formatted_custom_prefix: str = custom_prefix.format(
+        #     dataframes_descriptions="\n".join(dataframes_list),
+        # )
+        # logger.info(f"formatted_custom_prefix:\n{formatted_custom_prefix}")
+
+        # custom_suffix = """
+        #     Critical rules:
+        #     - Execute all steps provided in the prompt in the correct order.
+        #     - Do not ask for confirmation or provide intermediate results.
+        #     - Once all steps are complete, save the dfPartial DataFrame as a CSV file and return the final answer.
+        #     """
+        # logger.info(f"custom_suffix:\n{custom_suffix}")
+
+        # input: str = """
+        #     Your task is to gather data from dataframes and consolidate a single basis for purchasing meal value:
+        #     To do this, perform the following steps in order:
+
+        #     1. From the df4 and df1 DataFrames, do the following tasks:
+        #     - You must rename 'job_title' column of df4 DataFrame to 'job_title_df4' and 'job_title' column of df1 DataFrame to 'job_title_df1'
+        #     - You must perform LEFT merge (Left Outer Join) operation with df4 and df1 DataFrames on 'employee_id' column to join both dataframes;
+        #     - You must identify if there are any rows in the df1 DataFrame that do not exist in the df4 DataFrame based on 'employee_id' columns and concatenate them if any.
+        #     2. From the resulting and df5 DataFrames, do the following tasks:
+        #     - You must perform LEFT merge (Left Outer Join) operation with the resulting and df5 DataFrame on 'employee_id' column to join both dataframes;
+        #     - You must identify if there are any rows in the df5 DataFrame that do not exist in the LEFT DataFrame based on 'employee_id' columns and concatenate them if any.
+        #     After performing the steps, you MUST save dfFinal DataFrame to a CSV file at the path '{output_path}'.
+        #     """
+        # formatted_input: str = input.format(
+        #     output_path=os.path.join(),
+        # )
+        # logger.info(f"formatted_input: {formatted_input}")
+
+        # agent_df_partial_1 = create_pandas_dataframe_agent(
+        #     llm=llm.chat_model,
+        #     df=[dataframes_dict[value].content for _, value in sorted_items],
+        #     agent_type=AgentType.OPENAI_FUNCTIONS,
+        #     allow_dangerous_code=True,
+        #     prefix=formatted_custom_prefix,
+        #     suffix=custom_suffix,
+        #     verbose=False,
+        #     max_iterations=100,
+        #     max_execution_time=300,
+        # )
+
+        # result = agent_df_partial_1.invoke(input=formatted_input)
+        # logger.info(f"result: {result}")
