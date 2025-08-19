@@ -10,31 +10,27 @@ from src.layers.core_logic_layer.logging import logger
 
 
 class ExtractAbsenseReturnDateInput(BaseModel):
-    date_str: str = Field(
+    detail: str = Field(
         ...,
-        description="A string containing a date in 'DD/MM' format, like '01/05'.",
+        description="A string containing an embedded date in 'DD/MM' format. (e.g., `retorno de férias + licença em DD/MM`)",
     )
 
 
 class ExtractAbsenseReturnDateTool(BaseTool):
     name: str = "extract_absense_return_date_tool"
-    description: str = (
-        "Extracts and validates a date in 'DD/MM' format from a string and "
-        "returns it in 'YYYY-MM-DD' format, assuming the year is 2025."
-    )
+    description: str = "Extracts and validates a date in `DD/MM` format from a string and returns it in `YYYY-MM-DD` format, assuming the year is 2025."
     args_schema: Type[BaseModel] = ExtractAbsenseReturnDateInput
 
-    def _run(self, date_str: str) -> ToolOutput:
+    def _run(self, detail: str) -> ToolOutput:
         logger.info(f"Calling {self.name}...")
         try:
-            if not isinstance(date_str, str):
+            if not isinstance(detail, str):
                 return ToolOutput(
                     status=Status.FAILED,
                     result="Input must be a string.",
                 )
 
-            # Use a regular expression to find the 'DD/MM' pattern
-            match = re.search(r"\b(\d{2}/\d{2})\b", date_str)
+            match = re.search(r"\b(\d{2}/\d{2})\b", detail)
             if not match:
                 return ToolOutput(
                     status=Status.FAILED,
@@ -44,14 +40,12 @@ class ExtractAbsenseReturnDateTool(BaseTool):
             date_part = match.group(1)
             day, month = map(int, date_part.split("/"))
 
-            # Validate day and month ranges
             if not (1 <= day <= 31 and 1 <= month <= 12):
                 return ToolOutput(
                     status=Status.FAILED,
                     result="Invalid day or month value.",
                 )
 
-            # Construct and format the date with the year 2025
             formatted_date = datetime.strptime(
                 f"2025-{month:02d}-{day:02d}", "%Y-%m-%d"
             ).strftime("%Y-%m-%d")

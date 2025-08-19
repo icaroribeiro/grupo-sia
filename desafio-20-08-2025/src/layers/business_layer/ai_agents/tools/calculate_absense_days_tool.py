@@ -11,7 +11,7 @@ from src.layers.core_logic_layer.logging import logger
 class CalculateAbsenseDaysInput(BaseModel):
     date_str: str = Field(
         ...,
-        description="The date in YYYY-MM-DD format, e.g., '2025-05-15'.",
+        description="",
     )
     working_days: List[int] = Field(
         ...,
