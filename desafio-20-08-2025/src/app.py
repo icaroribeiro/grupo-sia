@@ -1,4 +1,6 @@
+from datetime import datetime
 import os
+import re
 
 import pandas as pd
 from langchain.agents.agent_types import AgentType
@@ -8,6 +10,9 @@ from src.layers.core_logic_layer.container.container import Container
 from src.layers.core_logic_layer.logging import logger
 from src.layers.core_logic_layer.settings import ai_settings, app_settings
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
+from langchain.agents.agent import (
+    AgentExecutor,
+)
 
 
 class DataFrameParams(BaseModel):
@@ -64,7 +69,7 @@ def create_input_dataframes_from_files(
                             "employee_id_employee_absense_df",
                             "situation_desc_employee_absense_df",
                             "column_3_employee_absense_df",
-                            "column_4_employee_absense_df",
+                            "detail_employee_absense_df",
                         ],
                         index_col=None,
                     )
@@ -246,6 +251,29 @@ def create_input_dataframes_from_files(
     #     name="syndicate_df", description="", content=syndicate_df
     # )
 
+    def extract_date(date_str):
+        if not isinstance(date_str, str):
+            return None
+        match = re.search(r"\b(\d{2}/\d{2})\b", date_str)
+        if match:
+            date_part = match.group(1)
+            try:
+                day, month = map(int, date_part.split("/"))
+                if 1 <= day <= 31 and 1 <= month <= 12:
+                    return datetime.strptime(
+                        f"2025-{month:02d}-{day:02d}", "%Y-%m-%d"
+                    ).strftime("%Y-%m-%d")
+            except ValueError:
+                pass
+        return None
+
+    # Apply function to create new column
+    employee_absense_df = dataframes_dict["employee_absense_df"].content
+    employee_absense_df["return_date_employee_absense_df"] = employee_absense_df[
+        "detail_employee_absense_df"
+    ].apply(extract_date)
+    dataframes_dict["employee_absense_df"].content = employee_absense_df
+
     # Save each DataFrame to a CSV file and return the dictionary
     output_dir = app_settings.output_data_dir_path
     if not os.path.exists(output_dir):
@@ -275,7 +303,7 @@ class App:
         # # Part 1
         # # ------------------------------------------------------------------------------
         # custom_prefix: str = """
-        #     You are an assistant specialized in writing Python scripts and efficiently data processing using Pandas library.
+        #     You are an assistant specialized in software development with Python and efficiently data processing using Pandas library.
         #     You have access to the following pandas DataFrames to perform your activities:
 
         #         {dataframes_descriptions}
@@ -309,7 +337,7 @@ class App:
         # logger.info(f"custom_suffix:\n{custom_suffix}")
 
         # input: str = """
-        #     Your task is to process data and save the resulting DataFrame to a CSV file.
+        #     Your task is to process data and save the `resulting` DataFrame to a CSV file.
 
         #     To do this, perform the following steps in order:
 
@@ -324,7 +352,7 @@ class App:
         #     - Perform LEFT merge operation with `resulting` and `df3` DataFrames on `employee_id` column;
         #     - If there are rows in the `df3` DataFrame not included in `resulting` DataFrame based on `employee_id` column, concatenate them;
 
-        #     3. Save the `resulting` DataFrame to the path `{output_path}`.
+        #     3. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
         #     """
         # formatted_input: str = input.format(
         #     output_path=os.path.join(
@@ -341,10 +369,9 @@ class App:
         #     prefix=formatted_custom_prefix,
         #     suffix=custom_suffix,
         #     verbose=True,
-        #     extra_tools=[],
         # )
 
-        # result = assistant.invoke(input=formatted_input)
+        # result = assistant.invoke({"input": formatted_input})
         # logger.info(f"result: {result}")
 
         # # Part 2
@@ -360,7 +387,7 @@ class App:
         #     name="partial_1_df", description="", content=df
         # )
         # custom_prefix: str = """
-        #     You are an assistant specialized in writing Python scripts and efficiently data processing using Pandas library.
+        #     You are an assistant specialized in software development with Python and efficiently data processing using Pandas library.
         #     You have access to the following pandas DataFrames to perform your activities:
 
         #         {dataframes_descriptions}
@@ -394,7 +421,7 @@ class App:
         # logger.info(f"custom_suffix:\n{custom_suffix}")
 
         # input: str = """
-        #     Your task is to process data and save the resulting DataFrame to a CSV file.
+        #     Your task is to process data and save the `resulting` DataFrame to a CSV file.
 
         #     To do this, perform the following steps in order:
 
@@ -408,7 +435,7 @@ class App:
         #     - Perform LEFT merge operation with `resulting` and `df3` DataFrames on `employee_id` column;
         #     - If there are rows in the `df3` DataFrame not included in `resulting` DataFrame based on `employee_id` column, concatenate them;
 
-        #     3. Save the `resulting` DataFrame to the path `{output_path}`.
+        #     3. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
         #     """
         # formatted_input: str = input.format(
         #     output_path=os.path.join(
@@ -425,10 +452,9 @@ class App:
         #     prefix=formatted_custom_prefix,
         #     suffix=custom_suffix,
         #     verbose=True,
-        #     extra_tools=[],
         # )
 
-        # result = assistant.invoke(input=formatted_input)
+        # result = assistant.invoke({"input": formatted_input})
         # logger.info(f"result: {result}")
 
         # # Part 3
@@ -444,7 +470,7 @@ class App:
         #     name="partial_2_df", description="", content=df
         # )
         # custom_prefix: str = """
-        #     You are an assistant specialized in writing Python scripts and efficiently data processing using Pandas library.
+        #     You are an assistant specialized in software development with Python and efficiently data processing using Pandas library.
         #     You have access to the following pandas DataFrames to perform your activities:
 
         #         {dataframes_descriptions}
@@ -478,7 +504,7 @@ class App:
         # logger.info(f"custom_suffix:\n{custom_suffix}")
 
         # input: str = """
-        #     Your task is to process data and save the resulting DataFrame to a CSV file.
+        #     Your task is to process data and save the `resulting` DataFrame to a CSV file.
 
         #     To do this, perform the following steps in order:
 
@@ -492,7 +518,7 @@ class App:
         #     - Perform LEFT merge operation with `resulting` and `df3` DataFrames on `employee_id` column;
         #     - If there are rows in the `df3` DataFrame not included in `resulting` DataFrame based on `employee_id` column, concatenate them;
 
-        #     3. Save the `resulting` DataFrame to the path `{output_path}`.
+        #     3. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
         #     """
         # formatted_input: str = input.format(
         #     output_path=os.path.join(
@@ -509,105 +535,25 @@ class App:
         #     prefix=formatted_custom_prefix,
         #     suffix=custom_suffix,
         #     verbose=True,
-        #     extra_tools=[],
         # )
 
-        # result = assistant.invoke(input=formatted_input)
+        # result = assistant.invoke({"input": formatted_input})
         # logger.info(f"result: {result}")
 
-        # # Part 4
-        # # ------------------------------------------------------------------------------
-        # df = pd.read_csv(
-        #     filepath_or_buffer=os.path.join(
-        #         app_settings.output_data_dir_path, "VR MENSAL 05.2025_partial_3.csv"
-        #     ),
-        #     header=0,
-        #     index_col=None,
-        # )
-        # dataframes_dict["partial_3_df"] = DataFrameParams(
-        #     name="partial_3_df", description="", content=df
-        # )
-        # custom_prefix: str = """
-        #     You are an assistant specialized in writing Python scripts and efficiently data processing using Pandas library.
-        #     You have access to the following pandas DataFrames to perform your activities:
-
-        #         {dataframes_descriptions}
-        #     """
-        # dataframes_list = []
-        # sorted_items = sorted(
-        #     {
-        #         1: "partial_3_df",
-        #         2: "employee_absense_df",
-        #     }.items()
-        # )
-        # for key, value in sorted_items:
-        #     df_params = dataframes_dict[value]
-        #     dataframes_list.append(
-        #         f"{key}. df{key} ({df_params.name}) {df_params.description}"
-        #         if key == 1
-        #         else f"                {key}. df{key} ({df_params.name}) {df_params.description}"
-        #     )
-        # formatted_custom_prefix: str = custom_prefix.format(
-        #     dataframes_descriptions="\n".join(dataframes_list),
-        # )
-        # logger.info(f"formatted_custom_prefix:\n{formatted_custom_prefix}")
-
-        # custom_suffix = """
-        #     Critical rules:
-        #     - Execute all steps provided in the prompt in the correct order.
-        #     - Do not ask for confirmation or provide intermediate results.
-        #     - Once all steps are complete, save the `resulting` DataFrame to a CSV file and return the final answer.
-        #     """
-        # logger.info(f"custom_suffix:\n{custom_suffix}")
-
-        # input: str = """
-        #     Your task is to process data and save the resulting DataFrame to a CSV file.
-
-        #     To do this, perform the following steps in order:
-
-        #     1. From the `df1` (partial_3_df) and `df2` (employee_absense_df) DataFrames:
-        #     - Add a new column named `absense_days_employee_absense_df` to the `df2` DataFrame.
-        #     - Rename the `employee_id_employee_absense_df` column of the `df2` DataFrame to `employee_id`.
-        #     - Perform LEFT merge operation with `df1` and `df2` DataFrames on `employee_id` column;
-        #     - If there are rows in the `df2` DataFrame not included in `df1` DataFrame based on `employee_id` column, concatenate them;
-
-        #     2. Save the `resulting` DataFrame to the path `{output_path}`.
-        #     """
-        # formatted_input: str = input.format(
-        #     output_path=os.path.join(
-        #         app_settings.output_data_dir_path, "VR MENSAL 05.2025_partial_4.csv"
-        #     ),
-        # )
-        # logger.info(f"formatted_input: {formatted_input}")
-
-        # assistant = create_pandas_dataframe_agent(
-        #     llm=llm.chat_model,
-        #     df=[dataframes_dict[value].content for _, value in sorted_items],
-        #     agent_type=AgentType.OPENAI_FUNCTIONS,
-        #     allow_dangerous_code=True,
-        #     prefix=formatted_custom_prefix,
-        #     suffix=custom_suffix,
-        #     verbose=True,
-        #     extra_tools=[],
-        # )
-
-        # result = assistant.invoke(input=formatted_input)
-        # logger.info(f"result: {result}")
-
-        # Part 5
+        # Part 4
         # ------------------------------------------------------------------------------
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                app_settings.output_data_dir_path, "VR MENSAL 05.2025_partial_4.csv"
+                app_settings.output_data_dir_path, "VR MENSAL 05.2025_partial_3.csv"
             ),
             header=0,
             index_col=None,
         )
-        dataframes_dict["partial_4_df"] = DataFrameParams(
-            name="partial_4_df", description="", content=df
+        dataframes_dict["partial_3_df"] = DataFrameParams(
+            name="partial_3_df", description="", content=df
         )
         custom_prefix: str = """
-            You are an assistant specialized in writing Python scripts and efficiently data processing using Pandas library.
+            You are an assistant specialized in software development with Python and efficiently data processing using Pandas library.
             You have access to the following pandas DataFrames to perform your activities:
 
                 {dataframes_descriptions}
@@ -615,9 +561,8 @@ class App:
         dataframes_list = []
         sorted_items = sorted(
             {
-                1: "partial_4_df",
-                2: "syndicate_working_days_df",
-                3: "syndicate_meal_voucher_value_df",
+                1: "partial_3_df",
+                2: "employee_absense_df",
             }.items()
         )
         for key, value in sorted_items:
@@ -640,56 +585,26 @@ class App:
             """
         logger.info(f"custom_suffix:\n{custom_suffix}")
 
-        STATE_MAPPING = {
-            "AC": "Acre",
-            "AL": "Alagoas",
-            "AP": "Amapá",
-            "AM": "Amazonas",
-            "BA": "Bahia",
-            "CE": "Ceará",
-            "DF": "Distrito Federal",
-            "ES": "Espírito Santo",
-            "GO": "Goiás",
-            "MA": "Maranhão",
-            "MT": "Mato Grosso",
-            "MS": "Mato Grosso do Sul",
-            "MG": "Minas Gerais",
-            "PA": "Pará",
-            "PB": "Paraíba",
-            "PR": "Paraná",
-            "PE": "Pernambuco",
-            "PI": "Piauí",
-            "RJ": "Rio de Janeiro",
-            "RN": "Rio Grande do Norte",
-            "RS": "Rio Grande do Sul",
-            "RO": "Rondônia",
-            "RR": "Roraima",
-            "SC": "Santa Catarina",
-            "SP": "São Paulo",
-            "SE": "Sergipe",
-            "TO": "Tocantins",
-        }
-
         input: str = """
-            Your task is to process data and save the resulting DataFrame to a CSV file.
+            Your task is to process data and save the `resulting` DataFrame to a CSV file.
 
             To do this, perform the following steps in order:
 
-            1. From the `df2` (syndicate_working_days_df) and `df3` (syndicate_meal_voucher_value_df) DataFrames:
-            - Identity the two-letter state code from the `name_syndicate_working_days_df` column in `df2` DataFrame (e.g., extract 'PR' from 'SITEPD PR - ...'). Assume the state code is a two-letter code separated by spaces or other delimiters.
-            - Add a new column 'state_code_syndicate_working_days_df' to `df2` DataFrame with the extracted state code.
+            1. From the `df1` (partial_3_df) and `df2` (employee_absense_df) DataFrames:
+            - Rename the `employee_id_employee_absense_df` column of the `df2` DataFrame to `employee_id`.
+            - Perform LEFT merge operation with `df1` and `df2` DataFrames on `employee_id` column.
+            - If there are rows in the `df2` DataFrame not included in `df1` DataFrame based on `employee_id` column, concatenate them.
 
-            2. Save the `resulting` DataFrame to the path `{output_path}`.
+            2. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
             """
         formatted_input: str = input.format(
-            # state_mapping=STATE_MAPPING,
             output_path=os.path.join(
-                app_settings.output_data_dir_path, "VR MENSAL 05.2025_partial_5.csv"
+                app_settings.output_data_dir_path, "VR MENSAL 05.2025_partial_4.csv"
             ),
         )
         logger.info(f"formatted_input: {formatted_input}")
 
-        assistant = create_pandas_dataframe_agent(
+        assistant: AgentExecutor = create_pandas_dataframe_agent(
             llm=llm.chat_model,
             df=[dataframes_dict[value].content for _, value in sorted_items],
             agent_type=AgentType.OPENAI_FUNCTIONS,
@@ -697,8 +612,124 @@ class App:
             prefix=formatted_custom_prefix,
             suffix=custom_suffix,
             verbose=True,
-            extra_tools=[],
         )
 
-        result = assistant.invoke(input=formatted_input)
+        result = assistant.invoke({"input": formatted_input})
         logger.info(f"result: {result}")
+
+        # Part 5
+        # ------------------------------------------------------------------------------
+        # df = pd.read_csv(
+        #     filepath_or_buffer=os.path.join(
+        #         app_settings.output_data_dir_path, "VR MENSAL 05.2025_partial_4.csv"
+        #     ),
+        #     header=0,
+        #     index_col=None,
+        # )
+        # dataframes_dict["partial_4_df"] = DataFrameParams(
+        #     name="partial_4_df", description="", content=df
+        # )
+        # custom_prefix: str = """
+        #     You are an assistant specialized in software development with Python and efficiently data processing using Pandas library.
+        #     You have access to the following pandas DataFrames to perform your activities:
+
+        #         {dataframes_descriptions}
+        #     """
+        # dataframes_list = []
+        # sorted_items = sorted(
+        #     {
+        #         1: "partial_4_df",
+        #         2: "syndicate_working_days_df",
+        #         3: "syndicate_meal_voucher_value_df",
+        #     }.items()
+        # )
+        # for key, value in sorted_items:
+        #     df_params = dataframes_dict[value]
+        #     dataframes_list.append(
+        #         f"{key}. df{key} ({df_params.name}) {df_params.description}"
+        #         if key == 1
+        #         else f"                {key}. df{key} ({df_params.name}) {df_params.description}"
+        #     )
+        # formatted_custom_prefix: str = custom_prefix.format(
+        #     dataframes_descriptions="\n".join(dataframes_list),
+        # )
+        # logger.info(f"formatted_custom_prefix:\n{formatted_custom_prefix}")
+
+        # custom_suffix = """
+        #     Critical rules:
+        #     - Execute all steps provided in the prompt in the correct order.
+        #     - Do not ask for confirmation or provide intermediate results.
+        #     - Once all steps are complete, save the `resulting` DataFrame to a CSV file and return the final answer.
+        #     """
+        # logger.info(f"custom_suffix:\n{custom_suffix}")
+
+        # STATE_MAPPING = {
+        #     "AC": "Acre",
+        #     "AL": "Alagoas",
+        #     "AP": "Amapá",
+        #     "AM": "Amazonas",
+        #     "BA": "Bahia",
+        #     "CE": "Ceará",
+        #     "DF": "Distrito Federal",
+        #     "ES": "Espírito Santo",
+        #     "GO": "Goiás",
+        #     "MA": "Maranhão",
+        #     "MT": "Mato Grosso",
+        #     "MS": "Mato Grosso do Sul",
+        #     "MG": "Minas Gerais",
+        #     "PA": "Pará",
+        #     "PB": "Paraíba",
+        #     "PR": "Paraná",
+        #     "PE": "Pernambuco",
+        #     "PI": "Piauí",
+        #     "RJ": "Rio de Janeiro",
+        #     "RN": "Rio Grande do Norte",
+        #     "RS": "Rio Grande do Sul",
+        #     "RO": "Rondônia",
+        #     "RR": "Roraima",
+        #     "SC": "Santa Catarina",
+        #     "SP": "São Paulo",
+        #     "SE": "Sergipe",
+        #     "TO": "Tocantins",
+        # }
+
+        # input: str = """
+        #     Your task is to process data and save the `resulting` DataFrame to a CSV file.
+
+        #     To do this, perform the following steps in order:
+
+        #     1. From the `df2` (syndicate_working_days_df) and `df3` (syndicate_meal_voucher_value_df) DataFrames:
+        #     - Identity the two-letter state code from the `name_syndicate_working_days_df` column in `df2` DataFrame (e.g., extract 'PR' from 'SITEPD PR - ...'). Assume the state code is a two-letter code separated by spaces or other delimiters.
+        #     - Add a new column `state_code_syndicate_working_days_df` to `df2` DataFrame with the extracted state code.
+        #     - Use the following mapping of Brazilian state codes to state names:
+        #         {state_mapping}
+        #     - Add a new column `state_name_syndicate_working_days_df` to `df2` DataFrame by mapping the `state_code_syndicate_working_days_df` to the full state name using the provided state mapping.
+        #     - Merge `df2` DataFrame with `df3` DataFrame on thew `state_name_syndicate_working_days_df` (from `df2`) and `state_syndicate_meal_voucher_value_df` (from `df3`) columns using an inner join to keep only matching rows.
+
+        #     2. From the `df1` (partial_4_df) and `resulting` DataFrames:
+        #     - Rename the `syndicate_name_active_employee_df` column of the `df1` DataFrame to `syndicate_name`.
+        #     - Rename the `name_syndicate_working_days_df` column of the `resulting` DataFrame to `syndicate_name`.
+        #     - Perform LEFT merge operation with `df1` and `resulting` DataFrames on `syndicate_name` column;
+
+        #     3. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
+        #     """
+        # formatted_input: str = input.format(
+        #     state_mapping=STATE_MAPPING,
+        #     output_path=os.path.join(
+        #         app_settings.output_data_dir_path, "VR MENSAL 05.2025_partial_5.csv"
+        #     ),
+        # )
+        # logger.info(f"formatted_input: {formatted_input}")
+
+        # assistant = create_pandas_dataframe_agent(
+        #     llm=llm.chat_model,
+        #     df=[dataframes_dict[value].content for _, value in sorted_items],
+        #     agent_type=AgentType.OPENAI_FUNCTIONS,
+        #     allow_dangerous_code=True,
+        #     prefix=formatted_custom_prefix,
+        #     suffix=custom_suffix,
+        #     verbose=True,
+        # )
+
+        # result = assistant.invoke({"input": formatted_input})
+        # logger.info(f"result: {result}")
