@@ -1,11 +1,16 @@
-from datetime import datetime
 import os
-import re
 
 import pandas as pd
 from langchain.agents.agent_types import AgentType
 from pydantic import BaseModel
 from src.layers.business_layer.ai_agents.llm.llm import LLM
+from src.layers.business_layer.ai_agents.models.tool_output import Status
+from src.layers.business_layer.ai_agents.tools.calculate_absense_days_tool import (
+    CalculateAbsenseDaysTool,
+)
+from src.layers.business_layer.ai_agents.tools.extract_absense_return_date_tool import (
+    ExtractAbsenseReturnDateTool,
+)
 from src.layers.core_logic_layer.container.container import Container
 from src.layers.core_logic_layer.logging import logger
 from src.layers.core_logic_layer.settings import ai_settings, app_settings
@@ -37,7 +42,6 @@ def create_input_dataframes_from_files(
         A dictionary where keys are DataFrame names and values are DataFrameParams objects.
     """
     dataframes_dict = {}
-    syndicate_parts = {}
 
     for filename in os.listdir(directory_path):
         if filename.endswith(".xlsx"):
@@ -56,8 +60,6 @@ def create_input_dataframes_from_files(
                         ],
                         index_col=None,
                     )
-                    # Drop the last column using iloc
-                    # df = df.iloc[:, :-1]
                     dataframes_dict["employee_admission_df"] = DataFrameParams(
                         name="employee_admission_df", description="", content=df
                     )
@@ -73,8 +75,6 @@ def create_input_dataframes_from_files(
                         ],
                         index_col=None,
                     )
-                    # Drop the last two columns using iloc
-                    # df = df.iloc[:, :-2]
                     dataframes_dict["employee_absense_df"] = DataFrameParams(
                         name="employee_absense_df", description="", content=df
                     )
@@ -141,20 +141,6 @@ def create_input_dataframes_from_files(
                             content=df,
                         )
                     )
-                # case "Base dias uteis.xlsx":
-                #     syndicate_parts["syndicate_working_days"] = pd.read_excel(
-                #         file_path,
-                #         header=1,
-                #         names=["name_syndicate_df", "working_days_syndicate_df"],
-                #         index_col=None,
-                #     ).dropna()
-                # case "Base sindicato x valor.xlsx":
-                #     syndicate_parts["syndicate_meal_voucher_value"] = pd.read_excel(
-                #         file_path,
-                #         header=0,
-                #         names=["state_syndicate_df", "meal_voucher_value_syndicate_df"],
-                #         index_col=None,
-                #     ).dropna()
                 case "DESLIGADOS.xlsx":
                     df = pd.read_excel(
                         file_path,
@@ -180,8 +166,6 @@ def create_input_dataframes_from_files(
                         ],
                         index_col=None,
                     )
-                    # Drop the last column using iloc
-                    # df = df.iloc[:, :-1]
                     dataframes_dict["intern_employee_df"] = DataFrameParams(
                         name="intern_employee_df", description="", content=df
                     )
@@ -215,64 +199,6 @@ def create_input_dataframes_from_files(
                     dataframes_dict["employee_vacation_df"] = DataFrameParams(
                         name="employee_vacation_df", description="", content=df
                     )
-
-    # Create the initial part of the syndicate_df
-    # SYNDICATE_STATE_MAPPING: dict[str, str] = {
-    #     "Paraná": "SITEPD PR - SIND DOS TRAB EM EMPR PRIVADAS DE PROC DE DADOS DE CURITIBA E REGIAO METROPOLITANA",
-    #     "Rio Grande do Sul": "SINDPPD RS - SINDICATO DOS TRAB. EM PROC. DE DADOS RIO GRANDE DO SUL",
-    #     "São Paulo": "SINDPD SP - SIND.TRAB.EM PROC DADOS E EMPR.EMPRESAS PROC DADOS ESTADO DE SP.",
-    #     "Rio de Janeiro": "SINDPD RJ - SINDICATO PROFISSIONAIS DE PROC DADOS DO RIO DE JANEIRO",
-    # }
-    # syndicate_df = pd.DataFrame.from_dict(
-    #     SYNDICATE_STATE_MAPPING, orient="index", columns=["state"]
-    # ).reset_index()
-    # syndicate_df.columns = ["state_syndicate_df", "name_syndicate_df"]
-    # syndicate_df = syndicate_df.dropna()
-
-    # # Merge the syndicate parts if they were successfully loaded
-    # if "syndicate_meal_voucher_value" in syndicate_parts:
-    #     syndicate_df = pd.merge(
-    #         syndicate_df,
-    #         syndicate_parts["syndicate_meal_voucher_value"],
-    #         on="state_syndicate_df",
-    #         how="inner",
-    #     )
-
-    # if "syndicate_working_days" in syndicate_parts:
-    #     syndicate_df = pd.merge(
-    #         syndicate_df,
-    #         syndicate_parts["syndicate_working_days"],
-    #         on="name_syndicate_df",
-    #         how="inner",
-    #     )
-
-    # # Add the final syndicate DataFrame to the dictionary
-    # dataframes_dict["syndicate_df"] = DataFrameParams(
-    #     name="syndicate_df", description="", content=syndicate_df
-    # )
-
-    def extract_date(date_str):
-        if not isinstance(date_str, str):
-            return None
-        match = re.search(r"\b(\d{2}/\d{2})\b", date_str)
-        if match:
-            date_part = match.group(1)
-            try:
-                day, month = map(int, date_part.split("/"))
-                if 1 <= day <= 31 and 1 <= month <= 12:
-                    return datetime.strptime(
-                        f"2025-{month:02d}-{day:02d}", "%Y-%m-%d"
-                    ).strftime("%Y-%m-%d")
-            except ValueError:
-                pass
-        return None
-
-    # Apply function to create new column
-    employee_absense_df = dataframes_dict["employee_absense_df"].content
-    employee_absense_df["return_date_employee_absense_df"] = employee_absense_df[
-        "detail_employee_absense_df"
-    ].apply(extract_date)
-    dataframes_dict["employee_absense_df"].content = employee_absense_df
 
     # Save each DataFrame to a CSV file and return the dictionary
     output_dir = app_settings.output_data_dir_path
@@ -552,6 +478,67 @@ class App:
         dataframes_dict["partial_3_df"] = DataFrameParams(
             name="partial_3_df", description="", content=df
         )
+
+        extract_absense_return_date_tool = ExtractAbsenseReturnDateTool()
+
+        def extract_absense_return_date_helper(date_str: str):
+            tool_output = extract_absense_return_date_tool._run(date_str)
+
+            if tool_output.status == Status.SUCCEED:
+                return tool_output.result
+            else:
+                return None
+
+        employee_absense_df = dataframes_dict["employee_absense_df"].content
+
+        employee_absense_df["return_date_employee_absense_df"] = employee_absense_df[
+            "detail_employee_absense_df"
+        ].apply(extract_absense_return_date_helper)
+
+        WORKING_DAYS_OF_MAY = [
+            2,
+            5,
+            6,
+            7,
+            8,
+            9,
+            12,
+            13,
+            14,
+            15,
+            16,
+            19,
+            20,
+            21,
+            22,
+            23,
+            26,
+            27,
+            28,
+            29,
+            30,
+        ]
+        MAY = 5
+        calculate_absense_tool = CalculateAbsenseDaysTool()
+
+        def absense_days_helper(row):
+            date_str = row["return_date_employee_absense_df"]
+
+            tool_output = calculate_absense_tool._run(
+                date_str, WORKING_DAYS_OF_MAY, MAY
+            )
+
+            if tool_output.status == Status.SUCCEED:
+                return tool_output.result
+            else:
+                return None
+
+        employee_absense_df["absense_days_employee_absense_df"] = (
+            employee_absense_df.apply(absense_days_helper, axis=1)
+        )
+
+        dataframes_dict["employee_absense_df"].content = employee_absense_df
+
         custom_prefix: str = """
             You are an assistant specialized in software development with Python and efficiently data processing using Pandas library.
             You have access to the following pandas DataFrames to perform your activities:
