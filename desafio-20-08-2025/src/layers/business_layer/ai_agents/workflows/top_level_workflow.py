@@ -199,7 +199,7 @@ class TopLevelWorkflow(BaseWorkflow):
             Perform the following steps in order:
 
             1. From the `df1` (partial_df_5) DataFrame:
-            - Rename the `employee_id` column of the `df1` DataFrame to `employee_id_changed_by_data_analysis_agent`.
+            - Rename the `company_id_active_employee_df` column of the `df1` DataFrame to `company_id_changed_by_data_analysis_agent`.
 
             2. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
             """
@@ -263,17 +263,28 @@ class TopLevelWorkflow(BaseWorkflow):
 
         input: str = """
             INSTRUCTIONS:
-            Perform the following steps in order:
+            - Perform the following steps in order:
 
             1. From the `df1` (partial_df_6) DataFrame:
-            - Rename the `employee_id_changed_by_data_analysis_agent` column of the `df1` DataFrame to `employee_id_changed_by_data_reporting_agent`.
+            - Rename the `employee_id` column of the `df1` DataFrame to `Matricula`.
+            - Rename the `admission_date_employee_admission_df` column of the `df1` DataFrame to `Admissão`.
+            - Rename the `syndicate_name` column of the `df1` DataFrame to `Sindicato do Colaborador`.
+            - Add a new column named `Competência` and fill out the rows with value `01/05/2025`.
 
-            2. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
+            2. From the `resulting` DataFrame:
+            - Change the order of the columns as below:
+                1. `Matricula`
+                2. `Admissão`
+                3. `Sindicato do Colaborador`
+                4. `Competência`
+                5. The others can be kept as they are.
+
+            3. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
-                "VR MENSAL 05.2025_partial_7.csv",
+                f"{app_settings.output_data_dir_path}",
+                "VR MENSAL 05.2025_FINAL.csv",
             ),
         )
 
