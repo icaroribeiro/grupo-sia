@@ -40,14 +40,17 @@ class App:
 
         input: str = """
             INSTRUCTIONS:     
-            Perform the following steps in order:
-
-            1. Call `data_gathering_agent` to gather data.
-
+            - Perform the following steps in the order listed to complete a multi-step data processing task.
+            - The data processing consists of three stages, and you must delegate the work to a single agent for each stage.
+            - The stages are:
+                1. Data Gathering
+                2. Data Analysis
+                3. Data Reporting
+            - You must always delegate to ONE AGENT AT TIME.
+            - You must wait for the result of the current agent's task before moving to the next stage.
             CRITICAL RULES:
-            - Execute these tasks ONE AT A TIME.
-            - Each task is dependent on the successful completion of the previous one.
-            - DO NOT begin the next task until the current one is fully completed and verified.
+            - Each stage is dependent on the successful completion of the previous one.
+            - DO NOT begin the next stage until the current one is fully completed and verified.
             """
         formatted_input_message: str = input
 

@@ -1,5 +1,7 @@
 import functools
 import os
+
+import pandas as pd
 from src.layers.business_layer.ai_agents.tools.top_level_handoff_tool import (
     TopLevelHandoffTool,
 )
@@ -55,16 +57,28 @@ class TopLevelWorkflow(BaseWorkflow):
         delegate_to_data_gathering_agent = TopLevelHandoffTool(
             agent_name="data_gathering_agent"
         )
+        delegate_to_data_analysis_agent = TopLevelHandoffTool(
+            agent_name="data_analysis_agent"
+        )
+        delegate_to_data_reporting_agent = TopLevelHandoffTool(
+            agent_name="data_reporting_agent"
+        )
         self.supervisor = create_react_agent(
             model=self.chat_model,
-            tools=[delegate_to_data_gathering_agent],
+            tools=[
+                delegate_to_data_gathering_agent,
+                delegate_to_data_analysis_agent,
+                delegate_to_data_reporting_agent,
+            ],
             prompt=(
                 """
                 ROLE:
                 - You're a supervisor.
                 GOAL:
-                - Your sole purpose is to manage one agent:
+                - Your sole purpose is to manage three agents:
                 A data gathering agent. Assign data gathering-related tasks to this agent.
+                A data analysis agent. Assign data analysis-related tasks to this agent.
+                A data reporting agent. Assign data reporting-related tasks to this agent.
                 INSTRUCTIONS:
                 - Based on the conversation history, decide the next step.
                 - DO NOT do any work yourself.
@@ -107,7 +121,7 @@ class TopLevelWorkflow(BaseWorkflow):
 
         input: str = """
             INSTRUCTIONS:
-            Perform the following steps in order:
+            - Perform the following steps in order:
 
             1. From the `df1` (active_employee_df) and `df2` (employee_admission_df) DataFrames:
             - Rename the `employee_id_active_employee_df` column of the `df1` DataFrame to `employee_id`.
@@ -125,7 +139,141 @@ class TopLevelWorkflow(BaseWorkflow):
         formatted_input: str = input.format(
             output_path=os.path.join(
                 f"{app_settings.output_data_dir_path}/tmp/",
-                "VR MENSAL 05.2025_partial_1.csv",
+                "VR MENSAL 05.2025_partial_5.csv",
+            ),
+        )
+
+        agent = create_pandas_dataframe_agent(
+            llm=chat_model,
+            df=[dataframes_dict[value].content for _, value in sorted_items],
+            agent_type=AgentType.OPENAI_FUNCTIONS,
+            allow_dangerous_code=True,
+            prefix=formatted_custom_prefix,
+            suffix=custom_suffix,
+            verbose=True,
+        )
+
+        result = agent.invoke({"input": formatted_input})
+        logger.info(f"result: {result}")
+        return {"messages": [HumanMessage(content=str(result))]}
+
+    @staticmethod
+    def __call_data_analysis_agent(
+        state: StateGraph,
+        chat_model: BaseChatModel,
+        dataframes_dict: dict[str, DataFrameParams],
+        custom_prefix: str,
+        custom_suffix: str,
+    ) -> StateGraph:
+        df = pd.read_csv(
+            filepath_or_buffer=os.path.join(
+                f"{app_settings.output_data_dir_path}/tmp/",
+                "VR MENSAL 05.2025_partial_5.csv",
+            ),
+            header=0,
+            index_col=None,
+        )
+        dataframes_dict["partial_5_df"] = DataFrameParams(
+            name="partial_5_df", description="", content=df
+        )
+
+        dataframes_list = []
+        sorted_items = sorted(
+            {
+                1: "partial_5_df",
+            }.items()
+        )
+        for key, value in sorted_items:
+            df_params = dataframes_dict[value]
+            dataframes_list.append(
+                f"{key}. df{key} ({df_params.name})"
+                if key == 1
+                else f"                {key}. df{key} ({df_params.name})"
+            )
+        formatted_custom_prefix: str = custom_prefix.format(
+            dataframes_descriptions="\n".join(dataframes_list),
+        )
+
+        input: str = """
+            INSTRUCTIONS:
+            Perform the following steps in order:
+
+            1. From the `df1` (partial_df_5) DataFrame:
+            - Rename the `employee_id` column of the `df1` DataFrame to `employee_id_changed_by_data_analysis_agent`.
+
+            2. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
+            """
+        formatted_input: str = input.format(
+            output_path=os.path.join(
+                f"{app_settings.output_data_dir_path}/tmp/",
+                "VR MENSAL 05.2025_partial_6.csv",
+            ),
+        )
+
+        agent = create_pandas_dataframe_agent(
+            llm=chat_model,
+            df=[dataframes_dict[value].content for _, value in sorted_items],
+            agent_type=AgentType.OPENAI_FUNCTIONS,
+            allow_dangerous_code=True,
+            prefix=formatted_custom_prefix,
+            suffix=custom_suffix,
+            verbose=True,
+        )
+
+        result = agent.invoke({"input": formatted_input})
+        logger.info(f"result: {result}")
+        return {"messages": [HumanMessage(content=str(result))]}
+
+    @staticmethod
+    def __call_data_reporting_agent(
+        state: StateGraph,
+        chat_model: BaseChatModel,
+        dataframes_dict: dict[str, DataFrameParams],
+        custom_prefix: str,
+        custom_suffix: str,
+    ) -> StateGraph:
+        df = pd.read_csv(
+            filepath_or_buffer=os.path.join(
+                f"{app_settings.output_data_dir_path}/tmp/",
+                "VR MENSAL 05.2025_partial_6.csv",
+            ),
+            header=0,
+            index_col=None,
+        )
+        dataframes_dict["partial_6_df"] = DataFrameParams(
+            name="partial_6_df", description="", content=df
+        )
+
+        dataframes_list = []
+        sorted_items = sorted(
+            {
+                1: "partial_6_df",
+            }.items()
+        )
+        for key, value in sorted_items:
+            df_params = dataframes_dict[value]
+            dataframes_list.append(
+                f"{key}. df{key} ({df_params.name})"
+                if key == 1
+                else f"                {key}. df{key} ({df_params.name})"
+            )
+        formatted_custom_prefix: str = custom_prefix.format(
+            dataframes_descriptions="\n".join(dataframes_list),
+        )
+
+        input: str = """
+            INSTRUCTIONS:
+            Perform the following steps in order:
+
+            1. From the `df1` (partial_df_6) DataFrame:
+            - Rename the `employee_id_changed_by_data_analysis_agent` column of the `df1` DataFrame to `employee_id_changed_by_data_reporting_agent`.
+
+            2. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
+            """
+        formatted_input: str = input.format(
+            output_path=os.path.join(
+                f"{app_settings.output_data_dir_path}/tmp/",
+                "VR MENSAL 05.2025_partial_7.csv",
             ),
         )
 
@@ -148,7 +296,11 @@ class TopLevelWorkflow(BaseWorkflow):
         builder.add_node(
             node=self.supervisor.name,
             action=self.supervisor,
-            destinations={"data_gathering_agent": "data_gathering_agent"},
+            destinations={
+                "data_gathering_agent": "data_gathering_agent",
+                "data_analysis_agent": "data_analysis_agent",
+                "data_reporting_agent": "data_reporting_agent",
+            },
         )
         builder.add_node(
             node="data_gathering_agent",
@@ -162,8 +314,30 @@ class TopLevelWorkflow(BaseWorkflow):
                 custom_suffix=self.__agent_custom_suffix,
             ),
         )
+        builder.add_node(
+            node="data_analysis_agent",
+            action=functools.partial(
+                self.__call_data_analysis_agent,
+                chat_model=self.chat_model,
+                dataframes_dict=self.dataframes_dict,
+                custom_prefix=self.__agent_custom_prefix,
+                custom_suffix=self.__agent_custom_suffix,
+            ),
+        )
+        builder.add_node(
+            node="data_reporting_agent",
+            action=functools.partial(
+                self.__call_data_reporting_agent,
+                chat_model=self.chat_model,
+                dataframes_dict=self.dataframes_dict,
+                custom_prefix=self.__agent_custom_prefix,
+                custom_suffix=self.__agent_custom_suffix,
+            ),
+        )
         builder.add_edge(START, self.supervisor.name)
         builder.add_edge("data_gathering_agent", self.supervisor.name)
+        builder.add_edge("data_analysis_agent", self.supervisor.name)
+        builder.add_edge("data_reporting_agent", self.supervisor.name)
         graph = builder.compile(name=self.name)
         logger.info(f"Graph {self.name} compiled successfully!")
         logger.info(f"Nodes in graph: {graph.nodes.keys()}")
