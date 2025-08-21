@@ -645,7 +645,7 @@ class MealVoucherWorkflow(BaseWorkflow):
             1. From the `df1` (df_partial_gathering_result_6) DataFrame:
             - Calculate `effective_working_days` with the result of df1['working_days'] - df1['vacation_days'] - df1['absense_days']
 
-            2. Save the updated `df1` DataFrame to a CSV file to the path `{output_path}`.
+            2. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
