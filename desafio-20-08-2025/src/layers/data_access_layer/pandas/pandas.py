@@ -22,59 +22,59 @@ class Pandas:
                             file_path,
                             header=0,
                             names=[
-                                "employee_id_employee_admission_df",
-                                "admission_date_employee_admission_df",
-                                "job_title_employee_admission_df",
-                                "column_4_employee_admission_df",
+                                "employee_id",
+                                "admission_date",
+                                "job_title",
+                                "column_4",
                             ],
                             index_col=None,
                         )
-                        dataframes_dict["employee_admission_df"] = DataFrameParams(
-                            name="employee_admission_df", description="", content=df
+                        dataframes_dict["df_employee_admission"] = DataFrameParams(
+                            name="df_employee_admission", description="", content=df
                         )
                     case "AFASTAMENTOS.xlsx":
                         df = pd.read_excel(
                             file_path,
                             header=0,
                             names=[
-                                "employee_id_employee_absense_df",
-                                "situation_desc_employee_absense_df",
-                                "column_3_employee_absense_df",
-                                "detail_employee_absense_df",
+                                "employee_id",
+                                "situation_desc",
+                                "column_3",
+                                "detail",
                             ],
                             index_col=None,
                         )
-                        dataframes_dict["employee_absense_df"] = DataFrameParams(
-                            name="employee_absense_df", description="", content=df
+                        dataframes_dict["df_employee_absense"] = DataFrameParams(
+                            name="df_employee_absense", description="", content=df
                         )
                     case "APRENDIZ.xlsx":
                         df = pd.read_excel(
                             file_path,
                             header=0,
                             names=[
-                                "employee_id_apprentice_employee_df",
-                                "job_title_apprentice_employee_df",
+                                "employee_id",
+                                "job_title",
                             ],
                             index_col=None,
                         )
-                        dataframes_dict["apprentice_employee_df"] = DataFrameParams(
-                            name="apprentice_employee_df", description="", content=df
+                        dataframes_dict["df_apprentice_employee"] = DataFrameParams(
+                            name="df_apprentice_employee", description="", content=df
                         )
                     case "ATIVOS.xlsx":
                         df = pd.read_excel(
                             file_path,
                             header=0,
                             names=[
-                                "employee_id_active_employee_df",
-                                "company_id_active_employee_df",
-                                "job_title_active_employee_df",
-                                "situation_desc_active_employee_df",
-                                "syndicate_name_active_employee_df",
+                                "employee_id",
+                                "company_id",
+                                "job_title",
+                                "situation_desc",
+                                "syndicate_name",
                             ],
                             index_col=None,
                         )
-                        dataframes_dict["active_employee_df"] = DataFrameParams(
-                            name="active_employee_df",
+                        dataframes_dict["df_active_employee"] = DataFrameParams(
+                            name="df_active_employee",
                             description="",
                             content=df,
                         )
@@ -83,13 +83,13 @@ class Pandas:
                             file_path,
                             header=1,
                             names=[
-                                "name_syndicate_working_days_df",
-                                "working_days_syndicate_working_days_df",
+                                "name",
+                                "working_days",
                             ],
                             index_col=None,
                         ).dropna()
-                        dataframes_dict["syndicate_working_days_df"] = DataFrameParams(
-                            name="syndicate_working_days_df",
+                        dataframes_dict["df_syndicate_working_days"] = DataFrameParams(
+                            name="df_syndicate_working_days",
                             description="",
                             content=df,
                         )
@@ -98,14 +98,14 @@ class Pandas:
                             file_path,
                             header=0,
                             names=[
-                                "state_syndicate_meal_voucher_value_df",
-                                "meal_voucher_value_syndicate_meal_voucher_value_df",
+                                "state",
+                                "meal_voucher_value",
                             ],
                             index_col=None,
                         ).dropna()
-                        dataframes_dict["syndicate_meal_voucher_value_df"] = (
+                        dataframes_dict["df_syndicate_meal_voucher_value"] = (
                             DataFrameParams(
-                                name="syndicate_meal_voucher_value_df",
+                                name="df_syndicate_meal_voucher_value",
                                 description="",
                                 content=df,
                             )
@@ -115,58 +115,56 @@ class Pandas:
                             file_path,
                             header=0,
                             names=[
-                                "employee_id_employee_dismissal_df",
-                                "termination_date_employee_dismissal_df",
-                                "termination_notice_employee_dismissal_df",
+                                "employee_id",
+                                "termination_date",
+                                "termination_notice",
                             ],
                             index_col=None,
                         )
-                        dataframes_dict["employee_dismissal_df"] = DataFrameParams(
-                            name="employee_dismissal_df", description="", content=df
+                        dataframes_dict["df_employee_dismissal"] = DataFrameParams(
+                            name="df_employee_dismissal", description="", content=df
                         )
                     case "ESTÁGIO.xlsx":
                         df = pd.read_excel(
                             file_path,
                             header=0,
                             names=[
-                                "employee_id_intern_employee_df",
-                                "job_title_intern_employee_df",
-                                "column_3_intern_employee_df",
+                                "employee_id",
+                                "job_title",
+                                "column_3",
                             ],
                             index_col=None,
                         )
-                        dataframes_dict["intern_employee_df"] = DataFrameParams(
-                            name="intern_employee_df", description="", content=df
+                        dataframes_dict["df_intern_employee"] = DataFrameParams(
+                            name="df_intern_employee", description="", content=df
                         )
                     case "EXTERIOR.xlsx":
                         df = pd.read_excel(
                             file_path,
                             header=0,
                             names=[
-                                "register_employee_abroad_df",
-                                "value_employee_abroad_df",
-                                "column_3_employee_abroad_df",
+                                "register",
+                                "value",
+                                "column_3",
                             ],
                             index_col=None,
                         )
-                        # Drop the last two columns using iloc
-                        # df = df.iloc[:, :-2]
-                        dataframes_dict["employee_abroad_df"] = DataFrameParams(
-                            name="employee_abroad_df", description="", content=df
+                        dataframes_dict["df_employee_abroad"] = DataFrameParams(
+                            name="df_employee_abroad", description="", content=df
                         )
                     case "FÉRIAS.xlsx":
                         df = pd.read_excel(
                             file_path,
                             header=0,
                             names=[
-                                "employee_id_employee_vacation_df",
-                                "situation_desc_employee_vacation_df",
-                                "vacation_days_employee_vacation_df",
+                                "employee_id",
+                                "situation_desc",
+                                "vacation_days",
                             ],
                             index_col=None,
                         )
-                        dataframes_dict["employee_vacation_df"] = DataFrameParams(
-                            name="employee_vacation_df", description="", content=df
+                        dataframes_dict["df_employee_vacation"] = DataFrameParams(
+                            name="df_employee_vacation", description="", content=df
                         )
 
         # Save each DataFrame to a CSV file and return the dictionary

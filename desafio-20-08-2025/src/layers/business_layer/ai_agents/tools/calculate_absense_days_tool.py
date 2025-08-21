@@ -1,9 +1,7 @@
 from typing import Type, List
 from datetime import datetime
-
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field
-
 from src.layers.business_layer.ai_agents.models.tool_output import Status, ToolOutput
 from src.layers.core_logic_layer.logging import logger
 
@@ -11,40 +9,50 @@ from src.layers.core_logic_layer.logging import logger
 class CalculateAbsenseDaysInput(BaseModel):
     date_str: str = Field(
         ...,
-        description="",
+        description="Date in YYYY-MM-DD format to calculate absence days from.",
     )
-    working_days: List[int] = Field(
+    working_days_by_syndicate_name: dict[str, dict[int, List[int]]] = Field(
         ...,
-        description="A list of integers representing working days.",
+        description="Dictionary mapping syndicate names to dictionaries, where each inner dictionary maps months (1-12) to lists of integers representing working days for that month.",
     )
-    month: int = Field(
+    syndicate_name: str = Field(
         ...,
-        description="The month associated with the list of working days (1-12).",
+        description="The syndicate name to select the working days list (e.g., 'SITEPD PR', 'SINDPPD RS', 'SINDPD SP', 'SINDPD RJ').",
     )
 
 
 class CalculateAbsenseDaysTool(BaseTool):
     name: str = "calculate_absense_days_tool"
     description: str = (
-        "Calculates the number of absense days by counting how many working days in a "
-        "list are smaller than the day part of a given date. The logic is applied "
-        "only if the provided month matches the month of the date_str."
+        "Calculates the number of absence days by counting how many working days in the "
+        "list associated with the specified syndicate name and the month from the given date "
+        "are smaller than the day part of the date. Returns None if the month is not found."
     )
     args_schema: Type[BaseModel] = CalculateAbsenseDaysInput
 
-    def _run(self, date_str: str, working_days: List[int], month: int) -> ToolOutput:
-        logger.info(f"Calling {self.name}...")
+    def _run(
+        self,
+        date_str: str,
+        working_days_by_syndicate_name: dict[str, dict[int, List[int]]],
+        syndicate_name: str,
+    ) -> ToolOutput:
+        logger.info(f"Calling {self.name} with syndicate_name: {syndicate_name}...")
         try:
+            if syndicate_name not in working_days_by_syndicate_name:
+                message = f"Syndicate name '{syndicate_name}' not found in working_days_by_syndicate_name"
+                logger.error(message)
+                return ToolOutput(status=Status.FAILED, result=message)
+
             date_obj = datetime.strptime(date_str, "%Y-%m-%d")
-            month_of_date_str = date_obj.month
+            month = date_obj.month
             day_of_month = date_obj.day
 
-            if month != month_of_date_str:
-                return ToolOutput(
-                    status=Status.SUCCEED,
-                    result=None,
-                )
+            if month not in working_days_by_syndicate_name[syndicate_name]:
+                message = f"Month {month} not found for syndicate '{syndicate_name}'"
+                logger.error(message)
+                return ToolOutput(status=Status.FAILED, result=None)
 
+            working_days = working_days_by_syndicate_name[syndicate_name][month]
             absense_days = sum(1 for day in working_days if day < day_of_month)
 
             return ToolOutput(
@@ -52,11 +60,14 @@ class CalculateAbsenseDaysTool(BaseTool):
                 result=absense_days,
             )
         except Exception as error:
-            message = f"Error during absense days calculation: {str(error)}"
+            message = f"Error during absence days calculation: {str(error)}"
             logger.error(message)
             return ToolOutput(status=Status.FAILED, result=message)
 
     async def _arun(
-        self, date_str: str, working_days: List[int], month: int
+        self,
+        date_str: str,
+        working_days_by_syndicate_name: dict[str, dict[int, List[int]]],
+        syndicate_name: str,
     ) -> ToolOutput:
-        return self._run(date_str, working_days, month)
+        return self._run(date_str, working_days_by_syndicate_name, syndicate_name)

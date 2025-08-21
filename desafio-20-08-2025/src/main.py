@@ -1,16 +1,18 @@
 import asyncio
 from src.app import App
+from src.layers.business_layer.services.meal_voucher_service import MealVoucherService
 from src.layers.core_logic_layer.logging import logger
 
 
 async def main() -> None:
+    meal_voucher_service: MealVoucherService = MealVoucherService()
+    app: App = App(meal_voucher_service=meal_voucher_service)
     try:
-        logger.info("Application startup has started...")
-        app: App = App()
+        logger.info("Starting Application execution...")
         await app.run()
-        logger.info("Success: Application startup complete.")
+        logger.info("Application executed successfully")
     except Exception as error:
-        message = f"Error: Failed to startup Application: {str(error)}"
+        message = f"Failed to execute Application: {str(error)}"
         logger.error(message)
         raise
 
