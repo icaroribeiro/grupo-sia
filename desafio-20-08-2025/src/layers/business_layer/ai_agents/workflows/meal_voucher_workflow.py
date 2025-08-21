@@ -2,7 +2,6 @@ import functools
 import os
 from langchain.agents import AgentExecutor
 import pandas as pd
-from src.layers.business_layer.ai_agents.models.tool_output import Status
 from src.layers.business_layer.ai_agents.tools.meal_voucher_handoff_tool import (
     MealVoucherHandoffTool,
 )
@@ -101,506 +100,510 @@ class MealVoucherWorkflow(BaseWorkflow):
         custom_prefix: str,
         custom_suffix: str,
     ) -> StateGraph:
-        # Task 1:
-        # ------------------------------------------------------------------------------
-        sorted_items = sorted(
-            {
-                1: "df_active_employee",
-                2: "df_employee_admission",
-                3: "df_employee_dismissal",
-            }.items()
-        )
-        formatted_custom_prefix: str = self.__create_dataframe_description(
-            sorted_items=sorted_items,
-            dataframes_dict=dataframes_dict,
-            custom_prefix=custom_prefix,
-        )
-        input: str = """
-            INSTRUCTIONS:
-            - Perform the following steps in order:
+        # # Task 1:
+        # # ------------------------------------------------------------------------------
+        # sorted_items = sorted(
+        #     {
+        #         1: "df_active_employee",
+        #         2: "df_employee_admission",
+        #         3: "df_employee_dismissal",
+        #     }.items()
+        # )
+        # formatted_custom_prefix: str = self.__create_dataframe_description(
+        #     sorted_items=sorted_items,
+        #     dataframes_dict=dataframes_dict,
+        #     custom_prefix=custom_prefix,
+        # )
+        # input: str = """
+        #     INSTRUCTIONS:
+        #     - Perform the following steps in order:
 
-            1. From the `df1` (df_active_employee) and `df2` (df_employee_admission) DataFrames:
-            - Perform LEFT merge operation with `df1` and `df2` DataFrames on `employee_id` column;
-            - If there are rows in the `df2` DataFrame not included in `df1` DataFrame based on `employee_id` column, concatenate them;
+        #     1. From the `df1` (df_active_employee) and `df2` (df_employee_admission) DataFrames:
+        #     - Perform LEFT merge operation with `df1` and `df2` DataFrames on `employee_id` column;
+        #     - If there are rows in the `df2` DataFrame not included in `df1` DataFrame based on `employee_id` column, concatenate them;
 
-            2. From the `resulting` and `df3` (df_employee_dismissal) DataFrames:
-            - Perform LEFT merge operation with `resulting` and `df3` DataFrames on `employee_id` column;
-            - If there are rows in the `df3` DataFrame not included in `resulting` DataFrame based on `employee_id` column, concatenate them;
+        #     2. From the `resulting` and `df3` (df_employee_dismissal) DataFrames:
+        #     - Perform LEFT merge operation with `resulting` and `df3` DataFrames on `employee_id` column;
+        #     - If there are rows in the `df3` DataFrame not included in `resulting` DataFrame based on `employee_id` column, concatenate them;
 
-            3. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
-            """
-        formatted_input: str = input.format(
-            output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
-                "df_partial_result_1.csv",
-            ),
-        )
-        agent: AgentExecutor = create_pandas_dataframe_agent(
-            llm=chat_model,
-            df=[dataframes_dict[value].content for _, value in sorted_items],
-            agent_type=AgentType.OPENAI_FUNCTIONS,
-            allow_dangerous_code=True,
-            prefix=formatted_custom_prefix,
-            suffix=custom_suffix,
-            verbose=True,
-        )
-        result = agent.invoke({"input": formatted_input})
-        logger.info(f"result: {result}")
-        # Task 2:
-        # ------------------------------------------------------------------------------
-        df = pd.read_csv(
-            filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
-                "df_partial_result_1.csv",
-            ),
-            header=0,
-            index_col=None,
-        )
-        dataframes_dict["df_partial_result_1"] = DataFrameParams(
-            name="df_partial_result_1", description="", content=df
-        )
-        sorted_items = sorted(
-            {
-                1: "df_partial_result_1",
-                2: "df_apprentice_employee",
-                3: "df_intern_employee",
-            }.items()
-        )
-        formatted_custom_prefix: str = self.__create_dataframe_description(
-            sorted_items=sorted_items,
-            dataframes_dict=dataframes_dict,
-            custom_prefix=custom_prefix,
-        )
-        logger.info(f"formatted_custom_prefix:\n{formatted_custom_prefix}")
-        input: str = """
-            Your task is to process data and save the `resulting` DataFrame to a CSV file.
+        #     3. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
+        #     """
+        # formatted_input: str = input.format(
+        #     output_path=os.path.join(
+        #         f"{app_settings.output_data_dir_path}/tmp/",
+        #         "df_partial_gathering_result_1.csv",
+        #     ),
+        # )
+        # agent: AgentExecutor = create_pandas_dataframe_agent(
+        #     llm=chat_model,
+        #     df=[dataframes_dict[value].content for _, value in sorted_items],
+        #     agent_type=AgentType.OPENAI_FUNCTIONS,
+        #     allow_dangerous_code=True,
+        #     prefix=formatted_custom_prefix,
+        #     suffix=custom_suffix,
+        #     verbose=True,
+        # )
+        # result = agent.invoke({"input": formatted_input})
+        # logger.info(f"result: {result}")
+        # # Task 2:
+        # # ------------------------------------------------------------------------------
+        # df = pd.read_csv(
+        #     filepath_or_buffer=os.path.join(
+        #         f"{app_settings.output_data_dir_path}/tmp/",
+        #         "df_partial_gathering_result_1.csv",
+        #     ),
+        #     header=0,
+        #     index_col=None,
+        # )
+        # dataframes_dict["df_partial_gathering_result_1"] = DataFrameParams(
+        #     name="df_partial_gathering_result_1",  content=df
+        # )
+        # sorted_items = sorted(
+        #     {
+        #         1: "df_partial_gathering_result_1",
+        #         2: "df_apprentice_employee",
+        #         3: "df_intern_employee",
+        #     }.items()
+        # )
+        # formatted_custom_prefix: str = self.__create_dataframe_description(
+        #     sorted_items=sorted_items,
+        #     dataframes_dict=dataframes_dict,
+        #     custom_prefix=custom_prefix,
+        # )
+        # logger.info(f"formatted_custom_prefix:\n{formatted_custom_prefix}")
+        # input: str = """
+        #     Your task is to process data and save the `resulting` DataFrame to a CSV file.
 
-            To do this, perform the following steps in order:
+        #     To do this, perform the following steps in order:
 
-            1. From the `df1` (df_partial_result_1) and `df2` (df_apprentice_employee) DataFrames:
-            - Perform LEFT merge operation with `df1` and `df2` DataFrames on `employee_id` column;
-            - If there are rows in the `df2` DataFrame not included in `df1` DataFrame based on `employee_id` column, concatenate them;
+        #     1. From the `df1` (df_partial_gathering_result_1) and `df2` (df_apprentice_employee) DataFrames:
+        #     - Perform LEFT merge operation with `df1` and `df2` DataFrames on `employee_id` column;
+        #     - If there are rows in the `df2` DataFrame not included in `df1` DataFrame based on `employee_id` column, concatenate them;
 
-            2. From the `resulting` and `df3` (df_intern_employee) DataFrames:
-            - Perform LEFT merge operation with `resulting` and `df3` DataFrames on `employee_id` column;
-            - If there are rows in the `df3` DataFrame not included in `resulting` DataFrame based on `employee_id` column, concatenate them;
+        #     2. From the `resulting` and `df3` (df_intern_employee) DataFrames:
+        #     - Perform LEFT merge operation with `resulting` and `df3` DataFrames on `employee_id` column;
+        #     - If there are rows in the `df3` DataFrame not included in `resulting` DataFrame based on `employee_id` column, concatenate them;
 
-            3. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
-            """
-        formatted_input: str = input.format(
-            output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
-                "df_partial_result_2.csv",
-            ),
-        )
-        logger.info(f"formatted_input: {formatted_input}")
-        agent: AgentExecutor = create_pandas_dataframe_agent(
-            llm=chat_model,
-            df=[dataframes_dict[value].content for _, value in sorted_items],
-            agent_type=AgentType.OPENAI_FUNCTIONS,
-            allow_dangerous_code=True,
-            prefix=formatted_custom_prefix,
-            suffix=custom_suffix,
-            verbose=True,
-        )
-        result = agent.invoke({"input": formatted_input})
-        logger.info(f"result: {result}")
-        # Task 3:
-        # ------------------------------------------------------------------------------
-        df = pd.read_csv(
-            filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
-                "df_partial_result_2.csv",
-            ),
-            header=0,
-            index_col=None,
-        )
-        dataframes_dict["df_partial_result_2"] = DataFrameParams(
-            name="df_partial_result_2", description="", content=df
-        )
-        sorted_items = sorted(
-            {
-                1: "df_partial_result_2",
-                2: "df_employee_abroad",
-                3: "df_employee_vacation",
-            }.items()
-        )
-        formatted_custom_prefix: str = self.__create_dataframe_description(
-            sorted_items=sorted_items,
-            dataframes_dict=dataframes_dict,
-            custom_prefix=custom_prefix,
-        )
-        logger.info(f"formatted_custom_prefix:\n{formatted_custom_prefix}")
-        input: str = """
-            Your task is to process data and save the `resulting` DataFrame to a CSV file.
+        #     3. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
+        #     """
+        # formatted_input: str = input.format(
+        #     output_path=os.path.join(
+        #         f"{app_settings.output_data_dir_path}/tmp/",
+        #         "df_partial_gathering_result_2.csv",
+        #     ),
+        # )
+        # logger.info(f"formatted_input: {formatted_input}")
+        # agent: AgentExecutor = create_pandas_dataframe_agent(
+        #     llm=chat_model,
+        #     df=[dataframes_dict[value].content for _, value in sorted_items],
+        #     agent_type=AgentType.OPENAI_FUNCTIONS,
+        #     allow_dangerous_code=True,
+        #     prefix=formatted_custom_prefix,
+        #     suffix=custom_suffix,
+        #     verbose=True,
+        # )
+        # result = agent.invoke({"input": formatted_input})
+        # logger.info(f"result: {result}")
+        # # Task 3:
+        # # ------------------------------------------------------------------------------
+        # df = pd.read_csv(
+        #     filepath_or_buffer=os.path.join(
+        #         f"{app_settings.output_data_dir_path}/tmp/",
+        #         "df_partial_gathering_result_2.csv",
+        #     ),
+        #     header=0,
+        #     index_col=None,
+        # )
+        # dataframes_dict["df_partial_gathering_result_2"] = DataFrameParams(
+        #     name="df_partial_gathering_result_2",  content=df
+        # )
+        # sorted_items = sorted(
+        #     {
+        #         1: "df_partial_gathering_result_2",
+        #         2: "df_employee_abroad",
+        #         3: "df_employee_vacation",
+        #     }.items()
+        # )
+        # formatted_custom_prefix: str = self.__create_dataframe_description(
+        #     sorted_items=sorted_items,
+        #     dataframes_dict=dataframes_dict,
+        #     custom_prefix=custom_prefix,
+        # )
+        # logger.info(f"formatted_custom_prefix:\n{formatted_custom_prefix}")
+        # input: str = """
+        #     Your task is to process data and save the `resulting` DataFrame to a CSV file.
 
-            To do this, perform the following steps in order:
+        #     To do this, perform the following steps in order:
 
-            1. From the `df1` (df_partial_result_2) and `df2` (df_employee_abroad) DataFrames:
-            - Rename the `register` column of the `df2` DataFrame to `employee_id`.
-            - Perform LEFT merge operation with `df1` and `df2` DataFrames on `employee_id` column;
-            - If there are rows in the `df2` DataFrame not included in `df1` DataFrame based on `employee_id` column, concatenate them;
+        #     1. From the `df1` (df_partial_gathering_result_2) and `df2` (df_employee_abroad) DataFrames:
+        #     - Rename the `register` column of the `df2` DataFrame to `employee_id`.
+        #     - Perform LEFT merge operation with `df1` and `df2` DataFrames on `employee_id` column;
+        #     - If there are rows in the `df2` DataFrame not included in `df1` DataFrame based on `employee_id` column, concatenate them;
 
-            2. From the `resulting` and `df3` (df_employee_vacation) DataFrames:
-            - Perform LEFT merge operation with `resulting` and `df3` DataFrames on `employee_id` column;
-            - If there are rows in the `df3` DataFrame not included in `resulting` DataFrame based on `employee_id` column, concatenate them;
+        #     2. From the `resulting` and `df3` (df_employee_vacation) DataFrames:
+        #     - Perform LEFT merge operation with `resulting` and `df3` DataFrames on `employee_id` column;
+        #     - If there are rows in the `df3` DataFrame not included in `resulting` DataFrame based on `employee_id` column, concatenate them;
 
-            3. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
-            """
-        formatted_input: str = input.format(
-            output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
-                "df_partial_result_3.csv",
-            ),
-        )
-        logger.info(f"formatted_input: {formatted_input}")
-        agent: AgentExecutor = create_pandas_dataframe_agent(
-            llm=chat_model,
-            df=[dataframes_dict[value].content for _, value in sorted_items],
-            agent_type=AgentType.OPENAI_FUNCTIONS,
-            allow_dangerous_code=True,
-            prefix=formatted_custom_prefix,
-            suffix=custom_suffix,
-            verbose=True,
-        )
-        result = agent.invoke({"input": formatted_input})
-        logger.info(f"result: {result}")
-        # Task 4:
-        # ------------------------------------------------------------------------------
-        df = pd.read_csv(
-            filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
-                "df_partial_result_3.csv",
-            ),
-            header=0,
-            index_col=None,
-        )
-        dataframes_dict["df_partial_result_3"] = DataFrameParams(
-            name="df_partial_result_3", description="", content=df
-        )
-        sorted_items = sorted(
-            {
-                1: "df_syndicate_working_days",
-                2: "df_syndicate_meal_voucher_value",
-                3: "df_partial_result_3",
-            }.items()
-        )
-        formatted_custom_prefix: str = self.__create_dataframe_description(
-            sorted_items=sorted_items,
-            dataframes_dict=dataframes_dict,
-            custom_prefix=custom_prefix,
-        )
-        STATE_MAPPING = {
-            "AC": "Acre",
-            "AL": "Alagoas",
-            "AP": "Amapá",
-            "AM": "Amazonas",
-            "BA": "Bahia",
-            "CE": "Ceará",
-            "DF": "Distrito Federal",
-            "ES": "Espírito Santo",
-            "GO": "Goiás",
-            "MA": "Maranhão",
-            "MT": "Mato Grosso",
-            "MS": "Mato Grosso do Sul",
-            "MG": "Minas Gerais",
-            "PA": "Pará",
-            "PB": "Paraíba",
-            "PR": "Paraná",
-            "PE": "Pernambuco",
-            "PI": "Piauí",
-            "RJ": "Rio de Janeiro",
-            "RN": "Rio Grande do Norte",
-            "RS": "Rio Grande do Sul",
-            "RO": "Rondônia",
-            "RR": "Roraima",
-            "SC": "Santa Catarina",
-            "SP": "São Paulo",
-            "SE": "Sergipe",
-            "TO": "Tocantins",
-        }
-        input: str = """
-            Your task is to process data and save the `resulting` DataFrame to a CSV file.
+        #     3. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
+        #     """
+        # formatted_input: str = input.format(
+        #     output_path=os.path.join(
+        #         f"{app_settings.output_data_dir_path}/tmp/",
+        #         "df_partial_gathering_result_3.csv",
+        #     ),
+        # )
+        # logger.info(f"formatted_input: {formatted_input}")
+        # agent: AgentExecutor = create_pandas_dataframe_agent(
+        #     llm=chat_model,
+        #     df=[dataframes_dict[value].content for _, value in sorted_items],
+        #     agent_type=AgentType.OPENAI_FUNCTIONS,
+        #     allow_dangerous_code=True,
+        #     prefix=formatted_custom_prefix,
+        #     suffix=custom_suffix,
+        #     verbose=True,
+        # )
+        # result = agent.invoke({"input": formatted_input})
+        # logger.info(f"result: {result}")
+        # # Task 4:
+        # # ------------------------------------------------------------------------------
+        # df = pd.read_csv(
+        #     filepath_or_buffer=os.path.join(
+        #         f"{app_settings.output_data_dir_path}/tmp/",
+        #         "df_partial_gathering_result_3.csv",
+        #     ),
+        #     header=0,
+        #     index_col=None,
+        # )
+        # dataframes_dict["df_partial_gathering_result_3"] = DataFrameParams(
+        #     name="df_partial_gathering_result_3",  content=df
+        # )
+        # sorted_items = sorted(
+        #     {
+        #         1: "df_syndicate_working_days",
+        #         2: "df_syndicate_meal_voucher_value",
+        #         3: "df_partial_gathering_result_3",
+        #     }.items()
+        # )
+        # formatted_custom_prefix: str = self.__create_dataframe_description(
+        #     sorted_items=sorted_items,
+        #     dataframes_dict=dataframes_dict,
+        #     custom_prefix=custom_prefix,
+        # )
+        # STATE_MAPPING = {
+        #     "AC": "Acre",
+        #     "AL": "Alagoas",
+        #     "AP": "Amapá",
+        #     "AM": "Amazonas",
+        #     "BA": "Bahia",
+        #     "CE": "Ceará",
+        #     "DF": "Distrito Federal",
+        #     "ES": "Espírito Santo",
+        #     "GO": "Goiás",
+        #     "MA": "Maranhão",
+        #     "MT": "Mato Grosso",
+        #     "MS": "Mato Grosso do Sul",
+        #     "MG": "Minas Gerais",
+        #     "PA": "Pará",
+        #     "PB": "Paraíba",
+        #     "PR": "Paraná",
+        #     "PE": "Pernambuco",
+        #     "PI": "Piauí",
+        #     "RJ": "Rio de Janeiro",
+        #     "RN": "Rio Grande do Norte",
+        #     "RS": "Rio Grande do Sul",
+        #     "RO": "Rondônia",
+        #     "RR": "Roraima",
+        #     "SC": "Santa Catarina",
+        #     "SP": "São Paulo",
+        #     "SE": "Sergipe",
+        #     "TO": "Tocantins",
+        # }
+        # input: str = """
+        #     Your task is to process data and save the `resulting` DataFrame to a CSV file.
 
-            To do this, perform the following steps in order:
+        #     To do this, perform the following steps in order:
 
-            1. From the `df1` (df_syndicate_working_days) and `df2` (df_syndicate_meal_voucher_value) DataFrames:
-            - Identity the two-letter state code from the `name` column in `df1` DataFrame (e.g., extract 'PR' from 'SITEPD PR - ...'). Assume the state code is a two-letter code separated by spaces or other delimiters.
-            - Add a new column `state_code` to `df1` DataFrame with the extracted state code.
-            - Use the following mapping of Brazilian state codes to state names:
-                {state_mapping}
-            - Add a new column `state_name` to `df1` DataFrame by mapping the `state_code` to the full state name using the provided state mapping.
-            - Rename the `state` column of the `df2` DataFrame to `state_name`.
-            - Perform LEFT merge operation with `df1` and `df2` DataFrames on `state_name` column;
+        #     1. From the `df1` (df_syndicate_working_days) and `df2` (df_syndicate_meal_voucher_value) DataFrames:
+        #     - Identity the two-letter state code from the `name` column in `df1` DataFrame (e.g., extract 'PR' from 'SITEPD PR - ...'). Assume the state code is a two-letter code separated by spaces or other delimiters.
+        #     - Add a new column `state_code` to `df1` DataFrame with the extracted state code.
+        #     - Use the following mapping of Brazilian state codes to state names:
+        #         {state_mapping}
+        #     - Add a new column `state_name` to `df1` DataFrame by mapping the `state_code` to the full state name using the provided state mapping.
+        #     - Rename the `state` column of the `df2` DataFrame to `state_name`.
+        #     - Perform LEFT merge operation with `df1` and `df2` DataFrames on `state_name` column;
 
-            2. From the `df3` (df_partial_result_3) and `resulting` DataFrames:
-            - Rename the `name` column of the `resulting` DataFrame to `syndicate_name`.
-            - Perform LEFT merge operation with `df3` and `resulting` DataFrames on `syndicate_name` column;
+        #     2. From the `df3` (df_partial_gathering_result_3) and `resulting` DataFrames:
+        #     - Rename the `name` column of the `resulting` DataFrame to `syndicate_name`.
+        #     - Perform LEFT merge operation with `df3` and `resulting` DataFrames on `syndicate_name` column;
 
-            3. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
-            """
-        formatted_input: str = input.format(
-            state_mapping=STATE_MAPPING,
-            output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
-                "df_partial_result_4.csv",
-            ),
-        )
-        logger.info(f"formatted_input: {formatted_input}")
-        agent: AgentExecutor = create_pandas_dataframe_agent(
-            llm=chat_model,
-            df=[dataframes_dict[value].content for _, value in sorted_items],
-            agent_type=AgentType.OPENAI_FUNCTIONS,
-            allow_dangerous_code=True,
-            prefix=formatted_custom_prefix,
-            suffix=custom_suffix,
-            verbose=True,
-        )
-        result = agent.invoke({"input": formatted_input})
-        logger.info(f"result: {result}")
+        #     3. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
+        #     """
+        # formatted_input: str = input.format(
+        #     state_mapping=STATE_MAPPING,
+        #     output_path=os.path.join(
+        #         f"{app_settings.output_data_dir_path}/tmp/",
+        #         "df_partial_gathering_result_4.csv",
+        #     ),
+        # )
+        # logger.info(f"formatted_input: {formatted_input}")
+        # agent: AgentExecutor = create_pandas_dataframe_agent(
+        #     llm=chat_model,
+        #     df=[dataframes_dict[value].content for _, value in sorted_items],
+        #     agent_type=AgentType.OPENAI_FUNCTIONS,
+        #     allow_dangerous_code=True,
+        #     prefix=formatted_custom_prefix,
+        #     suffix=custom_suffix,
+        #     verbose=True,
+        # )
+        # result = agent.invoke({"input": formatted_input})
+        # logger.info(f"result: {result}")
 
-        # Task 5:
-        # ------------------------------------------------------------------------------
-        def extract_absense_return_date_helper(date_str: str):
-            tool_output = extract_absense_return_date_tool._run(date_str)
+        # # Task 5:
+        # # ------------------------------------------------------------------------------
+        # def extract_absense_return_date_helper(date_str: str):
+        #     tool_output = extract_absense_return_date_tool._run(date_str)
 
-            if tool_output.status == Status.SUCCEED:
-                return tool_output.result
-            else:
-                return None
+        #     if tool_output.status == Status.SUCCEED:
+        #         return tool_output.result
+        #     else:
+        #         return None
 
-        df_employee_absense = dataframes_dict["df_employee_absense"].content
-        df_employee_absense["return_date"] = df_employee_absense["detail"].apply(
-            extract_absense_return_date_helper
-        )
-        dataframes_dict["df_employee_absense"].content = df_employee_absense
-        df = pd.read_csv(
-            filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
-                "df_partial_result_4.csv",
-            ),
-            header=0,
-            index_col=None,
-        )
-        dataframes_dict["df_partial_result_4"] = DataFrameParams(
-            name="df_partial_result_4", description="", content=df
-        )
-        sorted_items = sorted(
-            {
-                1: "df_partial_result_4",
-                2: "df_employee_absense",
-            }.items()
-        )
-        formatted_custom_prefix: str = self.__create_dataframe_description(
-            sorted_items=sorted_items,
-            dataframes_dict=dataframes_dict,
-            custom_prefix=custom_prefix,
-        )
-        logger.info(f"formatted_custom_prefix:\n{formatted_custom_prefix}")
-        input: str = """
-            Your task is to process data and save the `resulting` DataFrame to a CSV file.
+        # df_employee_absense = dataframes_dict["df_employee_absense"].content
+        # df_employee_absense["return_date"] = df_employee_absense["detail"].apply(
+        #     extract_absense_return_date_helper
+        # )
+        # dataframes_dict["df_employee_absense"].content = df_employee_absense
+        # df = pd.read_csv(
+        #     filepath_or_buffer=os.path.join(
+        #         f"{app_settings.output_data_dir_path}/tmp/",
+        #         "df_partial_gathering_result_4.csv",
+        #     ),
+        #     header=0,
+        #     index_col=None,
+        # )
+        # dataframes_dict["df_partial_gathering_result_4"] = DataFrameParams(
+        #     name="df_partial_gathering_result_4",  content=df
+        # )
+        # sorted_items = sorted(
+        #     {
+        #         1: "df_partial_gathering_result_4",
+        #         2: "df_employee_absense",
+        #     }.items()
+        # )
+        # formatted_custom_prefix: str = self.__create_dataframe_description(
+        #     sorted_items=sorted_items,
+        #     dataframes_dict=dataframes_dict,
+        #     custom_prefix=custom_prefix,
+        # )
+        # logger.info(f"formatted_custom_prefix:\n{formatted_custom_prefix}")
+        # input: str = """
+        #     Your task is to process data and save the `resulting` DataFrame to a CSV file.
 
-            To do this, perform the following steps in order:
+        #     To do this, perform the following steps in order:
 
-            1. From the `df1` (df_partial_result_4) and `df2` (df_employee_absense) DataFrames:
-            - Perform LEFT merge operation with `df1` and `df2` DataFrames on `employee_id` column.
-            - If there are rows in the `df2` DataFrame not included in `df1` DataFrame based on `employee_id` column, concatenate them.
+        #     1. From the `df1` (df_partial_gathering_result_4) and `df2` (df_employee_absense) DataFrames:
+        #     - Perform LEFT merge operation with `df1` and `df2` DataFrames on `employee_id` column.
+        #     - If there are rows in the `df2` DataFrame not included in `df1` DataFrame based on `employee_id` column, concatenate them.
 
-            2. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
-            """
-        formatted_input: str = input.format(
-            output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
-                "df_partial_result_5.csv",
-            ),
-        )
-        logger.info(f"formatted_input: {formatted_input}")
-        agent: AgentExecutor = create_pandas_dataframe_agent(
-            llm=chat_model,
-            df=[dataframes_dict[value].content for _, value in sorted_items],
-            agent_type=AgentType.OPENAI_FUNCTIONS,
-            allow_dangerous_code=True,
-            prefix=formatted_custom_prefix,
-            suffix=custom_suffix,
-            verbose=True,
-        )
-        result = agent.invoke({"input": formatted_input})
-        logger.info(f"result: {result}")
-        # Task 6:
-        # ------------------------------------------------------------------------------
-        df = pd.read_csv(
-            filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
-                "df_partial_result_5.csv",
-            ),
-            header=0,
-            index_col=None,
-        )
-        dataframes_dict["df_partial_result_5"] = DataFrameParams(
-            name="df_partial_result_5", description="", content=df
-        )
-        working_days_by_syndicate_name = {
-            "SITEPD PR - SIND DOS TRAB EM EMPR PRIVADAS DE PROC DE DADOS DE CURITIBA E REGIAO METROPOLITANA": {
-                5: [
-                    1,
-                    2,
-                    5,
-                    6,
-                    7,
-                    8,
-                    9,
-                    12,
-                    13,
-                    14,
-                    15,
-                    16,
-                    19,
-                    20,
-                    21,
-                    22,
-                    23,
-                    26,
-                    27,
-                    28,
-                    29,
-                    30,
-                ],
-            },
-            "SINDPPD RS - SINDICATO DOS TRAB. EM PROC. DE DADOS RIO GRANDE DO SUL": {
-                5: [
-                    2,
-                    5,
-                    6,
-                    7,
-                    8,
-                    9,
-                    12,
-                    13,
-                    14,
-                    15,
-                    16,
-                    19,
-                    20,
-                    21,
-                    22,
-                    23,
-                    26,
-                    27,
-                    28,
-                    29,
-                    30,
-                ]
-            },
-            "SINDPD SP - SIND.TRAB.EM PROC DADOS E EMPR.EMPRESAS PROC DADOS ESTADO DE SP.": {
-                5: [
-                    1,
-                    2,
-                    5,
-                    6,
-                    7,
-                    8,
-                    9,
-                    12,
-                    13,
-                    14,
-                    15,
-                    16,
-                    19,
-                    20,
-                    21,
-                    22,
-                    23,
-                    26,
-                    27,
-                    28,
-                    29,
-                    30,
-                ]
-            },
-            "SINDPD RJ - SINDICATO PROFISSIONAIS DE PROC DADOS DO RIO DE JANEIRO": {
-                5: [
-                    2,
-                    5,
-                    6,
-                    7,
-                    8,
-                    9,
-                    12,
-                    13,
-                    14,
-                    15,
-                    16,
-                    19,
-                    20,
-                    21,
-                    22,
-                    23,
-                    26,
-                    27,
-                    28,
-                    29,
-                    30,
-                ],
-            },
-        }
+        #     2. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
+        #     """
+        # formatted_input: str = input.format(
+        #     output_path=os.path.join(
+        #         f"{app_settings.output_data_dir_path}/tmp/",
+        #         "df_partial_gathering_result_5.csv",
+        #     ),
+        # )
+        # logger.info(f"formatted_input: {formatted_input}")
+        # agent: AgentExecutor = create_pandas_dataframe_agent(
+        #     llm=chat_model,
+        #     df=[dataframes_dict[value].content for _, value in sorted_items],
+        #     agent_type=AgentType.OPENAI_FUNCTIONS,
+        #     allow_dangerous_code=True,
+        #     prefix=formatted_custom_prefix,
+        #     suffix=custom_suffix,
+        #     verbose=True,
+        # )
+        # result = agent.invoke({"input": formatted_input})
+        # logger.info(f"result: {result}")
+        # # Task 6:
+        # # ------------------------------------------------------------------------------
+        # df = pd.read_csv(
+        #     filepath_or_buffer=os.path.join(
+        #         f"{app_settings.output_data_dir_path}/tmp/",
+        #         "df_partial_gathering_result_5.csv",
+        #     ),
+        #     header=0,
+        #     index_col=None,
+        # )
+        # dataframes_dict["df_partial_gathering_result_5"] = DataFrameParams(
+        #     name="df_partial_gathering_result_5",  content=df
+        # )
+        # working_days_by_syndicate_name = {
+        #     "SITEPD PR - SIND DOS TRAB EM EMPR PRIVADAS DE PROC DE DADOS DE CURITIBA E REGIAO METROPOLITANA": {
+        #         5: [
+        #             1,
+        #             2,
+        #             5,
+        #             6,
+        #             7,
+        #             8,
+        #             9,
+        #             12,
+        #             13,
+        #             14,
+        #             15,
+        #             16,
+        #             19,
+        #             20,
+        #             21,
+        #             22,
+        #             23,
+        #             26,
+        #             27,
+        #             28,
+        #             29,
+        #             30,
+        #         ],
+        #     },
+        #     "SINDPPD RS - SINDICATO DOS TRAB. EM PROC. DE DADOS RIO GRANDE DO SUL": {
+        #         5: [
+        #             2,
+        #             5,
+        #             6,
+        #             7,
+        #             8,
+        #             9,
+        #             12,
+        #             13,
+        #             14,
+        #             15,
+        #             16,
+        #             19,
+        #             20,
+        #             21,
+        #             22,
+        #             23,
+        #             26,
+        #             27,
+        #             28,
+        #             29,
+        #             30,
+        #         ]
+        #     },
+        #     "SINDPD SP - SIND.TRAB.EM PROC DADOS E EMPR.EMPRESAS PROC DADOS ESTADO DE SP.": {
+        #         5: [
+        #             1,
+        #             2,
+        #             5,
+        #             6,
+        #             7,
+        #             8,
+        #             9,
+        #             12,
+        #             13,
+        #             14,
+        #             15,
+        #             16,
+        #             19,
+        #             20,
+        #             21,
+        #             22,
+        #             23,
+        #             26,
+        #             27,
+        #             28,
+        #             29,
+        #             30,
+        #         ]
+        #     },
+        #     "SINDPD RJ - SINDICATO PROFISSIONAIS DE PROC DADOS DO RIO DE JANEIRO": {
+        #         5: [
+        #             2,
+        #             5,
+        #             6,
+        #             7,
+        #             8,
+        #             9,
+        #             12,
+        #             13,
+        #             14,
+        #             15,
+        #             16,
+        #             19,
+        #             20,
+        #             21,
+        #             22,
+        #             23,
+        #             26,
+        #             27,
+        #             28,
+        #             29,
+        #             30,
+        #         ],
+        #     },
+        # }
 
-        def absense_days_helper(row):
-            date_str = row["return_date"]
-            syndicate_name = row["syndicate_name"]
+        # def absense_days_helper(row):
+        #     date_str = row["return_date"]
+        #     syndicate_name = row["syndicate_name"]
 
-            tool_output = calculate_absense_days_tool._run(
-                date_str=date_str,
-                working_days_by_syndicate_name=working_days_by_syndicate_name,
-                syndicate_name=syndicate_name,
-            )
+        #     tool_output = calculate_absense_days_tool._run(
+        #         date_str=date_str,
+        #         working_days_by_syndicate_name=working_days_by_syndicate_name,
+        #         syndicate_name=syndicate_name,
+        #     )
 
-            if tool_output.status == Status.SUCCEED:
-                return tool_output.result
-            else:
-                return None
+        #     if tool_output.status == Status.SUCCEED:
+        #         return tool_output.result
+        #     else:
+        #         return None
 
-        df_partial_result_5 = dataframes_dict["df_partial_result_5"].content
-        df_partial_result_5["absense_days"] = df_partial_result_5.apply(
-            absense_days_helper, axis=1
-        )
-        dataframes_dict["df_partial_result_5"].content = df_partial_result_5
-        sorted_items = sorted(
-            {
-                1: "df_partial_result_5",
-            }.items()
-        )
-        formatted_custom_prefix: str = self.__create_dataframe_description(
-            sorted_items=sorted_items,
-            dataframes_dict=dataframes_dict,
-            custom_prefix=custom_prefix,
-        )
-        logger.info(f"formatted_custom_prefix:\n{formatted_custom_prefix}")
-        input: str = """
-            Your task is to process data and save the `resulting` DataFrame to a CSV file.
+        # df_partial_gathering_result_5 = dataframes_dict[
+        #     "df_partial_gathering_result_5"
+        # ].content
+        # df_partial_gathering_result_5["absense_days"] = (
+        #     df_partial_gathering_result_5.apply(absense_days_helper, axis=1)
+        # )
+        # dataframes_dict[
+        #     "df_partial_gathering_result_5"
+        # ].content = df_partial_gathering_result_5
+        # sorted_items = sorted(
+        #     {
+        #         1: "df_partial_gathering_result_5",
+        #     }.items()
+        # )
+        # formatted_custom_prefix: str = self.__create_dataframe_description(
+        #     sorted_items=sorted_items,
+        #     dataframes_dict=dataframes_dict,
+        #     custom_prefix=custom_prefix,
+        # )
+        # logger.info(f"formatted_custom_prefix:\n{formatted_custom_prefix}")
+        # input: str = """
+        #     Your task is to process data and save the `resulting` DataFrame to a CSV file.
 
-            To do this, perform the following steps in order:
+        #     To do this, perform the following steps in order:
 
-            1. Save the `df1` (df_partial_result_5) DataFrame to a CSV file to the path `{output_path}`.
-            """
-        formatted_input: str = input.format(
-            output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
-                "df_partial_result_6.csv",
-            ),
-        )
-        logger.info(f"formatted_input: {formatted_input}")
-        agent: AgentExecutor = create_pandas_dataframe_agent(
-            llm=chat_model,
-            df=[dataframes_dict[value].content for _, value in sorted_items],
-            agent_type=AgentType.OPENAI_FUNCTIONS,
-            allow_dangerous_code=True,
-            prefix=formatted_custom_prefix,
-            suffix=custom_suffix,
-            verbose=True,
-        )
-        result = agent.invoke({"input": formatted_input})
-        logger.info(f"result: {result}")
-        return {"messages": [HumanMessage(content=str(result))]}
+        #     1. Save the `df1` (df_partial_gathering_result_5) DataFrame to a CSV file to the path `{output_path}`.
+        #     """
+        # formatted_input: str = input.format(
+        #     output_path=os.path.join(
+        #         f"{app_settings.output_data_dir_path}/tmp/",
+        #         "df_partial_gathering_result_6.csv",
+        #     ),
+        # )
+        # logger.info(f"formatted_input: {formatted_input}")
+        # agent: AgentExecutor = create_pandas_dataframe_agent(
+        #     llm=chat_model,
+        #     df=[dataframes_dict[value].content for _, value in sorted_items],
+        #     agent_type=AgentType.OPENAI_FUNCTIONS,
+        #     allow_dangerous_code=True,
+        #     prefix=formatted_custom_prefix,
+        #     suffix=custom_suffix,
+        #     verbose=True,
+        # )
+        # result = agent.invoke({"input": formatted_input})
+        # logger.info(f"result: {result}")
+        return {"messages": [HumanMessage(content=str({}))]}
 
     def __call_data_analysis_agent(
         self,
@@ -613,17 +616,21 @@ class MealVoucherWorkflow(BaseWorkflow):
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
                 f"{app_settings.output_data_dir_path}/tmp/",
-                "df_partial_result_6.csv",
+                "df_partial_gathering_result_6.csv",
             ),
             header=0,
             index_col=None,
         )
-        dataframes_dict["df_partial_result_6"] = DataFrameParams(
-            name="df_partial_result_6", description="", content=df
+        dataframes_dict["df_partial_gathering_result_6"] = DataFrameParams(
+            name="df_partial_gathering_result_6", content=df
         )
+
+        print(df.dtypes)
+        print(df.columns)
+
         sorted_items = sorted(
             {
-                1: "df_partial_result_6",
+                1: "df_partial_gathering_result_6",
             }.items()
         )
         formatted_custom_prefix: str = self.__create_dataframe_description(
@@ -635,15 +642,15 @@ class MealVoucherWorkflow(BaseWorkflow):
             INSTRUCTIONS:
             Perform the following steps in order:
 
-            1. From the `df1` (df_partial_result_6) DataFrame:
-            - Rename the `company_id` column of the `df1` DataFrame to `company_id_changed_by_data_analysis_agent`.
+            1. From the `df1` (df_partial_gathering_result_6) DataFrame:
+            - Calculate `effective_working_days` with the result of df1['working_days'] - df1['vacation_days'] - df1['absense_days']
 
-            2. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
+            2. Save the updated `df1` DataFrame to a CSV file to the path `{output_path}`.
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
                 f"{app_settings.output_data_dir_path}/tmp/",
-                "df_partial_result_7.csv",
+                "df_final_analysis_result.csv",
             ),
         )
         agent: AgentExecutor = create_pandas_dataframe_agent(
@@ -670,17 +677,17 @@ class MealVoucherWorkflow(BaseWorkflow):
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
                 f"{app_settings.output_data_dir_path}/tmp/",
-                "df_partial_result_7.csv",
+                "df_final_analysis_result.csv",
             ),
             header=0,
             index_col=None,
         )
-        dataframes_dict["df_partial_result_7"] = DataFrameParams(
-            name="df_partial_result_7", description="", content=df
+        dataframes_dict["df_final_analysis_result"] = DataFrameParams(
+            name="df_final_analysis_result", content=df
         )
         sorted_items = sorted(
             {
-                1: "df_partial_result_7",
+                1: "df_final_analysis_result",
             }.items()
         )
         formatted_custom_prefix: str = self.__create_dataframe_description(
@@ -692,26 +699,35 @@ class MealVoucherWorkflow(BaseWorkflow):
             INSTRUCTIONS:
             - Perform the following steps in order:
 
-            1. From the `df1` (df_partial_result_7) DataFrame:
-            - Rename the `employee_id` column of the `df1` DataFrame to `Matricula`.
-            - Rename the `admission_date_employee_admission_df` column of the `df1` DataFrame to `Admissão`.
-            - Rename the `syndicate_name` column of the `df1` DataFrame to `Sindicato do Colaborador`.
-            - Add a new column named `Competência` and fill out the rows with value `01/05/2025`.
+            1. From the `df1` (df_final_analysis_result) DataFrame:
+            - Create a new `resulting` Dataframe and copy from `df1` DataFrame only the columns below in order:
+                1. `employee_id`
+                2. `admission_date`
+                3. `syndicate_name`
+                4. `effective_working_days`
+
 
             2. From the `resulting` DataFrame:
+            - Rename the `employee_id` column of the `resulting` DataFrame to `Matricula`.
+            - Rename the `admission_date` column of the `resulting` DataFrame to `Admissão`.
+            - Rename the `syndicate_name` column of the `resulting` DataFrame to `Sindicato do Colaborador`.
+            - Rename the `effective_working_days` column of the `resulting` DataFrame to `Dias`.
+
+            3. From the `resulting` DataFrame:
             - Change the order of the columns as below:
                 1. `Matricula`
                 2. `Admissão`
                 3. `Sindicato do Colaborador`
                 4. `Competência`
-                5. The others can be kept as they are.
+                5. `Dias`
 
-            3. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
+
+            4. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
                 f"{app_settings.output_data_dir_path}",
-                "df_final_result.csv",
+                "df_final_report_result.csv",
             ),
         )
         agent: AgentExecutor = create_pandas_dataframe_agent(
