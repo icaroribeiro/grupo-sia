@@ -1,3 +1,5 @@
+import os
+
 from src.layers.core_logic_layer.container.container import Container
 from src.layers.data_access_layer.pandas.models.dataframe_params import DataFrameParams
 from src.layers.core_logic_layer.settings import ai_settings, app_settings
@@ -9,6 +11,7 @@ from src.layers.business_layer.ai_agents.workflows.meal_voucher_workflow import 
     MealVoucherWorkflow,
 )
 from src.layers.core_logic_layer.logging import logger
+import pandas as pd
 
 
 class App:
@@ -52,3 +55,29 @@ class App:
 
         result = await meal_voucher_workflow.run(input_message=formatted_input_message)
         logger.info(f"result: {result}")
+
+        try:
+            source_path: str = os.path.join(
+                f"{app_settings.output_data_dir_path}/tmp/",
+                "df_partial_report_result_1.csv",
+            )
+            df: pd.DataFrame = pd.DataFrame()
+            destination_path: str = os.path.join(
+                f"{app_settings.output_data_dir_path}",
+                "df_partial_report_result_1.csv",
+            )
+            if not os.path.isfile(source_path):
+                raise FileNotFoundError(f"Source file '{source_path}' does not exist")
+
+            # Ensure destination directory exists
+            os.makedirs(os.path.dirname(destination_path), exist_ok=True)
+
+            # Copy the file to the destination with the new name
+            shutil.copy2(source_path, destination_path)
+            print(
+                f"File copied successfully from '{source_path}' to '{destination_path}'"
+            )
+        except FileNotFoundError as e:
+            print(f"Error: {e}")
+        except OSError as e:
+            print(f"Error during file copy: {e}")
