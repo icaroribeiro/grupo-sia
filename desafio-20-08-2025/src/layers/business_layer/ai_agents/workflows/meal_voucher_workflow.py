@@ -44,16 +44,15 @@ class MealVoucherWorkflow(BaseWorkflow):
             ROLE:
             - You are an agent specialized in software development with Python and efficiently data processing using Pandas library.
             GOAL:
-            - Your sole purpose is to process data and save the `resulting` DataFrame to a CSV file.
+            - Your sole purpose is to process data and save the `resulting` DataFrame to a specific file.
             - To do this, you have access to the following pandas DataFrames:
 
                 {dataframes_descriptions}
             """
         self.__agent_custom_suffix = """
             CRITICAL RULES:
-            - Execute all steps provided in the prompt in the correct order.
             - Do not ask for confirmation or provide intermediate results.
-            - Once all steps are complete, save the `resulting` DataFrame to a CSV file and return the final answer.
+            - Execute all steps provided in the prompt in the correct order.
             """
         delegate_to_data_gathering_agent = MealVoucherHandoffTool(
             agent_name="data_gathering_agent"
@@ -101,9 +100,7 @@ class MealVoucherWorkflow(BaseWorkflow):
         custom_prefix: str,
         custom_suffix: str,
     ) -> StateGraph:
-        # Task 1:
-        # Merge DataFrames from "ATIVOS.xlsx", "ADMISSÃO ABRIL.xlsx" and "DESLIGADOS.xlsx" files.
-        # ------------------------------------------------------------------------------
+        all_results = []
         sorted_items = sorted(
             {
                 1: "df_active_employee",
@@ -132,7 +129,7 @@ class MealVoucherWorkflow(BaseWorkflow):
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
+                f"{app_settings.output_data_dir_path}",
                 "df_partial_gathering_result_1.csv",
             ),
         )
@@ -147,12 +144,10 @@ class MealVoucherWorkflow(BaseWorkflow):
         )
         result = agent.invoke({"input": formatted_input})
         logger.info(f"result: {result}")
-        # Task 2:
-        # Merge DataFrames from previous task result, "APRENDIZ.xlsx" and "ESTÁGIO.xlsx" files.
-        # ------------------------------------------------------------------------------
+        all_results.append(result)
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
+                f"{app_settings.output_data_dir_path}",
                 "df_partial_gathering_result_1.csv",
             ),
             header=0,
@@ -191,7 +186,7 @@ class MealVoucherWorkflow(BaseWorkflow):
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
+                f"{app_settings.output_data_dir_path}",
                 "df_partial_gathering_result_2.csv",
             ),
         )
@@ -207,12 +202,10 @@ class MealVoucherWorkflow(BaseWorkflow):
         )
         result = agent.invoke({"input": formatted_input})
         logger.info(f"result: {result}")
-        # Task 3:
-        # Merge DataFrames from previous task result, "EXTERIOR.xlsx" and "FÉRIAS.xlsx" files.
-        # ------------------------------------------------------------------------------
+        all_results.append(result)
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
+                f"{app_settings.output_data_dir_path}",
                 "df_partial_gathering_result_2.csv",
             ),
             header=0,
@@ -252,7 +245,7 @@ class MealVoucherWorkflow(BaseWorkflow):
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
+                f"{app_settings.output_data_dir_path}",
                 "df_partial_gathering_result_3.csv",
             ),
         )
@@ -268,12 +261,10 @@ class MealVoucherWorkflow(BaseWorkflow):
         )
         result = agent.invoke({"input": formatted_input})
         logger.info(f"result: {result}")
-        # Task 4:
-        # Merge DataFrames from previous task result, "Base dias uteis.xlsx" and "Base sindicato x valor.xlsx" files.
-        # ------------------------------------------------------------------------------
+        all_results.append(result)
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
+                f"{app_settings.output_data_dir_path}",
                 "df_partial_gathering_result_3.csv",
             ),
             header=0,
@@ -346,7 +337,7 @@ class MealVoucherWorkflow(BaseWorkflow):
         formatted_input: str = input.format(
             state_mapping=STATE_MAPPING,
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
+                f"{app_settings.output_data_dir_path}",
                 "df_partial_gathering_result_4.csv",
             ),
         )
@@ -362,10 +353,8 @@ class MealVoucherWorkflow(BaseWorkflow):
         )
         result = agent.invoke({"input": formatted_input})
         logger.info(f"result: {result}")
+        all_results.append(result)
 
-        # Task 5:
-        # Merge DataFrames from previous task result and "AFASTAMENTOS.xlsx" file.
-        # ------------------------------------------------------------------------------
         def extract_absense_return_date_helper(date_str: str):
             tool_output = extract_absense_return_date_tool._run(date_str)
 
@@ -381,7 +370,7 @@ class MealVoucherWorkflow(BaseWorkflow):
         dataframes_dict["df_employee_absense"].content = df_employee_absense
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
+                f"{app_settings.output_data_dir_path}",
                 "df_partial_gathering_result_4.csv",
             ),
             header=0,
@@ -415,7 +404,7 @@ class MealVoucherWorkflow(BaseWorkflow):
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
+                f"{app_settings.output_data_dir_path}",
                 "df_partial_gathering_result_5.csv",
             ),
         )
@@ -431,11 +420,10 @@ class MealVoucherWorkflow(BaseWorkflow):
         )
         result = agent.invoke({"input": formatted_input})
         logger.info(f"result: {result}")
-        # Task 6:
-        # ------------------------------------------------------------------------------
+        all_results.append(result)
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
+                f"{app_settings.output_data_dir_path}",
                 "df_partial_gathering_result_5.csv",
             ),
             header=0,
@@ -593,7 +581,7 @@ class MealVoucherWorkflow(BaseWorkflow):
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
+                f"{app_settings.output_data_dir_path}",
                 "df_partial_gathering_result_6.csv",
             ),
         )
@@ -609,7 +597,12 @@ class MealVoucherWorkflow(BaseWorkflow):
         )
         result = agent.invoke({"input": formatted_input})
         logger.info(f"result: {result}")
-        return {"messages": [HumanMessage(content=str({}))]}
+        all_results.append(result)
+        # Extract the 'output' key from each result dictionary and join them with a separator.
+        final_content = "\n\n---\nAgent Step Finished\n---\n\n".join(
+            [str(res.get("output", "No output returned.")) for res in all_results]
+        )
+        return {"messages": [HumanMessage(content=final_content)]}
 
     def __call_data_analysis_agent(
         self,
@@ -619,12 +612,10 @@ class MealVoucherWorkflow(BaseWorkflow):
         custom_prefix: str,
         custom_suffix: str,
     ) -> StateGraph:
-        # Task 1:
-        # Handling Exclusions and Cleaning the Dataset
-        # ------------------------------------------------------------------------------
+        all_results = []
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
+                f"{app_settings.output_data_dir_path}",
                 "df_partial_gathering_result_6.csv",
             ),
             header=0,
@@ -665,7 +656,7 @@ class MealVoucherWorkflow(BaseWorkflow):
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
+                f"{app_settings.output_data_dir_path}",
                 "df_partial_analysis_result_1.csv",
             ),
         )
@@ -680,12 +671,10 @@ class MealVoucherWorkflow(BaseWorkflow):
         )
         result = agent.invoke({"input": formatted_input})
         logger.info(f"result: {result}")
-        # Task 2:
-        # Applying the Termination Rule
-        # ------------------------------------------------------------------------------
+        all_results.append(result)
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
+                f"{app_settings.output_data_dir_path}",
                 "df_partial_analysis_result_1.csv",
             ),
             header=0,
@@ -715,7 +704,7 @@ class MealVoucherWorkflow(BaseWorkflow):
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
+                f"{app_settings.output_data_dir_path}",
                 "df_partial_analysis_result_2.csv",
             ),
         )
@@ -730,12 +719,10 @@ class MealVoucherWorkflow(BaseWorkflow):
         )
         result = agent.invoke({"input": formatted_input})
         logger.info(f"result: {result}")
-        # Task 3:
-        # Calculating the Meal Voucher Values
-        # ------------------------------------------------------------------------------
+        all_results.append(result)
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
+                f"{app_settings.output_data_dir_path}",
                 "df_partial_analysis_result_2.csv",
             ),
             header=0,
@@ -777,7 +764,7 @@ class MealVoucherWorkflow(BaseWorkflow):
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
+                f"{app_settings.output_data_dir_path}",
                 "df_partial_analysis_result_3.csv",
             ),
         )
@@ -792,7 +779,12 @@ class MealVoucherWorkflow(BaseWorkflow):
         )
         result = agent.invoke({"input": formatted_input})
         logger.info(f"result: {result}")
-        return {"messages": [HumanMessage(content=str(result))]}
+        all_results.append(result)
+        # Extract the 'output' key from each result dictionary and join them with a separator.
+        final_content = "\n\n---\nAgent Step Finished\n---\n\n".join(
+            [str(res.get("output", "No output returned.")) for res in all_results]
+        )
+        return {"messages": [HumanMessage(content=final_content)]}
 
     def __call_data_reporting_agent(
         self,
@@ -804,14 +796,14 @@ class MealVoucherWorkflow(BaseWorkflow):
     ) -> StateGraph:
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
+                f"{app_settings.output_data_dir_path}",
                 "df_partial_analysis_result_3.csv",
             ),
             header=0,
             index_col=None,
         )
-        dataframes_dict["df_finaldf_partial_analysis_result_3_analysis_result"] = (
-            DataFrameParams(name="df_partial_analysis_result_3", content=df)
+        dataframes_dict["df_partial_analysis_result_3"] = DataFrameParams(
+            name="df_partial_analysis_result_3", content=df
         )
         sorted_items = sorted(
             {
@@ -865,8 +857,8 @@ class MealVoucherWorkflow(BaseWorkflow):
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}/tmp/",
-                "df_partial_report_result_1.csv",
+                f"{app_settings.output_data_dir_path}",
+                "VR MENSAL 05.2025.csv",
             ),
         )
         agent: AgentExecutor = create_pandas_dataframe_agent(

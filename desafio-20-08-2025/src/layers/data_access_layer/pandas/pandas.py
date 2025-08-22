@@ -168,7 +168,7 @@ class Pandas:
                         )
 
         # Save each DataFrame to a CSV file and return the dictionary
-        output_dir = f"{app_settings.output_data_dir_path}/tmp/"
+        output_dir = f"{app_settings.output_data_dir_path}"
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
