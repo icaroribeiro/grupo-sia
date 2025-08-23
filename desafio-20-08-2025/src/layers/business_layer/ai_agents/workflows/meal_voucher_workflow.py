@@ -853,12 +853,18 @@ class MealVoucherWorkflow(BaseWorkflow):
                 8. `Custo empresa`
                 9. `Desconto profissional`
 
-            4. Save the `resulting` DataFrame to a CSV file to the path `{output_path}`.
+            4. Save the `resulting` DataFrame to a CSV file to the path `{output_csv_file_path}`.
+
+            5. Save the `resulting` DataFrame to a XLSX file to the path `{output_xlsx_file_path}`.
             """
         formatted_input: str = input.format(
-            output_path=os.path.join(
+            output_csv_file_path=os.path.join(
                 f"{app_settings.output_data_dir_path}",
                 "VR MENSAL 05.2025.csv",
+            ),
+            output_xlsx_file_path=os.path.join(
+                f"{app_settings.output_data_dir_path}",
+                "VR MENSAL 05.2025.xlsx",
             ),
         )
         agent: AgentExecutor = create_pandas_dataframe_agent(
