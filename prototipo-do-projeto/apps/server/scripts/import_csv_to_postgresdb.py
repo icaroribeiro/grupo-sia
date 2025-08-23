@@ -1,6 +1,5 @@
 import asyncio
 import os
-from typing import Any, Hashable
 
 
 from src.layers.business_layer.ai_agents.models.invoice_item_ingestion_config_model import (
@@ -35,7 +34,7 @@ from src.layers.data_access_layer.postgresdb.models.invoice_model import (
 async def main() -> None:
     logger.info("Importing CSV files to PostgresDB has started...")
 
-    dir_path = app_settings.imports_data_dir_path
+    dir_path = app_settings.uploads_data_dir_path
     file_path = os.path.join(dir_path, "200001_NFe.zip")
     extracted_data_dir_path = os.path.join(dir_path, "extracted")
     unzip_files_from_zip_archive_tool = UnzipFilesFromZipArchiveTool()
@@ -46,9 +45,9 @@ async def main() -> None:
         logger.error(tool_output.message)
         return
     logger.info(f"tool_output: {tool_output}")
-
     extracted_file_paths: list[str] = tool_output.result
 
+    dir_path = app_settings.imports_data_dir_path
     invoice_ingestion_args_dict = InvoiceIngestionConfig().model_dump()
     invoice_item_ingestion_args_dict = InvoiceItemIngestionConfig().model_dump()
     ingestion_config_dict = {
@@ -59,15 +58,13 @@ async def main() -> None:
         ingestion_config_dict=ingestion_config_dict
     )
     tool_output: ToolOutput = await map_csvs_to_ingestion_args_tool._arun(
-        file_paths=extracted_file_paths
+        file_paths=extracted_file_paths, destination_dir_path=dir_path
     )
     if tool_output.result is None:
         logger.error(tool_output.message)
         return
     logger.info(f"tool_output: {tool_output}")
-    ingestion_args_dict: dict[int, dict[str, str | dict[Hashable, Any]]] = (
-        tool_output.result
-    )
+    ingestion_args_list: list[dict[str, str]] = tool_output.result
 
     postgresdb_settings = PostgresDBSettings()
     postgresdb = PostgresDB(postgresdb_settings=postgresdb_settings)
@@ -75,12 +72,13 @@ async def main() -> None:
         SQLAlchemyInvoiceModel.get_table_name(): SQLAlchemyInvoiceModel,
         SQLAlchemyInvoiceItemModel.get_table_name(): SQLAlchemyInvoiceItemModel,
     }
-    insert_models_into_postgresdb_tool = InsertIngestionArgsIntoDatabaseTool(
+    insert_ingestion_args_into_database_tool = InsertIngestionArgsIntoDatabaseTool(
         postgresdb=postgresdb,
         sqlalchemy_model_by_table_name=sqlalchemy_model_by_table_name,
+        ingestion_config_dict=ingestion_config_dict,
     )
-    tool_output: ToolOutput = await insert_models_into_postgresdb_tool._arun(
-        ingestion_args_dict=ingestion_args_dict
+    tool_output: ToolOutput = await insert_ingestion_args_into_database_tool._arun(
+        ingestion_args_list=ingestion_args_list
     )
     if tool_output.result is None:
         logger.error(tool_output.message)
