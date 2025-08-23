@@ -17,62 +17,32 @@ from src.layers.business_layer.ai_agents.tools.unzip_files_from_zip_archive_tool
 )
 from src.layers.business_layer.ai_agents.workflows.base_workflow import BaseWorkflow
 from langgraph.prebuilt import create_react_agent
-
+from langchain_core.tools import BaseTool
 
 class DataIngestionWorkflow(BaseWorkflow):
     def __init__(
         self,
         chat_model: BaseChatModel,
-        unzip_files_from_zip_archive_tool: UnzipFilesFromZipArchiveTool,
-        map_csvs_to_ingestion_args_tool: MapCSVsToIngestionArgsTool,
-        insert_ingestion_args_into_database_tool: InsertIngestionArgsIntoDatabaseTool,
+        async_query_sql_database_tools: list[BaseTool],
     ):
         self.name = "data_ingestion_workflow"
         self.chat_model = chat_model
-        self.file_unzipping_agent = create_react_agent(
+        self.data_analysis_agent = create_react_agent(
             model=self.chat_model,
-            tools=[unzip_files_from_zip_archive_tool],
+            tools=async_query_sql_database_tools,
             prompt=(
                 """
                 ROLE:
-                - You're a file unzip agent.
+                - You're a data analysis agent.
                 GOAL:
-                - Your sole purpose is to unzip files. 
+                - Your sole purpose is to analyze data. 
                 - DO NOT perform any other tasks.
                 """
             ),
-            name="file_unzipping_agent",
+            name="data_analysis_agent",
         )
-        self.csv_mapping_agent = create_react_agent(
-            model=self.chat_model,
-            tools=[map_csvs_to_ingestion_args_tool],
-            prompt=(
-                """
-                ROLE:
-                - You're a csv mapping agent.
-                GOAL:
-                - Your sole purpose is to map csv file. 
-                - DO NOT perform any other tasks.
-                """
-            ),
-            name="csv_mapping_agent",
-        )
-        self.ingestion_args_agent = create_react_agent(
-            model=self.chat_model,
-            tools=[insert_ingestion_args_into_database_tool],
-            prompt=(
-                """
-                PROFILE:
-                - You're an ingestion arguments agent.
-                GOAL:
-                - Your sole purpose is to insert ingestion arguments into database. 
-                - DO NOT perform any other tasks.
-                """
-            ),
-            name="ingestion_args_agent",
-        )
-        delegate_to_file_unzipping_agent = DataIngestionHandoffTool(
-            agent_name=self.file_unzipping_agent.name,
+        delegate_to_data_analysis_agent = DataIngestionHandoffTool(
+            agent_name=self.data_analysis_agent.name,
         )
         delegate_to_csv_mapping_agent = DataIngestionHandoffTool(
             agent_name=self.csv_mapping_agent.name,

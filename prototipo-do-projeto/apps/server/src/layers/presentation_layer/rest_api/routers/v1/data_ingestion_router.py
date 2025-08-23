@@ -43,7 +43,6 @@ async def data_ingestion(
 
     dir_path = config["app_settings"].uploads_data_dir_path
     file_path = os.path.join(dir_path, file.filename)
-    destination_dir_path = f"{dir_path}/extracted"
     try:
         content = await file.read()
         with open(file_path, "wb") as f:
@@ -53,19 +52,27 @@ async def data_ingestion(
         logger.error(message)
         raise ServerError(message=message)
 
+    extracted_dir_path = f"{dir_path}/extracted"
+    ingestions_dir_path = config["app_settings"].ingestions_data_dir_path
     prompt = """
-    INSTRUCTIONS:
-    Perform the following tasks in the order listed.
-    Each task is dependent on the successful completion of the previous one.
-    1. Unzip the file located at '{file_path}' to the directory '{destination_dir_path}'.
-    2. Map the list of paths of extracted CSV files to ingestion arguments.
-    3. Insert ingestion args mapped from extracted CSV files into a Postgres database.
+    INSTRUCTIONS:     
+    - Perform the following steps in the order listed to complete a multi-step data processing task.
+    - The data processing consists of three stages, and you must delegate the work to a single agent for each stage.
+    - The stages are:
+        1. Unzip Files from ZIP Archive located at '{file_path}' to the directory '{extracted_dir_path}'.
+        2. Map CSVs to Ingestion Arguments in the directory '{ingestions_dir_path}'.
+        3. Insert Ingestion Arguments Into Database.
+    - You must always delegate to ONE AGENT AT TIME.
+    - You must wait for the result of the current agent's task before moving to the next stage.
     CRITICAL RULES:
-    Execute these tasks ONE AT A TIME.
-    DO NOT begin the next task until the current one is fully completed and verified.
+    - Do NOT ask for additional input. All tasks are fully defined.
+    - Each stage is dependent on the successful completion of the previous one.
+    - DO NOT begin the next stage until the current one is fully completed and verified.
     """
     input_message = prompt.format(
-        file_path=file_path, destination_dir_path=destination_dir_path
+        file_path=file_path,
+        extracted_dir_path=extracted_dir_path,
+        ingestions_dir_path=ingestions_dir_path,
     )
 
     result = await data_ingestion_workflow.run(input_message=input_message)

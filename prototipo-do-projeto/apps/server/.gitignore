@@ -1,6 +1,6 @@
 .venv
 .env
-data/imports/*
-!data/imports/.gitkeep
+data/ingestions/*
+!data/ingestions/.gitkeep
 data/uploads/*
 !data/uploads/.gitkeep
