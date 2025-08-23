@@ -57,6 +57,7 @@ class Container(containers.DeclarativeContainer):
         InsertIngestionArgsIntoDatabaseTool,
         postgresdb=postgresdb,
         sqlalchemy_model_by_table_name=config.sqlalchemy_model_by_table_name,
+        ingestion_config_dict=config.ingestion_config_dict,
     )
 
     data_ingestion_workflow = providers.Singleton(
