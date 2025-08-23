@@ -12,6 +12,9 @@ class MapCSVsToIngestionArgsInput(BaseModel):
     file_paths: list[str] = Field(
         ..., description="List of paths of extracted CSV files."
     )
+    destination_dir_path: str = Field(
+        ..., description="Path to the destination directory."
+    )
 
 
 class MapCSVsToIngestionArgsTool(BaseTool):
@@ -31,22 +34,22 @@ class MapCSVsToIngestionArgsTool(BaseTool):
         )
         self.ingestion_config_dict = ingestion_config_dict
 
-    def _run(self, file_paths: list[str]) -> ToolOutput:
+    def _run(self, file_paths: list[str], destination_dir_path: str) -> ToolOutput:
         logger.info(f"Calling {self.name}...")
         try:
-            ingestion_args_list = list()
+            ingestion_args_list: list[dict[str, str]] = list()
             for file_path in file_paths:
                 file_name = os.path.basename(file_path)
                 for _, ingestion_config in self.ingestion_config_dict.items():
                     if re.match(
                         rf"\d{{6}}_{ingestion_config['file_suffix']}\.csv$", file_name
                     ):
+                        df: pd.DataFrame = pd.DataFrame()
                         try:
                             df = pd.read_csv(
                                 file_path,
                                 encoding="latin1",
                                 sep=";",
-                                dtype=ingestion_config["csv_columns_to_dtypes"],
                             )
                         except FileNotFoundError as error:
                             message = (
@@ -94,10 +97,17 @@ class MapCSVsToIngestionArgsTool(BaseTool):
                                 message = f"Error: Failed to process row {index + 1} from {file_path}: {error}"
                                 logger.error(message)
                                 continue
+                        df_concatenated.to_csv(
+                            path_or_buf=os.path.join(
+                                destination_dir_path, f"{file_name}"
+                            )
+                        )
                         ingestion_args_list.append(
                             {
                                 "table_name": ingestion_config["table_name"],
-                                "items": df_concatenated.to_dict(orient="records"),
+                                "file_path": os.path.join(
+                                    destination_dir_path, f"{file_name}"
+                                ),
                             }
                         )
             return ToolOutput(status=Status.SUCCEED, result=ingestion_args_list)
@@ -106,5 +116,9 @@ class MapCSVsToIngestionArgsTool(BaseTool):
             logger.error(message)
             return ToolOutput(status=Status.FAILED, result=None)
 
-    async def _arun(self, file_paths: list[str]) -> ToolOutput:
-        return self._run(file_paths=file_paths)
+    async def _arun(
+        self, file_paths: list[str], destination_dir_path: str
+    ) -> ToolOutput:
+        return self._run(
+            file_paths=file_paths, destination_dir_path=destination_dir_path
+        )

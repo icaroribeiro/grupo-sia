@@ -6,14 +6,6 @@ from src.layers.business_layer.ai_agents.models.base_ingestion_config_model impo
 
 class InvoiceItemIngestionConfig(BaseIngestionConfigModel):
     file_suffix: str = "NFe_NotaFiscalItem"
-    csv_columns_to_dtypes: dict[str, type] = {
-        "CPF/CNPJ Emitente": str,
-        "INSCRIÇÃO ESTADUAL EMITENTE": str,
-        "CNPJ DESTINATÁRIO": str,
-        "NÚMERO PRODUTO": str,
-        "CÓDIGO NCM/SH": str,
-        "CFOP": str,
-    }
     csv_columns_to_model_fields: dict[str, ColumnMappingModel] = {
         "CHAVE DE ACESSO": ColumnMappingModel(field="access_key"),
         "MODELO": ColumnMappingModel(field="model"),
@@ -56,3 +48,11 @@ class InvoiceItemIngestionConfig(BaseIngestionConfigModel):
         ),
     }
     table_name: str = "invoice_item"
+    model_fields_to_dtypes: dict[str, type] = {
+        "emitter_cnpj_cpf": str,
+        "emitter_state_registration": str,
+        "recipient_cnpj": str,
+        "product_number": str,
+        "ncm_sh_code": str,
+        "cfop": str,
+    }

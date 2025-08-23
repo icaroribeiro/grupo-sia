@@ -6,9 +6,9 @@ import pandas as pd
 
 class BaseIngestionConfigModel(BaseModel):
     file_suffix: str
-    csv_columns_to_dtypes: dict[str, type]
     csv_columns_to_model_fields: dict[str, "ColumnMappingModel"]
     table_name: str
+    model_fields_to_dtypes: dict[str, type]
 
     @staticmethod
     def _parse_br_datetime(value: str) -> datetime:
