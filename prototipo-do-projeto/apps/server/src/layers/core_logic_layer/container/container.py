@@ -15,14 +15,14 @@ from src.layers.business_layer.ai_agents.tools.map_csvs_to_ingestion_args_tool i
 from src.layers.business_layer.ai_agents.tools.unzip_files_from_zip_archive_tool import (
     UnzipFilesFromZipArchiveTool,
 )
+from src.layers.business_layer.ai_agents.workflows.data_analysis_workflow import (
+    DataAnalysisWorkflow,
+)
 from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow import (
     DataIngestionWorkflow,
 )
-from src.layers.business_layer.ai_agents.workflows.general_data_analysis_workflow import (
-    GeneralDataAnalysisWorkflow,
-)
-from src.layers.business_layer.ai_agents.workflows.technical_data_analysis_workflow import (
-    TechnicalDataAnalysisWorkflow,
+from src.layers.business_layer.ai_agents.workflows.top_level_workflow import (
+    TopLevelWorkflow,
 )
 from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB
 
@@ -74,14 +74,15 @@ class Container(containers.DeclarativeContainer):
         chat_model=llm.provided.chat_model,
     )
 
-    general_data_analysis_workflow = providers.Singleton(
-        GeneralDataAnalysisWorkflow,
+    data_analysis_workflow = providers.Singleton(
+        DataAnalysisWorkflow,
         chat_model=llm.provided.chat_model,
-        async_sql_database_tools=async_sql_database_toolkit.provided.get_tools.call(),
+        async_query_sql_database_tools=async_sql_database_toolkit.provided.get_tools.call(),
     )
 
-    technical_data_analysis_workflow = providers.Singleton(
-        TechnicalDataAnalysisWorkflow,
+    top_level_workflow = providers.Singleton(
+        TopLevelWorkflow,
         chat_model=llm.provided.chat_model,
-        async_sql_database_tools=async_sql_database_toolkit.provided.get_tools.call(),
+        data_ingestion_team=data_ingestion_workflow.provided._build_graph.call(),
+        data_analysis_team=data_analysis_workflow.provided._build_graph.call(),
     )

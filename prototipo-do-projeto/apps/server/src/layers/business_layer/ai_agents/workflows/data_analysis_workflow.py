@@ -1,31 +1,23 @@
 import uuid
-from src.layers.business_layer.ai_agents.tools.data_ingestion_handoff_tool import (
-    DataIngestionHandoffTool,
+from src.layers.business_layer.ai_agents.tools.data_analysis_handoff_tool import (
+    DataAnalysisHandoffTool,
 )
 from src.layers.core_logic_layer.logging import logger
 from langgraph.graph import StateGraph, MessagesState, START
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage
-from src.layers.business_layer.ai_agents.tools.insert_ingestion_args_into_database_tool import (
-    InsertIngestionArgsIntoDatabaseTool,
-)
-from src.layers.business_layer.ai_agents.tools.map_csvs_to_ingestion_args_tool import (
-    MapCSVsToIngestionArgsTool,
-)
-from src.layers.business_layer.ai_agents.tools.unzip_files_from_zip_archive_tool import (
-    UnzipFilesFromZipArchiveTool,
-)
 from src.layers.business_layer.ai_agents.workflows.base_workflow import BaseWorkflow
 from langgraph.prebuilt import create_react_agent
 from langchain_core.tools import BaseTool
 
-class DataIngestionWorkflow(BaseWorkflow):
+
+class DataAnalysisWorkflow(BaseWorkflow):
     def __init__(
         self,
         chat_model: BaseChatModel,
         async_query_sql_database_tools: list[BaseTool],
     ):
-        self.name = "data_ingestion_workflow"
+        self.name = "data_analysis_team"
         self.chat_model = chat_model
         self.data_analysis_agent = create_react_agent(
             model=self.chat_model,
@@ -41,31 +33,21 @@ class DataIngestionWorkflow(BaseWorkflow):
             ),
             name="data_analysis_agent",
         )
-        delegate_to_data_analysis_agent = DataIngestionHandoffTool(
+        delegate_to_data_analysis_agent = DataAnalysisHandoffTool(
             agent_name=self.data_analysis_agent.name,
-        )
-        delegate_to_csv_mapping_agent = DataIngestionHandoffTool(
-            agent_name=self.csv_mapping_agent.name,
-        )
-        delegate_to_ingestion_args_agent = DataIngestionHandoffTool(
-            agent_name=self.ingestion_args_agent.name
         )
         self.supervisor = create_react_agent(
             model=self.chat_model,
             tools=[
-                delegate_to_file_unzipping_agent,
-                delegate_to_csv_mapping_agent,
-                delegate_to_ingestion_args_agent,
+                delegate_to_data_analysis_agent,
             ],
             prompt=(
                 """
                 ROLE:
                 - You're a supervisor.
                 GOAL:
-                - Your sole purpose is to manage three agents:
-                    - A File Unzipping Agent: Assign tasks related to unzipping files to this agent.
-                    - A CSV Mapping Agent: Assign tasks related to mapping CSV files to this agent.
-                    - A Ingestion Arguments Agent: Assign tasks related to inserting ingestion arguments to this agent.
+                - Your sole purpose is to manage one agent:
+                    - A Data Analysis Agent: Assign tasks related to data analysis to this agent.
                 INSTRUCTIONS:
                 - Based on the conversation history, decide the next step.
                 - DO NOT do any work yourself.
@@ -83,18 +65,12 @@ class DataIngestionWorkflow(BaseWorkflow):
         builder.add_node(
             self.supervisor,
             destinations={
-                self.file_unzipping_agent.name: self.file_unzipping_agent.name,
-                self.csv_mapping_agent.name: self.csv_mapping_agent.name,
-                self.ingestion_args_agent.name: self.ingestion_args_agent.name,
+                self.data_analysis_agent.name: self.data_analysis_agent.name,
             },
         )
-        builder.add_node(self.file_unzipping_agent)
-        builder.add_node(self.csv_mapping_agent)
-        builder.add_node(self.ingestion_args_agent)
+        builder.add_node(self.data_analysis_agent)
         builder.add_edge(START, self.supervisor.name)
-        builder.add_edge(self.file_unzipping_agent.name, self.supervisor.name)
-        builder.add_edge(self.csv_mapping_agent.name, self.supervisor.name)
-        builder.add_edge(self.ingestion_args_agent.name, self.supervisor.name)
+        builder.add_edge(self.data_analysis_agent.name, self.supervisor.name)
         graph = builder.compile(name=self.name)
         logger.info(f"Graph {self.name} compiled successfully!")
         logger.info(f"Nodes in graph: {graph.nodes.keys()}")

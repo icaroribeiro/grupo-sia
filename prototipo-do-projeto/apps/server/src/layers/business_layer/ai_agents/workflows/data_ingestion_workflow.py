@@ -27,7 +27,7 @@ class DataIngestionWorkflow(BaseWorkflow):
         map_csvs_to_ingestion_args_tool: MapCSVsToIngestionArgsTool,
         insert_ingestion_args_into_database_tool: InsertIngestionArgsIntoDatabaseTool,
     ):
-        self.name = "data_ingestion_workflow"
+        self.name = "data_ingestion_team"
         self.chat_model = chat_model
         self.file_unzipping_agent = create_react_agent(
             model=self.chat_model,

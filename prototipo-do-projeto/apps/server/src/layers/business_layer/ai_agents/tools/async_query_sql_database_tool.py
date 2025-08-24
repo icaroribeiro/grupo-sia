@@ -10,9 +10,9 @@ class AsyncQuerySQLDatabaseTool(QuerySQLDatabaseTool):
     def __init__(
         self,
         postgresdb: PostgresDB,
-        llm: BaseChatModel,
+        chat_model: BaseChatModel,
     ):
-        super().__init__(db=postgresdb, llm=llm)
+        super().__init__(db=postgresdb, chat_model=chat_model)
         self.name = "async_query_sql_database_tool"
         self.db = postgresdb
 
