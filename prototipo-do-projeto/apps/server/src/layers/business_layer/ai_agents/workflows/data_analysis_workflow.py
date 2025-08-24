@@ -5,10 +5,10 @@ from src.layers.business_layer.ai_agents.tools.data_analysis_handoff_tool import
 from src.layers.core_logic_layer.logging import logger
 from langgraph.graph import StateGraph, MessagesState, START
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import HumanMessage
 from src.layers.business_layer.ai_agents.workflows.base_workflow import BaseWorkflow
 from langgraph.prebuilt import create_react_agent
 from langchain_core.tools import BaseTool
+from langchain_core.messages import HumanMessage
 
 
 class DataAnalysisWorkflow(BaseWorkflow):
@@ -27,8 +27,11 @@ class DataAnalysisWorkflow(BaseWorkflow):
                 ROLE:
                 - You're a data analysis agent.
                 GOAL:
-                - Your sole purpose is to analyze data. 
+                - Your sole purpose is to analyze data by executing SQL queries in database.
                 - DO NOT perform any other tasks.
+                CRITICAL RULES:
+                - ALWAYS interpret the user's question or task description to identify the data analysis task.
+                - If a specified table (e.g., 'invoices') does not exist, check for similar table names (e.g., 'invoice', 'Invoices', 'INVOICE') using case-insensitive or partial matching.
                 """
             ),
             name="data_analysis_agent",
@@ -58,9 +61,9 @@ class DataAnalysisWorkflow(BaseWorkflow):
             ),
             name="supervisor",
         )
-        self.__graph = self._build_graph()
+        self.__graph = self.__build_graph()
 
-    def _build_graph(self) -> StateGraph:
+    def __build_graph(self) -> StateGraph:
         builder = StateGraph(state_schema=MessagesState)
         builder.add_node(
             self.supervisor,

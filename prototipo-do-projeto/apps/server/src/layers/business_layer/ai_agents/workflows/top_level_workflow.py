@@ -9,7 +9,7 @@ from langgraph.prebuilt import create_react_agent
 import uuid
 from src.layers.core_logic_layer.logging import logger
 from langgraph.graph import StateGraph, START
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 
 
 class TopLevelWorkflow(BaseWorkflow):
@@ -31,10 +31,7 @@ class TopLevelWorkflow(BaseWorkflow):
         )
         self.manager = create_react_agent(
             model=self.chat_model,
-            tools=[
-                delegate_to_data_ingestion_team,
-                delegate_to_data_analysis_team,
-            ],
+            tools=[delegate_to_data_ingestion_team, delegate_to_data_analysis_team],
             prompt=(
                 """
                 ROLE:
@@ -55,8 +52,53 @@ class TopLevelWorkflow(BaseWorkflow):
         )
         self.__graph = self._build_graph()
 
+    async def _call_subgraph(
+        self, state: MessagesState, subgraph: Runnable[StateGraph, StateGraph]
+    ) -> MessagesState:
+        team_name = subgraph.name
+        logger.info(f"Preparing to call subgraph: '{team_name}'")
+        task_description = None
+
+        if len(state["messages"]) > 1:
+            previous_message = state["messages"][-2]
+            if isinstance(previous_message, AIMessage) and previous_message.tool_calls:
+                tool_name_to_find = f"transfer_to_{team_name}"
+                for tool_call in previous_message.tool_calls:
+                    if tool_call.get("name") == tool_name_to_find:
+                        task_description = tool_call.get("args", {}).get(
+                            "task_description"
+                        )
+                        logger.info(f"Found task for '{team_name}' in tool call.")
+                        break
+
+        if not task_description:
+            message = f"Error: Could not find a valid task for '{team_name}' in the manager's tool call."
+            logger.error(message)
+            return {"messages": state["messages"] + [HumanMessage(content=message)]}
+
+        logger.info(f"Invoking {team_name} with task: '{task_description}'")
+        try:
+            result = await subgraph.ainvoke(
+                {"messages": [HumanMessage(content=task_description)]}
+            )
+            subgraph_messages = result.get("messages", [])
+            return {"messages": state["messages"] + subgraph_messages}
+        except Exception as error:
+            message = f"Error during {team_name} execution: {error}"
+            logger.error(message, exc_info=True)
+            return {"messages": state["messages"] + [HumanMessage(content=message)]}
+
+    async def call_data_ingestion_team(self, state: MessagesState) -> MessagesState:
+        """Node action that invokes the Data Ingestion Team subgraph."""
+        return await self._call_subgraph(state, self.data_ingestion_team)
+
+    async def call_data_analysis_team(self, state: MessagesState) -> MessagesState:
+        """Node action that invokes the Data Analysis Team subgraph."""
+        return await self._call_subgraph(state, self.data_analysis_team)
+
     def _build_graph(self) -> StateGraph:
         builder = StateGraph(state_schema=MessagesState)
+
         builder.add_node(
             self.manager,
             destinations={
@@ -64,8 +106,15 @@ class TopLevelWorkflow(BaseWorkflow):
                 self.data_analysis_team.name: self.data_analysis_team.name,
             },
         )
-        builder.add_node(self.data_ingestion_team)
-        builder.add_node(self.data_analysis_team)
+        builder.add_node(
+            self.data_ingestion_team.name,
+            action=self.call_data_ingestion_team,
+        )
+        builder.add_node(
+            self.data_analysis_team.name,
+            action=self.call_data_analysis_team,
+        )
+
         builder.add_edge(START, self.manager.name)
         builder.add_edge(self.data_ingestion_team.name, self.manager.name)
         builder.add_edge(self.data_analysis_team.name, self.manager.name)
@@ -74,10 +123,6 @@ class TopLevelWorkflow(BaseWorkflow):
         logger.info(f"Nodes in graph: {graph.nodes.keys()}")
         logger.info(graph.get_graph().draw_ascii())
         return graph
-
-    @property
-    def graph(self):
-        return self.__graph
 
     async def run(self, input_message: str) -> dict:
         logger.info(f"Starting {self.name} with input: '{input_message[:100]}...'")
@@ -91,10 +136,7 @@ class TopLevelWorkflow(BaseWorkflow):
             config={"configurable": {"thread_id": thread_id}},
         ):
             self._pretty_print_messages(chunk, last_message=True)
-        # result = chunk[1]["data_analysis_team"]["messages"]
-        # print(f"result: {result}")
         result = chunk[1]["manager"]["messages"]
-        print(f"result: {result}")
         # for message in result:
         #     message.pretty_print()
         # result = await self.__graph.ainvoke(
