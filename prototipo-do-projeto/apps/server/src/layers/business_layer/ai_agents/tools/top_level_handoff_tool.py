@@ -4,10 +4,11 @@ from langchain_core.tools import BaseTool, InjectedToolCallId
 
 from typing import Type
 from pydantic import BaseModel, Field
-from langgraph.types import Command
 from typing import Annotated
 from langgraph.prebuilt import InjectedState
 from langchain_core.messages import ToolMessage
+
+from langgraph.types import Command
 
 
 class TopLevelHandoffToolInput(BaseModel):
@@ -53,7 +54,7 @@ class TopLevelHandoffTool(BaseTool):
             name=self.name,
             tool_call_id=tool_call_id,
         )
-        logger.info(f"Final task description for team: {task_description}")
+        logger.info(f"Final task description for next team: {task_description}")
         return Command(
             goto=self.team_name,
             graph=Command.PARENT,

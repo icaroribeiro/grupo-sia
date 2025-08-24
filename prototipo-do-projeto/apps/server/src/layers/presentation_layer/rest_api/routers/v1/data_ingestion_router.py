@@ -6,6 +6,9 @@ from fastapi import APIRouter, Depends, File, Response, UploadFile, status
 from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow import (
     DataIngestionWorkflow,
 )
+from src.layers.business_layer.ai_agents.workflows.top_level_workflow import (
+    TopLevelWorkflow,
+)
 from src.layers.core_logic_layer.container.container import Container
 from src.layers.core_logic_layer.logging import logger
 from src.layers.presentation_layer.rest_api.schemas.data_ingestion_schema import (
@@ -29,6 +32,9 @@ async def data_ingestion(
     config: dict = Depends(Provide[Container.config]),
     data_ingestion_workflow: DataIngestionWorkflow = Depends(
         Provide[Container.data_ingestion_workflow]
+    ),
+    top_level_workflow: TopLevelWorkflow = Depends(
+        Provide[Container.top_level_workflow]
     ),
 ):
     if file.content_type != "application/zip":
@@ -56,15 +62,16 @@ async def data_ingestion(
     ingestions_dir_path = config["app_settings"].ingestions_data_dir_path
     prompt = """
     INSTRUCTIONS:     
-    - Perform the following steps in the order listed to complete a multi-step data processing task.
-    - The data processing consists of three stages, and you must delegate the work to a single agent for each stage.
+    - Perform a multi-step data ingestion procedure to insert records into database.
+    - The data ingestion consists of three stages executed by only one team, and you must delegate the work to a single agent for each stage in the order listed.
     - The stages are:
-        1. Unzip Files from ZIP Archive located at '{file_path}' to the directory '{extracted_dir_path}'.
+        1. Unzip files from ZIP Archive located at '{file_path}' to the directory '{extracted_dir_path}'.
         2. Map CSVs to Ingestion Arguments in the directory '{ingestions_dir_path}'.
         3. Insert Ingestion Arguments Into Database.
     - You must always delegate to ONE AGENT AT TIME.
     - You must wait for the result of the current agent's task before moving to the next stage.
     CRITICAL RULES:
+    - ADD 
     - Do NOT ask for additional input. All tasks are fully defined.
     - Each stage is dependent on the successful completion of the previous one.
     - DO NOT begin the next stage until the current one is fully completed and verified.
@@ -75,8 +82,10 @@ async def data_ingestion(
         ingestions_dir_path=ingestions_dir_path,
     )
 
-    result = await data_ingestion_workflow.run(input_message=input_message)
+    # result = await data_ingestion_workflow.run(input_message=input_message)
+    result = await top_level_workflow.run(input_message=input_message)
     logger.info(f"result: {result}")
     # answer: str = result[-1].content
     # logger.info(f"Final result: {answer}")
-    return DataIngestionResponse(status="Loaded")
+    content = result[-1].content
+    return DataIngestionResponse(status=content)

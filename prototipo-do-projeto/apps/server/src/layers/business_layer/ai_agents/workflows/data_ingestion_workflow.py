@@ -5,7 +5,6 @@ from src.layers.business_layer.ai_agents.tools.data_ingestion_handoff_tool impor
 from src.layers.core_logic_layer.logging import logger
 from langgraph.graph import StateGraph, MessagesState, START
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import HumanMessage
 from src.layers.business_layer.ai_agents.tools.insert_ingestion_args_into_database_tool import (
     InsertIngestionArgsIntoDatabaseTool,
 )
@@ -17,6 +16,7 @@ from src.layers.business_layer.ai_agents.tools.unzip_files_from_zip_archive_tool
 )
 from src.layers.business_layer.ai_agents.workflows.base_workflow import BaseWorkflow
 from langgraph.prebuilt import create_react_agent
+from langchain_core.messages import HumanMessage
 
 
 class DataIngestionWorkflow(BaseWorkflow):
@@ -106,9 +106,9 @@ class DataIngestionWorkflow(BaseWorkflow):
             ),
             name="supervisor",
         )
-        self.__graph = self._build_graph()
+        self.__graph = self.__build_graph()
 
-    def _build_graph(self) -> StateGraph:
+    def __build_graph(self) -> StateGraph:
         builder = StateGraph(state_schema=MessagesState)
         builder.add_node(
             self.supervisor,

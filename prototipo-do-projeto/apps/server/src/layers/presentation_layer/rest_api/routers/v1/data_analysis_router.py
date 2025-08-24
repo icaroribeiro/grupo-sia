@@ -40,12 +40,9 @@ async def data_analysis(
     - Perform data analysis accurately and respond to the following question objectively:
     Question: {question}
     """
-    # If a dictionary is provided, create the instruction string.
-    print(
-        f"data_analysis_request.format_instructions: {data_analysis_request.format_instructions}"
-    )
-    if data_analysis_request.format_instructions:
-        print("OK!")
+    if not data_analysis_request.format_instructions:
+        input_message = prompt.format(question=data_analysis_request.question)
+    else:
         # This creates a string similar to what JsonOutputParser().get_format_instructions() would produce.
         format_instructions = json.dumps(
             data_analysis_request.format_instructions, indent=2
@@ -59,18 +56,27 @@ async def data_analysis(
         ```
         """
         print(f"prompt: {prompt}")
-    input_message = prompt.format(
-        question=data_analysis_request.question, format_instructions=format_instructions
-    )
-    logger.info(f"input_message: {input_message}")
-
+        input_message = prompt.format(
+            question=data_analysis_request.question,
+            format_instructions=format_instructions,
+        )
     # result = await data_analysis_workflow.run(input_message=input_message)
     result = await top_level_workflow.run(input_message=input_message)
     logger.info(f"result: {result}")
     # answer: str = result[-2].content
     # logger.info(f"Final result: {answer}")
-    content = result[-2].content
-    logger.info(f"content: {content}")
+
+    # content = result[-2].content
+    # try:
+    #     clean_json_string = content.strip("`\n").lstrip("json\n").rstrip("`")
+    #     data_object = json.loads(clean_json_string)
+    #     return DataAnalysisResponse(answer=data_object)
+    # except json.JSONDecodeError:
+    #     logger.info("The content is not valid JSON.")
+
+    # return DataAnalysisResponse(answer=content)
+
+    content = result[-1].content
     try:
         clean_json_string = content.strip("`\n").lstrip("json\n").rstrip("`")
         data_object = json.loads(clean_json_string)
