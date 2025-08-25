@@ -13,15 +13,9 @@
 				"url": {
 					"raw": "http://localhost:8000/api/v1/healthcheck",
 					"protocol": "http",
-					"host": [
-						"localhost"
-					],
+					"host": ["localhost"],
 					"port": "8000",
-					"path": [
-						"api",
-						"v1",
-						"healthcheck"
-					]
+					"path": ["api", "v1", "healthcheck"]
 				}
 			},
 			"response": []
@@ -44,7 +38,7 @@
 						{
 							"key": "file",
 							"type": "file",
-							"src": "/C:/GitHub/repos/grupo-sia/prototipo-do-projeto/apps/server/data/imports/200001_NFe.zip"
+							"src": "/C:/GitHub/repos/grupo-sia/projeto/apps/server/data/imports/200001_NFe.zip"
 						}
 					],
 					"options": {
@@ -56,15 +50,9 @@
 				"url": {
 					"raw": "http://localhost:8000/api/v1/upload-zip-file",
 					"protocol": "http",
-					"host": [
-						"localhost"
-					],
+					"host": ["localhost"],
 					"port": "8000",
-					"path": [
-						"api",
-						"v1",
-						"upload-zip-file"
-					]
+					"path": ["api", "v1", "upload-zip-file"]
 				}
 			},
 			"response": []
@@ -86,15 +74,9 @@
 				"url": {
 					"raw": "http://localhost:8000/api/v1/send-general-queries",
 					"protocol": "http",
-					"host": [
-						"localhost"
-					],
+					"host": ["localhost"],
 					"port": "8000",
-					"path": [
-						"api",
-						"v1",
-						"send-general-queries"
-					]
+					"path": ["api", "v1", "send-general-queries"]
 				}
 			},
 			"response": []
@@ -116,15 +98,9 @@
 				"url": {
 					"raw": "http://localhost:8000/api/v1/send-technical-queries",
 					"protocol": "http",
-					"host": [
-						"localhost"
-					],
+					"host": ["localhost"],
 					"port": "8000",
-					"path": [
-						"api",
-						"v1",
-						"send-technical-queries"
-					]
+					"path": ["api", "v1", "send-technical-queries"]
 				}
 			},
 			"response": []
@@ -146,15 +122,9 @@
 				"url": {
 					"raw": "http://localhost:8000/api/v1/send-technical-queries",
 					"protocol": "http",
-					"host": [
-						"localhost"
-					],
+					"host": ["localhost"],
 					"port": "8000",
-					"path": [
-						"api",
-						"v1",
-						"send-technical-queries"
-					]
+					"path": ["api", "v1", "send-technical-queries"]
 				}
 			},
 			"response": []
