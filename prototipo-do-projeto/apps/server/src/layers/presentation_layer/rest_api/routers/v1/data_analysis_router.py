@@ -37,7 +37,7 @@ async def data_analysis(
 ):
     prompt = """
     INSTRUCTIONS:
-    - Perform data analysis accurately and respond to the following question objectively:
+    - Perform a data analysis task accurately and respond to the following question objectively:
     Question: {question}
     """
     if not data_analysis_request.format_instructions:

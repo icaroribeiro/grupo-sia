@@ -1,3 +1,4 @@
+from src.layers.business_layer.ai_agents.models.tool_output import ToolOutput
 from src.layers.core_logic_layer.logging import logger
 from langgraph.graph import MessagesState
 from langchain_core.tools import BaseTool, InjectedToolCallId
@@ -48,6 +49,28 @@ class DataIngestionHandoffTool(BaseTool):
         tool_call_id: Annotated[str, InjectedToolCallId],
     ) -> ToolMessage:
         logger.info(f"Executing handoff to {self.agent_name}...")
+
+        if self.agent_name == "csv_mapping_agent":
+            print(f"messages 1: {state['messages']}")
+            for message in reversed(state["messages"]):
+                if (
+                    isinstance(message, ToolMessage)
+                    and message.name == "unzip_files_from_zip_archive_tool"
+                ):
+                    tooloutput = ToolOutput.from_tool_message(content=message.content)
+                    logger.info(f"ToolOutput: {tooloutput}")
+                    break
+        if self.agent_name == "ingestion_args_agent":
+            print(f"messages 2: {state['messages']}")
+            for message in reversed(state["messages"]):
+                if (
+                    isinstance(message, ToolMessage)
+                    and message.name == "map_csvs_to_ingestion_args_tool"
+                ):
+                    tooloutput = ToolOutput.from_tool_message(content=message.content)
+                    logger.info(f"ToolOutput: {tooloutput}")
+                    break
+
         tool_message = ToolMessage(
             content=f"Handoff to {self.agent_name} complete. New task assigned.",
             name=self.name,

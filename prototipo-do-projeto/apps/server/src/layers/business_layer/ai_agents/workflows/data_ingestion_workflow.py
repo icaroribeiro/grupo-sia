@@ -95,7 +95,7 @@ class DataIngestionWorkflow(BaseWorkflow):
                 - Your sole purpose is to manage three agents:
                     - A File Unzipping Agent: Assign tasks related to unzipping files to this agent.
                     - A CSV Mapping Agent: Assign tasks related to mapping CSV files to this agent.
-                    - A Ingestion Arguments Agent: Assign tasks related to inserting ingestion arguments to this agent.
+                    - An Ingestion Arguments Agent: Assign tasks related to inserting ingestion arguments to this agent.
                 INSTRUCTIONS:
                 - Based on the conversation history, decide the next step.
                 - DO NOT do any work yourself.
