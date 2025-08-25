@@ -47,7 +47,7 @@ async def main() -> None:
     logger.info(f"tool_output: {tool_output}")
     extracted_file_paths: list[str] = tool_output.result
 
-    dir_path = app_settings.ingestions_data_dir_path
+    dir_path = app_settings.ingestion_data_dir_path
     invoice_ingestion_args_dict = InvoiceIngestionConfig().model_dump()
     invoice_item_ingestion_args_dict = InvoiceItemIngestionConfig().model_dump()
     ingestion_config_dict = {
