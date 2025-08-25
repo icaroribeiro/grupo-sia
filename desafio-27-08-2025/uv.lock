@@ -197,7 +197,7 @@ wheels = [
 ]
 
 [[package]]
-name = "desafio-20-08-2025"
+name = "desafio-27-08-2025"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
