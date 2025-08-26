@@ -2,5 +2,5 @@
 .env
 data/ingestion/*
 !data/ingestion/.gitkeep
-data/uploads/*
-!data/uploads/.gitkeep
+data/upload/*
+!data/upload/.gitkeep

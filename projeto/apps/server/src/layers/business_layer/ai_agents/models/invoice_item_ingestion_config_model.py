@@ -4,7 +4,7 @@ from src.layers.business_layer.ai_agents.models.base_ingestion_config_model impo
 )
 
 
-class InvoiceItemIngestionConfig(BaseIngestionConfigModel):
+class InvoiceItemIngestionConfigModel(BaseIngestionConfigModel):
     file_suffix: str = "NFe_NotaFiscalItem"
     csv_columns_to_model_fields: dict[str, ColumnMappingModel] = {
         "CHAVE DE ACESSO": ColumnMappingModel(field="access_key"),

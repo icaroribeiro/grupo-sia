@@ -21,6 +21,9 @@ from src.layers.business_layer.ai_agents.workflows.data_analysis_workflow import
 from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow import (
     DataIngestionWorkflow,
 )
+from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow_2 import (
+    DataIngestionWorkflow2,
+)
 from src.layers.business_layer.ai_agents.workflows.top_level_workflow import (
     TopLevelWorkflow,
 )
@@ -68,6 +71,14 @@ class Container(containers.DeclarativeContainer):
         insert_ingestion_args_into_database_tool=insert_ingestion_args_into_database_tool,
     )
 
+    data_ingestion_workflow_2 = providers.Singleton(
+        DataIngestionWorkflow2,
+        chat_model=llm.provided.chat_model,
+        unzip_files_from_zip_archive_tool=unzip_files_from_zip_archive_tool,
+        map_csvs_to_ingestion_args_tool=map_csvs_to_ingestion_args_tool,
+        insert_ingestion_args_into_database_tool=insert_ingestion_args_into_database_tool,
+    )
+
     async_sql_database_toolkit = providers.Singleton(
         AsyncSQLDatabaseToolkit,
         postgresdb=postgresdb,
@@ -83,6 +94,6 @@ class Container(containers.DeclarativeContainer):
     top_level_workflow = providers.Singleton(
         TopLevelWorkflow,
         chat_model=llm.provided.chat_model,
-        data_ingestion_team=data_ingestion_workflow.provided.graph,
+        data_ingestion_team=data_ingestion_workflow_2.provided.graph,
         data_analysis_team=data_analysis_workflow.provided.graph,
     )
