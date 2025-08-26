@@ -3,8 +3,8 @@ import os
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, File, Response, UploadFile, status
 
-from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow import (
-    DataIngestionWorkflow,
+from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow_2 import (
+    DataIngestionWorkflow2,
 )
 from src.layers.business_layer.ai_agents.workflows.top_level_workflow import (
     TopLevelWorkflow,
@@ -30,8 +30,8 @@ async def data_ingestion(
     response: Response,
     file: UploadFile = File(...),
     config: dict = Depends(Provide[Container.config]),
-    data_ingestion_workflow: DataIngestionWorkflow = Depends(
-        Provide[Container.data_ingestion_workflow]
+    data_ingestion_workflow: DataIngestionWorkflow2 = Depends(
+        Provide[Container.data_ingestion_workflow_2]
     ),
     top_level_workflow: TopLevelWorkflow = Depends(
         Provide[Container.top_level_workflow]
@@ -47,7 +47,7 @@ async def data_ingestion(
             detail="Only ZIP files are allowed",
         )
 
-    dir_path = config["app_settings"].uploads_data_dir_path
+    dir_path = config["app_settings"].upload_data_dir_path
     file_path = os.path.join(dir_path, file.filename)
     try:
         content = await file.read()
@@ -81,8 +81,8 @@ async def data_ingestion(
         ingestion_dir_path=ingestion_dir_path,
     )
 
-    # result = await data_ingestion_workflow.run(input_message=input_message)
-    result = await top_level_workflow.run(input_message=input_message)
+    result = await data_ingestion_workflow.run(input_message=input_message)
+    # result = await top_level_workflow.run(input_message=input_message)
     logger.info(f"result: {result}")
     # answer: str = result[-1].content
     # logger.info(f"Final result: {answer}")

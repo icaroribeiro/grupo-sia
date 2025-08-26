@@ -3,10 +3,10 @@ import os
 
 
 from src.layers.business_layer.ai_agents.models.invoice_item_ingestion_config_model import (
-    InvoiceItemIngestionConfig,
+    InvoiceItemIngestionConfigModel,
 )
 from src.layers.business_layer.ai_agents.models.invoice_ingestion_config_model import (
-    InvoiceIngestionConfig,
+    InvoiceIngestionConfigModel,
 )
 from src.layers.business_layer.ai_agents.models.tool_output import ToolOutput
 from src.layers.business_layer.ai_agents.tools.insert_ingestion_args_into_database_tool import (
@@ -34,7 +34,7 @@ from src.layers.data_access_layer.postgresdb.models.invoice_model import (
 async def main() -> None:
     logger.info("Importing CSV files to PostgresDB has started...")
 
-    dir_path = app_settings.uploads_data_dir_path
+    dir_path = app_settings.upload_data_dir_path
     file_path = os.path.join(dir_path, "200001_NFe.zip")
     extracted_data_dir_path = os.path.join(dir_path, "extracted")
     unzip_files_from_zip_archive_tool = UnzipFilesFromZipArchiveTool()
@@ -48,8 +48,8 @@ async def main() -> None:
     extracted_file_paths: list[str] = tool_output.result
 
     dir_path = app_settings.ingestion_data_dir_path
-    invoice_ingestion_args_dict = InvoiceIngestionConfig().model_dump()
-    invoice_item_ingestion_args_dict = InvoiceItemIngestionConfig().model_dump()
+    invoice_ingestion_args_dict = InvoiceIngestionConfigModel().model_dump()
+    invoice_item_ingestion_args_dict = InvoiceItemIngestionConfigModel().model_dump()
     ingestion_config_dict = {
         0: invoice_ingestion_args_dict,
         1: invoice_item_ingestion_args_dict,

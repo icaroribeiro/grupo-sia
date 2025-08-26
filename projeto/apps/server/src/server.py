@@ -2,10 +2,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 
 from src.layers.business_layer.ai_agents.models.invoice_ingestion_config_model import (
-    InvoiceIngestionConfig,
+    InvoiceIngestionConfigModel,
 )
 from src.layers.business_layer.ai_agents.models.invoice_item_ingestion_config_model import (
-    InvoiceItemIngestionConfig,
+    InvoiceItemIngestionConfigModel,
 )
 from src.layers.core_logic_layer.container.container import Container
 from src.layers.core_logic_layer.logging import logger
@@ -60,8 +60,8 @@ class Server:
         self._container.config.postgresdb_settings.from_value(postgresdb_settings)
         self._container.config.ingestion_config_dict.from_value(
             {
-                0: InvoiceIngestionConfig().model_dump(),
-                1: InvoiceItemIngestionConfig().model_dump(),
+                0: InvoiceIngestionConfigModel().model_dump(),
+                1: InvoiceItemIngestionConfigModel().model_dump(),
             }
         )
         self._container.config.sqlalchemy_model_by_table_name.from_value(
