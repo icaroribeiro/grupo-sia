@@ -1,28 +1,60 @@
-            - Add a new column named `daily_meal_voucher_value` to `df1` DataFrame. This column should simply contain the daily value of the meal voucher.
-                - Logic: The value in this column will be the same as the value in the existing `meal_voucher_value` column.
-            - Add a new column named `total_meal_voucher_value` to `df1` DataFrame. This column will calculate the total benefit amount to be granted for the month.
-                - Formula: `total_meal_voucher_value` = `effective_working_days` * `daily_meal_voucher_value`
-            - Add a new column named `company_meal_voucher_cost` to `df1` DataFrame. This column will represent the company's share of the meal voucher cost (80%).
-                - Formula: `company_meal_voucher_cost` = `total_meal_voucher_value` * 0.80
-            - Add a new column named `employee_meal_voucher_discount` to `df1` DataFrame. This column will represent the portion to be discounted from the employee (20%).
-                - Formula: `employee_meal_voucher_discount` = `total_meal_voucher_value` * 0.20
+# Desafio 27-08-2025
 
+- [Introdução](#introdução)
+- [Como configurar a aplicação?](#como-configurar-a-aplicação)
+- [Como executar a aplicação?](#como-executar-a-aplicação)
+- [Resultados Alcançados](#resultados-alcançados)
 
+## Introdução
 
-    			                5. `daily_meal_voucher_value`
-                6. `total_meal_voucher_value`
-                7. `company_meal_voucher_cost`
-                8. `employee_meal_voucher_discount`
+Este desafio consiste no desenvolvimento de uma aplicação para automação da compra de VR/VA.
 
+A aplicação foi desenvolvida com base em múltiplos agentes de IA utilizando [**Python**](https://www.python.org/) e [**LangGraph**](https://www.langchain.com/langgraph).
 
-    			            - Rename the `daily_meal_voucher_value` column of the `resulting` DataFrame to `VALOR DIÁRIO VR`.
-            - Rename the `total_meal_voucher_value` column of the `resulting` DataFrame to `TOTAL`.
-            - Rename the `company_meal_voucher_cost` column of the `resulting` DataFrame to `Custo empresa`.
-            - Rename the `employee_meal_voucher_discount` column of the `resulting` DataFrame to `Desconto profissional`.
-            - Add a new column named `Competência` and fill out the rows with value `01/05/2025`.
+A seguir, é apresentado o fluxo de trabalho (_workflow_) da aplicação indicando que existe um Agente Supervisor (`supervisor`) e a representação de três agentes assistentes que trabalham em conjunto para a criação do arquivo XLSX:
 
+1. O Agente de Coleta de Dados (`data_gathering_agent`)
+2. O Agente de Análise de Dados (`data_analysis_agent`)
+3. O Agente de Reporte de Dados (`data_reporting_agent`)
 
-                6. `VALOR DIÁRIO VR`
-                7. `TOTAL`
-                8. `Custo empresa`
-                9. `Desconto profissional`
+![texto alternativo](assets/images/MealVoucherWorkflow.png)
+
+## Como configurar a aplicação?
+
+A aplicação deve ser configurada usando uma chave de API OpenAI ou uma chave de API Gemini.
+
+### Configurar o arquivo .env:
+
+Renomeie o arquivo **.env.example** para **.env** e atribua valores para as chaves do arquivo.
+
+Por exemplo:
+
+```
+AI_LLM_PROVIDER=openai
+AI_LLM_MODEL=gpt-4.1-nano
+AI_LLM_TEMPERATURE=0.1
+AI_LLM_API_KEY=
+```
+
+## Como executar a aplicação?
+
+A aplicação pode ser executada usando comandos adicionados em um arquivo Makefile.
+
+### Arquivo Makefile
+
+Um arquivo **Makefile** foi criado como um único ponto de entrada contendo um conjunto de instruções para o desenvolvimento da aplicação.
+
+Para executar a aplicação, execute o comando:
+
+```
+make run-app
+```
+
+## Resultados Alcançados:
+
+| Nº  | Item                            | Valor           |
+| --- | ------------------------------- | --------------- |
+| 1   | Total de funcionários elegíveis | 1790            |
+| 2   | Valor total dos vale-refeição   | R$ 1.335.855,00 |
+| 3   | Custo total para a empresa      | R$1.068.684,00  |
+| 4   | Desconto dos funcionários       | R$ 267.171,00   |

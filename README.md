@@ -6,8 +6,7 @@ Este é o repositório do Grupo SIA (Soluções Inteligentes Autônomas) utiliza
 
 ### Integrantes:
 
-| Nº  | Nome                      | Email                    |
-| --- | ------------------------- | ------------------------ |
-| 1   | Ícaro Ribeiro             | icaroribeiro@hotmail.com |
-| 2   | Vivian Tavares de Andrade | viviantaan@yahoo.com.br  |
-| 3   | Rafael Pereira Silva      | rafaelps.fis@gmail.com   |
+| Nº  | Nome                 | Email                    |
+| --- | -------------------- | ------------------------ |
+| 1   | Ícaro Ribeiro        | icaroribeiro@hotmail.com |
+| 2   | Rafael Pereira Silva | rafaelps.fis@gmail.com   |
