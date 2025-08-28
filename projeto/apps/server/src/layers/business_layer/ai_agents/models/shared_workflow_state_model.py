@@ -7,7 +7,7 @@ from typing_extensions import Annotated, TypedDict
 from src.layers.business_layer.ai_agents.models.tool_output import ToolOutput
 
 
-class DataIngestionStateModel(TypedDict):
+class SharedWorkflowStateModel(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
     task_description: str
     tool_output: ToolOutput

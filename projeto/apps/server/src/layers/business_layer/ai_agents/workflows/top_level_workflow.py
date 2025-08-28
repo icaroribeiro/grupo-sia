@@ -1,8 +1,10 @@
+from src.layers.business_layer.ai_agents.models.shared_workflow_state_model import (
+    SharedWorkflowStateModel,
+)
 from src.layers.business_layer.ai_agents.tools.top_level_handoff_tool import (
     TopLevelHandoffTool,
 )
 from src.layers.business_layer.ai_agents.workflows.base_workflow import BaseWorkflow
-from langgraph.graph import MessagesState
 from langchain_core.language_models import BaseChatModel
 from langchain_core.runnables import Runnable
 from langgraph.prebuilt import create_react_agent
@@ -53,12 +55,16 @@ class TopLevelWorkflow(BaseWorkflow):
         self.__graph = self._build_graph()
 
     async def _call_subgraph(
-        self, state: MessagesState, subgraph: Runnable[StateGraph, StateGraph]
-    ) -> MessagesState:
+        self,
+        state: SharedWorkflowStateModel,
+        subgraph: Runnable[StateGraph, StateGraph],
+    ) -> SharedWorkflowStateModel:
         team_name = subgraph.name
         logger.info(f"Preparing to call subgraph: '{team_name}'")
-        task_description = None
 
+        # The task_description is likely what the subgraph needs to start.
+        # Let's extract it from the parent state's messages.
+        task_description = None
         if len(state["messages"]) > 1:
             previous_message = state["messages"][-2]
             if isinstance(previous_message, AIMessage) and previous_message.tool_calls:
@@ -77,27 +83,54 @@ class TopLevelWorkflow(BaseWorkflow):
             return {"messages": state["messages"] + [HumanMessage(content=message)]}
 
         logger.info(f"Invoking {team_name} with task: '{task_description}'")
+
         try:
-            result = await subgraph.ainvoke(
-                {"messages": [HumanMessage(content=task_description)]}
-            )
+            # Pass the full state dictionary to the subgraph.
+            # This is the key change. The subgraph now has access to the
+            # full context, including the 'tool_output' from the previous step.
+            result = await subgraph.ainvoke(state)
+
+            # When a subgraph completes, it returns the final state dictionary.
+            # We can then access its contents directly.
             subgraph_messages = result.get("messages", [])
-            return {"messages": state["messages"] + subgraph_messages}
+            subgraph_tool_output = result.get("tool_output")
+
+            print(f"\n\nsubgraph_tool_output: {subgraph_tool_output}")
+
+            # Merge the subgraph's output with the parent graph's state.
+            updated_state = {
+                "messages": subgraph_messages,
+                "task_description": task_description,  # Keep the task description
+            }
+
+            # The tool_output is now correctly set in the result, so just
+            # update the parent state with it.
+            if subgraph_tool_output is not None:
+                updated_state["tool_output"] = subgraph_tool_output
+
+            return updated_state
+
         except Exception as error:
             message = f"Error during {team_name} execution: {error}"
             logger.error(message, exc_info=True)
             return {"messages": state["messages"] + [HumanMessage(content=message)]}
 
-    async def call_data_ingestion_team(self, state: MessagesState) -> MessagesState:
+    async def call_data_ingestion_team(
+        self, state: SharedWorkflowStateModel
+    ) -> SharedWorkflowStateModel:
+        logger.info(f"\n\nstate: {state.get('tool_output')}")
         """Node action that invokes the Data Ingestion Team subgraph."""
         return await self._call_subgraph(state, self.data_ingestion_team)
 
-    async def call_data_analysis_team(self, state: MessagesState) -> MessagesState:
+    async def call_data_analysis_team(
+        self, state: SharedWorkflowStateModel
+    ) -> SharedWorkflowStateModel:
+        logger.info(f"\n\nstate: {state.get('tool_output')}")
         """Node action that invokes the Data Analysis Team subgraph."""
         return await self._call_subgraph(state, self.data_analysis_team)
 
     def _build_graph(self) -> StateGraph:
-        builder = StateGraph(state_schema=MessagesState)
+        builder = StateGraph(state_schema=SharedWorkflowStateModel)
 
         builder.add_node(
             self.manager,

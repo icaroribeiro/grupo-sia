@@ -63,11 +63,10 @@ async def data_ingestion(
     prompt = """
     INSTRUCTIONS:     
     - Perform a multi-step data ingestion procedure to insert records into database.
-    - The data ingestion consists of three stages executed by only one team, and you must delegate the work to a single agent for each stage in the order listed.
+    - The data ingestion consists of three stages executed by ONLY the data ingestion team, and you must delegate the work to a single agent for each stage in the order listed.
     - The stages are:
         1. Unzip files from ZIP Archive located at '{file_path}' to the directory '{extracted_dir_path}'.
         2. Map CSVs to Ingestion Arguments in the directory '{ingestion_dir_path}'.
-        3. Insert Ingestion Arguments Into Database.
     - You must always delegate to ONE AGENT AT TIME.
     - You must wait for the result of the current agent's task before moving to the next stage.
     CRITICAL RULES:
@@ -81,8 +80,8 @@ async def data_ingestion(
         ingestion_dir_path=ingestion_dir_path,
     )
 
-    result = await data_ingestion_workflow.run(input_message=input_message)
-    # result = await top_level_workflow.run(input_message=input_message)
+    # result = await data_ingestion_workflow.run(input_message=input_message)
+    result = await top_level_workflow.run(input_message=input_message)
     logger.info(f"result: {result}")
     # answer: str = result[-1].content
     # logger.info(f"Final result: {answer}")
@@ -112,3 +111,5 @@ async def data_ingestion(
     # - Each stage is dependent on the successful completion of the previous one.
     # - DO NOT begin the next stage until the current one is fully completed and verified.
     # """
+
+    # 3. Insert Ingestion Arguments Into Database.
