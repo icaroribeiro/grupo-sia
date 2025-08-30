@@ -1,39 +1,47 @@
-from src.layers.business_layer.ai_agents.models.shared_workflow_state_model import (
-    SharedWorkflowStateModel,
+from src.layers.business_layer.ai_agents.models.top_level_state_model import (
+    TopLevelStateModel,
 )
 from src.layers.business_layer.ai_agents.tools.top_level_handoff_tool import (
     TopLevelHandoffTool,
 )
 from src.layers.business_layer.ai_agents.workflows.base_workflow import BaseWorkflow
 from langchain_core.language_models import BaseChatModel
-from langchain_core.runnables import Runnable
 from langgraph.prebuilt import create_react_agent
 import uuid
+from src.layers.business_layer.ai_agents.workflows.data_analysis_workflow import (
+    DataAnalysisWorkflow,
+)
+from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow import (
+    DataIngestionWorkflow,
+)
 from src.layers.core_logic_layer.logging import logger
 from langgraph.graph import StateGraph, START
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage
 
 
 class TopLevelWorkflow(BaseWorkflow):
     def __init__(
         self,
         chat_model: BaseChatModel,
-        data_ingestion_team: Runnable[StateGraph, StateGraph],
-        data_analysis_team: Runnable[StateGraph, StateGraph],
+        data_ingestion_workflow: DataIngestionWorkflow,
+        data_analysis_workflow: DataAnalysisWorkflow,
     ):
-        self.name = "top_level_team"
+        self.name = "top_level_workflow"
         self.chat_model = chat_model
-        self.data_ingestion_team = data_ingestion_team
-        self.data_analysis_team = data_analysis_team
-        delegate_to_data_ingestion_team = TopLevelHandoffTool(
-            team_name=self.data_ingestion_team.name,
+        self.data_ingestion_workflow = data_ingestion_workflow
+        self.data_analysis_workflow = data_analysis_workflow
+        delegate_to_data_ingestion_workflow = TopLevelHandoffTool(
+            team_name=self.data_ingestion_workflow.name,
         )
-        delegate_to_data_analysis_team = TopLevelHandoffTool(
-            team_name=self.data_analysis_team.name,
+        delegate_to_data_analysis_workflow = TopLevelHandoffTool(
+            team_name=self.data_analysis_workflow.name,
         )
         self.manager = create_react_agent(
             model=self.chat_model,
-            tools=[delegate_to_data_ingestion_team, delegate_to_data_analysis_team],
+            tools=[
+                delegate_to_data_ingestion_workflow,
+                delegate_to_data_analysis_workflow,
+            ],
             prompt=(
                 """
                 ROLE:
@@ -54,110 +62,51 @@ class TopLevelWorkflow(BaseWorkflow):
         )
         self.__graph = self._build_graph()
 
-    async def _call_subgraph(
-        self,
-        state: SharedWorkflowStateModel,
-        subgraph: Runnable[StateGraph, StateGraph],
-    ) -> SharedWorkflowStateModel:
-        team_name = subgraph.name
-        logger.info(f"Preparing to call subgraph: '{team_name}'")
+    async def _call_data_ingestion_workflow(
+        self, state: TopLevelStateModel
+    ) -> TopLevelStateModel:
+        task_description = state.get("task_description")
+        logger.info(f"task_description: {task_description}")
+        return await self.data_ingestion_workflow.run(input_message=task_description)
 
-        # The task_description is likely what the subgraph needs to start.
-        # Let's extract it from the parent state's messages.
-        task_description = None
-        if len(state["messages"]) > 1:
-            previous_message = state["messages"][-2]
-            if isinstance(previous_message, AIMessage) and previous_message.tool_calls:
-                tool_name_to_find = f"transfer_to_{team_name}"
-                for tool_call in previous_message.tool_calls:
-                    if tool_call.get("name") == tool_name_to_find:
-                        task_description = tool_call.get("args", {}).get(
-                            "task_description"
-                        )
-                        logger.info(f"Found task for '{team_name}' in tool call.")
-                        break
-
-        if not task_description:
-            message = f"Error: Could not find a valid task for '{team_name}' in the manager's tool call."
-            logger.error(message)
-            return {"messages": state["messages"] + [HumanMessage(content=message)]}
-
-        logger.info(f"Invoking {team_name} with task: '{task_description}'")
-
-        try:
-            # Pass the full state dictionary to the subgraph.
-            # This is the key change. The subgraph now has access to the
-            # full context, including the 'tool_output' from the previous step.
-            result = await subgraph.ainvoke(state)
-
-            # When a subgraph completes, it returns the final state dictionary.
-            # We can then access its contents directly.
-            subgraph_messages = result.get("messages", [])
-            subgraph_tool_output = result.get("tool_output")
-
-            print(f"\n\nsubgraph_tool_output: {subgraph_tool_output}")
-
-            # Merge the subgraph's output with the parent graph's state.
-            updated_state = {
-                "messages": subgraph_messages,
-                "task_description": task_description,  # Keep the task description
-            }
-
-            # The tool_output is now correctly set in the result, so just
-            # update the parent state with it.
-            if subgraph_tool_output is not None:
-                updated_state["tool_output"] = subgraph_tool_output
-
-            return updated_state
-
-        except Exception as error:
-            message = f"Error during {team_name} execution: {error}"
-            logger.error(message, exc_info=True)
-            return {"messages": state["messages"] + [HumanMessage(content=message)]}
-
-    async def call_data_ingestion_team(
-        self, state: SharedWorkflowStateModel
-    ) -> SharedWorkflowStateModel:
-        logger.info(f"\n\nstate: {state.get('tool_output')}")
-        """Node action that invokes the Data Ingestion Team subgraph."""
-        return await self._call_subgraph(state, self.data_ingestion_team)
-
-    async def call_data_analysis_team(
-        self, state: SharedWorkflowStateModel
-    ) -> SharedWorkflowStateModel:
-        logger.info(f"\n\nstate: {state.get('tool_output')}")
-        """Node action that invokes the Data Analysis Team subgraph."""
-        return await self._call_subgraph(state, self.data_analysis_team)
+    async def _call_data_analysis_workflow(
+        self, state: TopLevelStateModel
+    ) -> TopLevelStateModel:
+        return await self.data_analysis_workflow.run(state)
 
     def _build_graph(self) -> StateGraph:
-        builder = StateGraph(state_schema=SharedWorkflowStateModel)
+        builder = StateGraph(state_schema=TopLevelStateModel)
 
         builder.add_node(
-            self.manager,
+            node=self.manager,
             destinations={
-                self.data_ingestion_team.name: self.data_ingestion_team.name,
-                self.data_analysis_team.name: self.data_analysis_team.name,
+                self.data_ingestion_workflow.name: self.data_ingestion_workflow.name,
+                self.data_analysis_workflow.name: self.data_analysis_workflow.name,
             },
         )
         builder.add_node(
-            self.data_ingestion_team.name,
-            action=self.call_data_ingestion_team,
+            node=self.data_ingestion_workflow.name,
+            action=self._call_data_ingestion_workflow,
         )
         builder.add_node(
-            self.data_analysis_team.name,
-            action=self.call_data_analysis_team,
+            node=self.data_analysis_workflow.name,
+            action=self._call_data_analysis_workflow,
         )
 
-        builder.add_edge(START, self.manager.name)
-        builder.add_edge(self.data_ingestion_team.name, self.manager.name)
-        builder.add_edge(self.data_analysis_team.name, self.manager.name)
+        builder.add_edge(start_key=START, end_key=self.manager.name)
+        builder.add_edge(
+            start_key=self.data_ingestion_workflow.name, end_key=self.manager.name
+        )
+        builder.add_edge(
+            start_key=self.data_analysis_workflow.name, end_key=self.manager.name
+        )
         graph = builder.compile(name=self.name)
         logger.info(f"Graph {self.name} compiled successfully!")
         logger.info(f"Nodes in graph: {graph.nodes.keys()}")
         logger.info(graph.get_graph().draw_ascii())
         return graph
 
-    async def run(self, input_message: str) -> dict:
+    async def run(self, input_message: str) -> TopLevelStateModel:
         logger.info(f"Starting {self.name} with input: '{input_message[:100]}...'")
         input_messages = [HumanMessage(content=input_message)]
         thread_id = str(uuid.uuid4())

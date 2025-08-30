@@ -8,7 +8,6 @@ from langchain_core.language_models import BaseChatModel
 from src.layers.business_layer.ai_agents.workflows.base_workflow import BaseWorkflow
 from langgraph.prebuilt import create_react_agent
 from langchain_core.tools import BaseTool
-from langchain_core.messages import HumanMessage
 
 
 class DataAnalysisWorkflow(BaseWorkflow):
@@ -80,15 +79,12 @@ class DataAnalysisWorkflow(BaseWorkflow):
         logger.info(graph.get_graph().draw_ascii())
         return graph
 
-    @property
-    def graph(self):
-        return self.__graph
-
-    async def run(self, input_message: str) -> dict:
-        logger.info(f"Starting {self.name} with input: '{input_message[:100]}...'")
-        input_messages = [HumanMessage(content=input_message)]
+    async def run(self, state: MessagesState) -> MessagesState:
+        logger.info(
+            f"Starting {self.name} with input: '{state['messages'][0].content[:100]}...'"
+        )
         thread_id = str(uuid.uuid4())
-        input_state = {"messages": input_messages}
+        input_state = state
 
         async for chunk in self.__graph.astream(
             input_state,
@@ -97,12 +93,31 @@ class DataAnalysisWorkflow(BaseWorkflow):
         ):
             self._pretty_print_messages(chunk, last_message=True)
         result = chunk[1]["supervisor"]["messages"]
-        # for message in result:
-        #     message.pretty_print()
-        # result = await self.__graph.ainvoke(
-        #     input_state,
-        #     config={"configurable": {"thread_id": thread_id}},
-        # )
+
         final_message = f"{self.name} complete."
         logger.info(f"{self.name} final result: {final_message}")
-        return result
+
+        return {"messages": result}
+
+    # async def run(self, input_message: str) -> dict:
+    #     logger.info(f"Starting {self.name} with input: '{input_message[:100]}...'")
+    #     input_messages = [HumanMessage(content=input_message)]
+    #     thread_id = str(uuid.uuid4())
+    #     input_state = {"messages": input_messages}
+
+    #     async for chunk in self.__graph.astream(
+    #         input_state,
+    #         subgraphs=True,
+    #         config={"configurable": {"thread_id": thread_id}},
+    #     ):
+    #         self._pretty_print_messages(chunk, last_message=True)
+    #     result = chunk[1]["supervisor"]["messages"]
+    #     # for message in result:
+    #     #     message.pretty_print()
+    #     # result = await self.__graph.ainvoke(
+    #     #     input_state,
+    #     #     config={"configurable": {"thread_id": thread_id}},
+    #     # )
+    #     final_message = f"{self.name} complete."
+    #     logger.info(f"{self.name} final result: {final_message}")
+    #     return result

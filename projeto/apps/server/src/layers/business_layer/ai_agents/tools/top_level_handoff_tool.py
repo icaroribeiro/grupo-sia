@@ -54,7 +54,7 @@ class TopLevelHandoffTool(BaseTool):
             name=self.name,
             tool_call_id=tool_call_id,
         )
-        logger.info(f"Final task description for next team: {task_description}")
+        logger.info(f"Task description for next team: {task_description}")
         return Command(
             goto=self.team_name,
             graph=Command.PARENT,

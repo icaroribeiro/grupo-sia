@@ -1,4 +1,7 @@
 import uuid
+from src.layers.business_layer.ai_agents.models.data_ingestion_state_model import (
+    DataIngestionStateModel,
+)
 from src.layers.business_layer.ai_agents.tools.data_ingestion_handoff_tool import (
     DataIngestionHandoffTool,
 )
@@ -11,12 +14,12 @@ from src.layers.business_layer.ai_agents.tools.insert_ingestion_args_into_databa
 from src.layers.business_layer.ai_agents.tools.map_csvs_to_ingestion_args_tool import (
     MapCSVsToIngestionArgsTool,
 )
+from langchain_core.messages import HumanMessage
 from src.layers.business_layer.ai_agents.tools.unzip_files_from_zip_archive_tool import (
     UnzipFilesFromZipArchiveTool,
 )
 from src.layers.business_layer.ai_agents.workflows.base_workflow import BaseWorkflow
 from langgraph.prebuilt import create_react_agent
-from langchain_core.messages import HumanMessage
 
 
 class DataIngestionWorkflow(BaseWorkflow):
@@ -53,6 +56,9 @@ class DataIngestionWorkflow(BaseWorkflow):
                 GOAL:
                 - Your sole purpose is to map csv file. 
                 - DO NOT perform any other tasks.
+                INSTRUCTIONS:
+                - Based on the conversation history, when using `map_csvs_to_ingestion_args_tool` tool the `csv_file_path` argument is the return of `unzip_files_from_zip_archive_tool` tool.
+                - DO NOT create or invent file paths. Always use the paths from the previous step.
                 """
             ),
             name="csv_mapping_agent",
@@ -98,6 +104,8 @@ class DataIngestionWorkflow(BaseWorkflow):
                     - An Ingestion Arguments Agent: Assign tasks related to inserting ingestion arguments to this agent.
                 INSTRUCTIONS:
                 - Based on the conversation history, decide the next step.
+                - When request contains a file, folder or directory path, always inform it properly to the agent in the task description.
+                - DO NOT create or invent file paths that where not informed in the request.
                 - DO NOT do any work yourself.
                 CRITICAL RULES:
                 - ALWAYS assign work to one agent at a time.
@@ -109,7 +117,8 @@ class DataIngestionWorkflow(BaseWorkflow):
         self.__graph = self.__build_graph()
 
     def __build_graph(self) -> StateGraph:
-        builder = StateGraph(state_schema=MessagesState)
+        builder = StateGraph(state_schema=DataIngestionStateModel)
+
         builder.add_node(
             self.supervisor,
             destinations={
@@ -121,21 +130,19 @@ class DataIngestionWorkflow(BaseWorkflow):
         builder.add_node(self.file_unzipping_agent)
         builder.add_node(self.csv_mapping_agent)
         builder.add_node(self.ingestion_args_agent)
+
         builder.add_edge(START, self.supervisor.name)
         builder.add_edge(self.file_unzipping_agent.name, self.supervisor.name)
         builder.add_edge(self.csv_mapping_agent.name, self.supervisor.name)
         builder.add_edge(self.ingestion_args_agent.name, self.supervisor.name)
+
         graph = builder.compile(name=self.name)
         logger.info(f"Graph {self.name} compiled successfully!")
         logger.info(f"Nodes in graph: {graph.nodes.keys()}")
         logger.info(graph.get_graph().draw_ascii())
         return graph
 
-    @property
-    def graph(self):
-        return self.__graph
-
-    async def run(self, input_message: str) -> dict:
+    async def run(self, input_message: str) -> MessagesState:
         logger.info(f"Starting {self.name} with input: '{input_message[:100]}...'")
         input_messages = [HumanMessage(content=input_message)]
         thread_id = str(uuid.uuid4())
@@ -156,4 +163,27 @@ class DataIngestionWorkflow(BaseWorkflow):
         # )
         final_message = f"{self.name} complete."
         logger.info(f"{self.name} final result: {final_message}")
-        return result
+        return {"messages": result}
+
+    # async def run(self, input_message: str) -> dict:
+    #     logger.info(f"Starting {self.name} with input: '{input_message[:100]}...'")
+    #     input_messages = [HumanMessage(content=input_message)]
+    #     thread_id = str(uuid.uuid4())
+    #     input_state = {"messages": input_messages}
+
+    #     async for chunk in self.__graph.astream(
+    #         input_state,
+    #         subgraphs=True,
+    #         config={"configurable": {"thread_id": thread_id}},
+    #     ):
+    #         self._pretty_print_messages(chunk, last_message=True)
+    #     result = chunk[1]["supervisor"]["messages"]
+    #     # for message in result:
+    #     #     message.pretty_print()
+    #     # result = await self.__graph.ainvoke(
+    #     #     input_state,
+    #     #     config={"configurable": {"thread_id": thread_id}},
+    #     # )
+    #     final_message = f"{self.name} complete."
+    #     logger.info(f"{self.name} final result: {final_message}")
+    #     return result

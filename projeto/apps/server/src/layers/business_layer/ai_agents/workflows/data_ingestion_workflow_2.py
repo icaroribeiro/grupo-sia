@@ -1,19 +1,16 @@
 import functools
 import uuid
-from src.layers.business_layer.ai_agents.models.shared_workflow_state_model import (
-    SharedWorkflowStateModel,
-)
-from src.layers.business_layer.ai_agents.models.tool_output import ToolOutput
 from src.layers.business_layer.ai_agents.tools.data_ingestion_handoff_tool import (
     DataIngestionHandoffTool,
 )
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.graph import StateGraph
 from langchain_core.runnables import Runnable
-from langchain_core.messages import BaseMessage, HumanMessage, ToolMessage
+from langchain_core.messages import BaseMessage, HumanMessage
 
 from langgraph.prebuilt import create_react_agent
 from src.layers.core_logic_layer.logging import logger
-from langgraph.graph import START, END
+from langgraph.graph import START, END, MessagesState
 from langchain_core.language_models import BaseChatModel
 from src.layers.business_layer.ai_agents.tools.insert_ingestion_args_into_database_tool import (
     InsertIngestionArgsIntoDatabaseTool,
@@ -39,7 +36,6 @@ class DataIngestionWorkflow2(BaseWorkflow):
         self.name = "data_ingestion_team"
         self.chat_model = chat_model
 
-        self.unzip_files_from_zip_archive_tool = unzip_files_from_zip_archive_tool
         self.file_unzipping_agent = self.chat_model.bind_tools(
             [unzip_files_from_zip_archive_tool]
         )
@@ -49,6 +45,7 @@ class DataIngestionWorkflow2(BaseWorkflow):
         self.ingestion_args_agent = self.chat_model.bind_tools(
             [insert_ingestion_args_into_database_tool]
         )
+
         delegate_to_file_unzipping_agent = DataIngestionHandoffTool(
             agent_name="file_unzipping_agent",
         )
@@ -58,6 +55,7 @@ class DataIngestionWorkflow2(BaseWorkflow):
         delegate_to_ingestion_args_agent = DataIngestionHandoffTool(
             agent_name="ingestion_args_agent"
         )
+
         self.supervisor = create_react_agent(
             model=self.chat_model,
             tools=[
@@ -92,7 +90,7 @@ class DataIngestionWorkflow2(BaseWorkflow):
         self.__graph = self.__build_graph()
 
     def __build_graph(self) -> StateGraph:
-        builder = StateGraph(state_schema=SharedWorkflowStateModel)
+        builder = StateGraph(state_schema=MessagesState)
 
         def agent_node(
             state,
@@ -100,34 +98,41 @@ class DataIngestionWorkflow2(BaseWorkflow):
             prompt: str,
             llm_with_tools: Runnable[BaseMessage, BaseMessage],
         ):
-            print(f"\nagent_node - name: {name}")
-            print(f'\nagent_node - state["messages"]: {state["messages"]}')
-            result = llm_with_tools.invoke(state["messages"])
-            print(f"\nagent_node - result: {result}")
+            prompt = ChatPromptTemplate.from_messages(
+                [
+                    (
+                        "system",
+                        prompt,
+                    ),
+                    MessagesPlaceholder(variable_name="messages"),
+                ]
+            )
+            agent_chain = prompt | llm_with_tools
+            result = agent_chain.invoke(state["messages"])
             return {"messages": state["messages"] + [result]}
 
-        # Define a new function for the tools node
-        def tools_node_with_output(state):
-            # Access the most recent message, which should be a ToolMessage
-            last_message = state["messages"][-1]
+        # # Define a new function for the tools node
+        # def tools_node_with_output(state):
+        #     # Access the most recent message, which should be a ToolMessage
+        #     last_message = state["messages"][-1]
 
-            # Check if the last message is a ToolMessage
-            if not isinstance(last_message, ToolMessage):
-                # If not, something is wrong with the graph flow.
-                # You might want to handle this error case.
-                logger.error("Expected ToolMessage but got a different type.")
-                return {"messages": state["messages"]}
+        #     # Check if the last message is a ToolMessage
+        #     if not isinstance(last_message, ToolMessage):
+        #         # If not, something is wrong with the graph flow.
+        #         # You might want to handle this error case.
+        #         logger.error("Expected ToolMessage but got a different type.")
+        #         return {"messages": state["messages"]}
 
-            # The ToolNode output is stored in the content of the ToolMessage
-            tool_output_content = last_message.content
+        #     # The ToolNode output is stored in the content of the ToolMessage
+        #     tool_output_content = last_message.content
 
-            # Now, use your custom parser to create the ToolOutput object
-            parsed_tool_output = ToolOutput.from_tool_message(tool_output_content)
-            logger.info(f"parsed_tool_output: {parsed_tool_output}")
-            return {
-                "messages": state["messages"],
-                "tool_output": parsed_tool_output,
-            }
+        #     # Now, use your custom parser to create the ToolOutputModel object
+        #     parsed_tool_output = ToolOutputModel.from_tool_message(tool_output_content)
+        #     logger.info(f"parsed_tool_output: {parsed_tool_output}")
+        #     return {
+        #         "messages": state["messages"],
+        #         "tool_output": parsed_tool_output,
+        #     }
 
         builder.add_node("supervisor", self.supervisor)
         builder.add_node(
@@ -137,12 +142,12 @@ class DataIngestionWorkflow2(BaseWorkflow):
                 name="file_unzipping_agent",
                 prompt=(
                     """
-                ROLE:
-                - You're a file unzip agent.
-                GOAL:
-                - Your sole purpose is to unzip files. 
-                - DO NOT perform any other tasks.
-                """
+                    ROLE:
+                    - You're a file unzip agent.
+                    GOAL:
+                    - Your sole purpose is to unzip files.
+                    - DO NOT perform any other tasks.
+                    """
                 ),
                 llm_with_tools=self.file_unzipping_agent,
             ),
@@ -154,19 +159,35 @@ class DataIngestionWorkflow2(BaseWorkflow):
                 name="csv_mapping_agent",
                 prompt=(
                     """
-                ROLE:
-                - You're a csv mapping agent.
-                GOAL:
-                - Your sole purpose is to map csv file. 
-                - DO NOT perform any other tasks.
-                """
+                    ROLE:
+                    - You're a csv mapping agent.
+                    GOAL:
+                    - Your sole purpose is to map csv file. 
+                    - DO NOT perform any other tasks.
+                    """
+                ),
+                llm_with_tools=self.csv_mapping_agent,
+            ),
+        )
+        builder.add_node(
+            "ingestion_args_agent",
+            functools.partial(
+                agent_node,
+                name="ingestion_args_agent",
+                prompt=(
+                    """
+                    ROLE:
+                    - You're a csv mapping agent.
+                    GOAL:
+                    - Your sole purpose is to insert records from ingestion arguments into database. 
+                    - DO NOT perform any other tasks.
+                    """
                 ),
                 llm_with_tools=self.csv_mapping_agent,
             ),
         )
 
-        tool_chain = ToolNode(tools=self.all_tools) | tools_node_with_output
-        builder.add_node("tools", tool_chain)
+        builder.add_node("tools", ToolNode(tools=self.all_tools))
 
         def route_supervisor(state):
             last_message = state["messages"][-1]
@@ -187,21 +208,17 @@ class DataIngestionWorkflow2(BaseWorkflow):
         builder.add_edge(START, "supervisor")
         builder.add_edge("tools", "supervisor")
 
-        def return_state_node(state):
-            return state
-
-        # builder.add_node("return_state", return_state_node)
-
         builder.add_conditional_edges(
             "supervisor",
             route_supervisor,
             {
                 "file_unzipping_agent": "file_unzipping_agent",
                 "csv_mapping_agent": "csv_mapping_agent",
+                "ingestion_args_agent": "ingestion_args_agent",
                 END: END,
             },
         )
-        # builder.add_edge("return_state", END)
+
         builder.add_conditional_edges(
             "file_unzipping_agent",
             route_agent,
@@ -212,6 +229,14 @@ class DataIngestionWorkflow2(BaseWorkflow):
         )
         builder.add_conditional_edges(
             "csv_mapping_agent",
+            route_agent,
+            {
+                "tools": "tools",
+                "supervisor": "supervisor",
+            },
+        )
+        builder.add_conditional_edges(
+            "ingestion_args_agent",
             route_agent,
             {
                 "tools": "tools",
