@@ -3,6 +3,9 @@ import os
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, File, Response, UploadFile, status
 
+from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow import (
+    DataIngestionWorkflow,
+)
 from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow_2 import (
     DataIngestionWorkflow2,
 )
@@ -30,7 +33,10 @@ async def data_ingestion(
     response: Response,
     file: UploadFile = File(...),
     config: dict = Depends(Provide[Container.config]),
-    data_ingestion_workflow: DataIngestionWorkflow2 = Depends(
+    data_ingestion_workflow: DataIngestionWorkflow = Depends(
+        Provide[Container.data_ingestion_workflow]
+    ),
+    data_ingestion_workflow_2: DataIngestionWorkflow2 = Depends(
         Provide[Container.data_ingestion_workflow_2]
     ),
     top_level_workflow: TopLevelWorkflow = Depends(
@@ -62,11 +68,12 @@ async def data_ingestion(
     ingestion_dir_path = config["app_settings"].ingestion_data_dir_path
     prompt = """
     INSTRUCTIONS:     
-    - Perform a multi-step data ingestion procedure to insert records into database.
-    - The data ingestion consists of three stages executed by ONLY the data ingestion team, and you must delegate the work to a single agent for each stage in the order listed.
+    - Perform a multi-step procedure to insert records into database.
+    - The procedure consists of three stages executed by ONLY the data ingestion team, and you must delegate the work to a single agent for each stage in the order listed.
     - The stages are:
-        1. Unzip files from ZIP Archive located at '{file_path}' to the directory '{extracted_dir_path}'.
-        2. Map CSVs to Ingestion Arguments in the directory '{ingestion_dir_path}'.
+        1. Unzip files from ZIP archive located at '{file_path}' to the directory '{extracted_dir_path}'.
+        2. Map CSV files to ingestion arguments to the directory '{ingestion_dir_path}'.
+        3. Insert records from ingestion arguments into database.
     - You must always delegate to ONE AGENT AT TIME.
     - You must wait for the result of the current agent's task before moving to the next stage.
     CRITICAL RULES:

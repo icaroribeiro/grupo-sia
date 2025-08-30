@@ -94,6 +94,6 @@ class Container(containers.DeclarativeContainer):
     top_level_workflow = providers.Singleton(
         TopLevelWorkflow,
         chat_model=llm.provided.chat_model,
-        data_ingestion_team=data_ingestion_workflow_2.provided.graph,
-        data_analysis_team=data_analysis_workflow.provided.graph,
+        data_ingestion_workflow=data_ingestion_workflow,
+        data_analysis_workflow=data_analysis_workflow,
     )

@@ -2,7 +2,10 @@ from typing import Any, Type
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field
 from sqlalchemy.exc import IntegrityError
-from src.layers.business_layer.ai_agents.models.tool_output import Status, ToolOutput
+from src.layers.business_layer.ai_agents.models.tool_output_model import (
+    Status,
+    ToolOutputModel,
+)
 from src.layers.core_logic_layer.logging import logger
 from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB
 from src.layers.data_access_layer.postgresdb.models.base_model import (
@@ -12,7 +15,7 @@ import pandas as pd
 
 
 class InsertIngestionArgsIntoPostgresDBInput(BaseModel):
-    ingestion_args_list: list[dict[str, str]] = Field(
+    ingestion_args: list[dict[str, str]] = Field(
         ..., description="List of ingestion arguments."
     )
 
@@ -44,19 +47,19 @@ class InsertIngestionArgsIntoDatabaseTool(BaseTool):
 
     async def _arun(
         self,
-        ingestion_args_list: list[dict[str, str]],
-    ) -> ToolOutput:
+        ingestion_args: list[dict[str, str]],
+    ) -> ToolOutputModel:
         logger.info(f"Calling {self.name}...")
         count_map: dict[str, int] = dict()
         try:
             count_map: dict[str, int] = dict()
             async with self.postgresdb.async_session() as async_session:
-                for index, ingestion_args in enumerate(ingestion_args_list):
-                    table_name = ingestion_args["table_name"]
-                    file_path = ingestion_args["file_path"]
+                for index, ingestion_arg in enumerate(ingestion_args):
+                    table_name = ingestion_arg["table_name"]
+                    file_path = ingestion_arg["file_path"]
                     if table_name not in self.sqlalchemy_model_by_table_name:
                         logger.error(f"Error: Invalid table name '{table_name}'")
-                        return ToolOutput(
+                        return ToolOutputModel(
                             status="failed", result=f"Invalid table name: {table_name}"
                         )
 
@@ -75,15 +78,15 @@ class InsertIngestionArgsIntoDatabaseTool(BaseTool):
                     except FileNotFoundError as error:
                         message = f"Error: Failed to find file at {file_path}: {error}"
                         logger.error(message)
-                        return ToolOutput(status=Status.FAILED, result=None)
+                        return ToolOutputModel(status=Status.FAILED, result=None)
                     except UnicodeDecodeError as error:
                         message = f"Error: Failed to decode data from file {file_path}: {error}"
                         logger.error(message)
-                        return ToolOutput(status=Status.FAILED, result=None)
+                        return ToolOutputModel(status=Status.FAILED, result=None)
                     except Exception as error:
                         message = f"Error: Failed to read file {file_path}: {error}"
                         logger.error(message)
-                        return ToolOutput(status=Status.FAILED, result=None)
+                        return ToolOutputModel(status=Status.FAILED, result=None)
 
                     for _, row in df.iterrows():
                         try:
@@ -117,7 +120,7 @@ class InsertIngestionArgsIntoDatabaseTool(BaseTool):
                             logger.error(
                                 f"Error processing record for {table_name}: {error}"
                             )
-                            return ToolOutput(status="failed", result=str(error))
+                            return ToolOutputModel(status="failed", result=str(error))
 
                 # === 2. Final Commit (Moved Outside the Loop) ===
                 # Commit the entire transaction only after all records
@@ -128,12 +131,12 @@ class InsertIngestionArgsIntoDatabaseTool(BaseTool):
         except Exception as error:
             # Catch any other unexpected errors during the session.
             logger.error(f"An unexpected error occurred in the tool: {error}")
-            return ToolOutput(status="failed", result=str(error))
+            return ToolOutputModel(status="failed", result=str(error))
 
         # === 3. Final Reporting ===
         if not any(count_map.values()):
             logger.warning("Warning: No new records were available to insert.")
-            return ToolOutput(status="succeed", result="No new records inserted.")
+            return ToolOutputModel(status="succeed", result="No new records inserted.")
 
         total_count = sum(count_map.values())
         for model_name, count in count_map.items():
@@ -142,11 +145,11 @@ class InsertIngestionArgsIntoDatabaseTool(BaseTool):
                     f"Success: {count} record(s) inserted into {model_name} table"
                 )
 
-        return ToolOutput(
+        return ToolOutputModel(
             status="succeed", result=f"Successfully inserted {total_count} records."
         )
 
-    def _run(self, ingestion_args_list: list[dict[str, str]]) -> ToolOutput:
+    def _run(self, ingestion_args: list[dict[str, str]]) -> ToolOutputModel:
         message = "Warning: Synchronous execution is not supported. Use _arun instead."
         logger.warning(message)
         raise NotImplementedError(message)

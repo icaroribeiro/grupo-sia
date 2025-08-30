@@ -8,7 +8,7 @@ from src.layers.business_layer.ai_agents.models.invoice_item_ingestion_config_mo
 from src.layers.business_layer.ai_agents.models.invoice_ingestion_config_model import (
     InvoiceIngestionConfigModel,
 )
-from src.layers.business_layer.ai_agents.models.tool_output import ToolOutput
+from src.layers.business_layer.ai_agents.models.tool_output_model import ToolOutputModel
 from src.layers.business_layer.ai_agents.tools.insert_ingestion_args_into_database_tool import (
     InsertIngestionArgsIntoDatabaseTool,
 )
@@ -38,7 +38,7 @@ async def main() -> None:
     file_path = os.path.join(dir_path, "200001_NFe.zip")
     extracted_data_dir_path = os.path.join(dir_path, "extracted")
     unzip_files_from_zip_archive_tool = UnzipFilesFromZipArchiveTool()
-    tool_output: ToolOutput = await unzip_files_from_zip_archive_tool._arun(
+    tool_output: ToolOutputModel = await unzip_files_from_zip_archive_tool._arun(
         file_path=file_path, destination_dir_path=extracted_data_dir_path
     )
     if tool_output.result is None:
@@ -57,7 +57,7 @@ async def main() -> None:
     map_csvs_to_ingestion_args_tool = MapCSVsToIngestionArgsTool(
         ingestion_config_dict=ingestion_config_dict
     )
-    tool_output: ToolOutput = await map_csvs_to_ingestion_args_tool._arun(
+    tool_output: ToolOutputModel = await map_csvs_to_ingestion_args_tool._arun(
         file_paths=extracted_file_paths, destination_dir_path=dir_path
     )
     if tool_output.result is None:
@@ -77,7 +77,7 @@ async def main() -> None:
         sqlalchemy_model_by_table_name=sqlalchemy_model_by_table_name,
         ingestion_config_dict=ingestion_config_dict,
     )
-    tool_output: ToolOutput = await insert_ingestion_args_into_database_tool._arun(
+    tool_output: ToolOutputModel = await insert_ingestion_args_into_database_tool._arun(
         ingestion_args_list=ingestion_args_list
     )
     if tool_output.result is None:

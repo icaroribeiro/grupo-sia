@@ -13,13 +13,13 @@ class Status(str, Enum):
     FAILED = "failed"
 
 
-class ToolOutput(BaseModel):
+class ToolOutputModel(BaseModel):
     status: Status = Status.SUCCEED
     result: Any = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @classmethod
-    def from_tool_message(cls, content: str) -> "ToolOutput":
+    def from_tool_message(cls, content: str) -> "ToolOutputModel":
         data = {}
         # Use regex to find key-value pairs
         status_match = re.search(r"status=(\w+)", content)

@@ -1,6 +1,3 @@
-from src.layers.business_layer.ai_agents.models.shared_workflow_state_model import (
-    SharedWorkflowStateModel,
-)
 from src.layers.core_logic_layer.logging import logger
 from langgraph.graph import MessagesState
 from langchain_core.tools import BaseTool, InjectedToolCallId
@@ -47,30 +44,23 @@ class DataIngestionHandoffTool(BaseTool):
     async def _arun(
         self,
         task_description: str,
-        state: Annotated[SharedWorkflowStateModel, InjectedState],
+        state: Annotated[MessagesState, InjectedState],
         tool_call_id: Annotated[str, InjectedToolCallId],
     ) -> ToolMessage:
         logger.info(f"Executing handoff to {self.agent_name}...")
-
-        # Access the shared tool output directly from the state
-        shared_data = state.get("tool_output")
-        # logger.info(f"state: {state}")
-        logger.info(f"Found shared data in state: {shared_data}")
-
         tool_message = ToolMessage(
             content=f"Handoff to {self.agent_name} complete. New task assigned.",
             name=self.name,
             tool_call_id=tool_call_id,
         )
-
+        logger.info(f"state: {state}")
+        logger.info(f"Task description for next agent: {task_description}")
         return Command(
             goto=self.agent_name,
             graph=Command.PARENT,
             update={
                 "messages": state["messages"] + [tool_message],
                 "task_description": task_description,
-                # Pass the existing tool_output to the next state
-                "tool_output": shared_data,
             },
         )
 
@@ -82,7 +72,7 @@ class DataIngestionHandoffTool(BaseTool):
                 description="Description of what the next agent should do, including all of the relevant context."
             ),
         ],
-        state: Annotated[SharedWorkflowStateModel, InjectedState],
+        state: Annotated[MessagesState, InjectedState],
         tool_call_id: Annotated[str, InjectedToolCallId],
     ) -> ToolMessage:
         message = "Warning: Synchronous execution is not supported. Use _arun instead."

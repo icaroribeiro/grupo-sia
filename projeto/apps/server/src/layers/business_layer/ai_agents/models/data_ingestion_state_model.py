@@ -4,10 +4,8 @@ from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 from typing_extensions import Annotated, TypedDict
 
-from src.layers.business_layer.ai_agents.models.tool_output import ToolOutput
-
 
 class DataIngestionStateModel(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
-    task_description: str
-    tool_output: ToolOutput
+    csv_file_paths: list[str] | None = None
+    ingestion_args: list[dict[str, str]] | None = None
