@@ -8,6 +8,12 @@ from src.layers.core_logic_layer.logging import logger
 
 
 class DataReportingHandoffToolInput(BaseModel):
+    task_description: Annotated[
+        str,
+        Field(
+            description="Description of what the next agent should do, including all of the relevant context."
+        ),
+    ]
     tool_call_id: Annotated[str, InjectedToolCallId] = Field(...)
 
 
@@ -31,17 +37,25 @@ class DataReportingHandoffTool(BaseTool):
 
     async def _arun(
         self,
+        task_description: str,
         tool_call_id: Annotated[str, InjectedToolCallId],
     ) -> ToolMessage:
         logger.info(f"Executing handoff to {self.agent_name}...")
+        logger.info(f"Task description for next agent: {task_description}")
         return ToolMessage(
-            content=f"transfer_to_{self.agent_name}",
+            content=f"transfer_to_agent:{self.agent_name}::task:{task_description}",
             name=self.name,
             tool_call_id=tool_call_id,
         )
 
     def _run(
         self,
+        task_description: Annotated[
+            str,
+            Field(
+                description="Description of what the next agent should do, including all of the relevant context."
+            ),
+        ],
         tool_call_id: Annotated[str, InjectedToolCallId],
     ) -> ToolMessage:
         message = "Warning: Synchronous execution is not supported. Use _arun instead."

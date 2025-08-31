@@ -69,3 +69,6 @@ async def data_reporting(
         logger.info("The content is not valid JSON.")
 
     return DataReportingResponse(answer=content)
+
+    # 1. Analyze the user question accurately: {question}
+    # 2. Report the answer to user question briefly and objectively.
