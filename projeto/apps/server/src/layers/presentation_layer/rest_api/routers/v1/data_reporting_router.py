@@ -33,7 +33,7 @@ async def data_reporting(
     prompt = """
     INSTRUCTIONS:
     - Perform a multi-step procedure to report data based on the user question.
-    - The procedure consists of the following tasks executed by ONLY a team related do data reporting.
+    - The procedure consists of the following tasks executed only by the team responsible for reporting data.
         1. Answer the user question accurately: {question}
     """
     if not data_reporting_request.format_instructions:
