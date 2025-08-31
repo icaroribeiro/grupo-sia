@@ -1,16 +1,15 @@
-from src.layers.core_logic_layer.logging import logger
-from langgraph.graph import MessagesState
-from langchain_core.tools import BaseTool, InjectedToolCallId
+from typing import Annotated, Type
 
-from typing import Type
-from pydantic import BaseModel, Field
-from langgraph.types import Command
-from typing import Annotated
-from langgraph.prebuilt import InjectedState
 from langchain_core.messages import ToolMessage
+from langchain_core.tools import BaseTool, InjectedToolCallId
+from langgraph.graph import MessagesState
+from langgraph.prebuilt import InjectedState
+from pydantic import BaseModel, Field
+
+from src.layers.core_logic_layer.logging import logger
 
 
-class DataAnalysisHandoffToolInput(BaseModel):
+class DataReportingHandoffToolInput(BaseModel):
     task_description: Annotated[
         str,
         Field(
@@ -23,13 +22,13 @@ class DataAnalysisHandoffToolInput(BaseModel):
     tool_call_id: Annotated[str, InjectedToolCallId] = Field(...)
 
 
-class DataAnalysisHandoffTool(BaseTool):
+class DataReportingHandoffTool(BaseTool):
     name: str = "handoff_tool"
     description: str | None = (
         "Hands off a task to another agent with a description and relevant context."
     )
     agent_name: str
-    args_schema: Type[BaseModel] = DataAnalysisHandoffToolInput
+    args_schema: Type[BaseModel] = DataReportingHandoffToolInput
 
     def __init__(
         self,
@@ -48,19 +47,11 @@ class DataAnalysisHandoffTool(BaseTool):
         tool_call_id: Annotated[str, InjectedToolCallId],
     ) -> ToolMessage:
         logger.info(f"Executing handoff to {self.agent_name}...")
-        tool_message = ToolMessage(
+        logger.info(f"Final task description for next agent: {task_description}")
+        return ToolMessage(
             content=f"Handoff to {self.agent_name} complete. New task assigned.",
             name=self.name,
             tool_call_id=tool_call_id,
-        )
-        logger.info(f"Final task description for next agent: {task_description}")
-        return Command(
-            goto=self.agent_name,
-            graph=Command.PARENT,
-            update={
-                "messages": state["messages"] + [tool_message],
-                "task_description": task_description,
-            },
         )
 
     def _run(
