@@ -2,6 +2,7 @@ from typing import AsyncGenerator
 
 from dependency_injector import containers, providers
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.layers.business_layer.ai_agents.llm.llm import LLM
 from src.layers.business_layer.ai_agents.toolkits.async_sql_database_toolkit import (
     AsyncSQLDatabaseToolkit,
@@ -15,8 +16,8 @@ from src.layers.business_layer.ai_agents.tools.map_csvs_to_ingestion_args_tool i
 from src.layers.business_layer.ai_agents.tools.unzip_files_from_zip_archive_tool import (
     UnzipFilesFromZipArchiveTool,
 )
-from src.layers.business_layer.ai_agents.workflows.data_analysis_workflow import (
-    DataAnalysisWorkflow,
+from src.layers.business_layer.ai_agents.workflows.data_reporting_workflow import (
+    DataReportingWorkflow,
 )
 from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow import (
     DataIngestionWorkflow,
@@ -85,8 +86,8 @@ class Container(containers.DeclarativeContainer):
         chat_model=llm.provided.chat_model,
     )
 
-    data_analysis_workflow = providers.Singleton(
-        DataAnalysisWorkflow,
+    data_reporting_workflow = providers.Singleton(
+        DataReportingWorkflow,
         chat_model=llm.provided.chat_model,
         async_query_sql_database_tools=async_sql_database_toolkit.provided.get_tools.call(),
     )
@@ -95,5 +96,5 @@ class Container(containers.DeclarativeContainer):
         TopLevelWorkflow,
         chat_model=llm.provided.chat_model,
         data_ingestion_workflow=data_ingestion_workflow,
-        data_analysis_workflow=data_analysis_workflow,
+        data_reporting_workflow=data_reporting_workflow,
     )

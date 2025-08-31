@@ -1,7 +1,8 @@
-from pydantic import BaseModel
-from typing import Optional, Callable, Any
 from datetime import datetime
+from typing import Any, Callable, Optional
+
 import pandas as pd
+from pydantic import BaseModel
 
 
 class BaseIngestionConfigModel(BaseModel):

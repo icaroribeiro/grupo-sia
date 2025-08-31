@@ -1,3 +1,11 @@
+import uuid
+
+from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import HumanMessage
+from langgraph.graph import START, StateGraph
+from langgraph.graph.message import MessagesState
+from langgraph.prebuilt import create_react_agent
+
 from src.layers.business_layer.ai_agents.models.top_level_state_model import (
     TopLevelStateModel,
 )
@@ -5,18 +13,13 @@ from src.layers.business_layer.ai_agents.tools.top_level_handoff_tool import (
     TopLevelHandoffTool,
 )
 from src.layers.business_layer.ai_agents.workflows.base_workflow import BaseWorkflow
-from langchain_core.language_models import BaseChatModel
-from langgraph.prebuilt import create_react_agent
-import uuid
-from src.layers.business_layer.ai_agents.workflows.data_analysis_workflow import (
-    DataAnalysisWorkflow,
+from src.layers.business_layer.ai_agents.workflows.data_reporting_workflow import (
+    DataReportingWorkflow,
 )
 from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow import (
     DataIngestionWorkflow,
 )
 from src.layers.core_logic_layer.logging import logger
-from langgraph.graph import StateGraph, START
-from langchain_core.messages import HumanMessage
 
 
 class TopLevelWorkflow(BaseWorkflow):
@@ -24,23 +27,23 @@ class TopLevelWorkflow(BaseWorkflow):
         self,
         chat_model: BaseChatModel,
         data_ingestion_workflow: DataIngestionWorkflow,
-        data_analysis_workflow: DataAnalysisWorkflow,
+        data_reporting_workflow: DataReportingWorkflow,
     ):
         self.name = "top_level_workflow"
         self.chat_model = chat_model
         self.data_ingestion_workflow = data_ingestion_workflow
-        self.data_analysis_workflow = data_analysis_workflow
+        self.data_reporting_workflow = data_reporting_workflow
         delegate_to_data_ingestion_workflow = TopLevelHandoffTool(
             team_name=self.data_ingestion_workflow.name,
         )
-        delegate_to_data_analysis_workflow = TopLevelHandoffTool(
-            team_name=self.data_analysis_workflow.name,
+        delegate_to_data_reporting_workflow = TopLevelHandoffTool(
+            team_name=self.data_reporting_workflow.name,
         )
         self.manager = create_react_agent(
             model=self.chat_model,
             tools=[
                 delegate_to_data_ingestion_workflow,
-                delegate_to_data_analysis_workflow,
+                delegate_to_data_reporting_workflow,
             ],
             prompt=(
                 """
@@ -49,12 +52,12 @@ class TopLevelWorkflow(BaseWorkflow):
                 GOAL:
                 - Your sole purpose is to manage two teams:
                     - A Data Ingestion Team: Assign tasks related to data ingestion to this team.
-                    - A Data Analysis Team: Assign tasks related to data analysis to this team.
+                    - A Data Reporting Team: Assign tasks related to data reporting to this team.
                 INSTRUCTIONS:
                 - Based on the conversation history, decide the next step.
                 - DO NOT do any work yourself.
                 CRITICAL RULES:
-                - ALWAYS assign work to one team at a time.
+                - ALWAYS assign work to ONE TEAM AT TIME.
                 - DO NOT call teams in parallel.
                 """
             ),
@@ -63,25 +66,27 @@ class TopLevelWorkflow(BaseWorkflow):
         self.__graph = self._build_graph()
 
     async def _call_data_ingestion_workflow(
-        self, state: TopLevelStateModel
-    ) -> TopLevelStateModel:
-        task_description = state.get("task_description")
-        logger.info(f"task_description: {task_description}")
-        return await self.data_ingestion_workflow.run(input_message=task_description)
+        self, state: MessagesState
+    ) -> MessagesState:
+        return await self.data_ingestion_workflow.run(state)
 
-    async def _call_data_analysis_workflow(
+    async def _call_data_reporting_workflow(
         self, state: TopLevelStateModel
     ) -> TopLevelStateModel:
-        return await self.data_analysis_workflow.run(state)
+        print("ABC")
+        print(f"task_description: {state['task_description']}")
+        return await self.data_reporting_workflow.run(
+            input_message=state["task_description"]
+        )
 
     def _build_graph(self) -> StateGraph:
-        builder = StateGraph(state_schema=TopLevelStateModel)
+        builder = StateGraph(state_schema=MessagesState)
 
         builder.add_node(
             node=self.manager,
             destinations={
                 self.data_ingestion_workflow.name: self.data_ingestion_workflow.name,
-                self.data_analysis_workflow.name: self.data_analysis_workflow.name,
+                self.data_reporting_workflow.name: self.data_reporting_workflow.name,
             },
         )
         builder.add_node(
@@ -89,8 +94,8 @@ class TopLevelWorkflow(BaseWorkflow):
             action=self._call_data_ingestion_workflow,
         )
         builder.add_node(
-            node=self.data_analysis_workflow.name,
-            action=self._call_data_analysis_workflow,
+            node=self.data_reporting_workflow.name,
+            action=self._call_data_reporting_workflow,
         )
 
         builder.add_edge(start_key=START, end_key=self.manager.name)
@@ -98,7 +103,7 @@ class TopLevelWorkflow(BaseWorkflow):
             start_key=self.data_ingestion_workflow.name, end_key=self.manager.name
         )
         builder.add_edge(
-            start_key=self.data_analysis_workflow.name, end_key=self.manager.name
+            start_key=self.data_reporting_workflow.name, end_key=self.manager.name
         )
         graph = builder.compile(name=self.name)
         logger.info(f"Graph {self.name} compiled successfully!")
@@ -106,7 +111,7 @@ class TopLevelWorkflow(BaseWorkflow):
         logger.info(graph.get_graph().draw_ascii())
         return graph
 
-    async def run(self, input_message: str) -> TopLevelStateModel:
+    async def run(self, input_message: str) -> MessagesState:
         logger.info(f"Starting {self.name} with input: '{input_message[:100]}...'")
         input_messages = [HumanMessage(content=input_message)]
         thread_id = str(uuid.uuid4())
@@ -119,12 +124,6 @@ class TopLevelWorkflow(BaseWorkflow):
         ):
             self._pretty_print_messages(chunk, last_message=True)
         result = chunk[1]["manager"]["messages"]
-        # for message in result:
-        #     message.pretty_print()
-        # result = await self.__graph.ainvoke(
-        #     input_state,
-        #     config={"configurable": {"thread_id": thread_id}},
-        # )
         final_message = f"{self.name} complete."
         logger.info(f"{self.name} final result: {final_message}")
         return result

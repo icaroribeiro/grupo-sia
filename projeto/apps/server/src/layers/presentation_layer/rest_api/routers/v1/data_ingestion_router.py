@@ -77,7 +77,7 @@ async def data_ingestion(
     - You must always delegate to ONE AGENT AT TIME.
     - You must wait for the result of the current agent's task before moving to the next stage.
     CRITICAL RULES:
-    - Do NOT ask for additional input. All tasks are fully defined.
+    - DO NOT ask for additional input. All tasks are fully defined.
     - Each stage is dependent on the successful completion of the previous one.
     - DO NOT begin the next stage until the current one is fully completed and verified.
     """
