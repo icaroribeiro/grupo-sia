@@ -13,8 +13,8 @@ from src.layers.business_layer.ai_agents.tools.top_level_handoff_tool import (
     TopLevelHandoffTool,
 )
 from src.layers.business_layer.ai_agents.workflows.base_workflow import BaseWorkflow
-from src.layers.business_layer.ai_agents.workflows.data_reporting_workflow import (
-    DataReportingWorkflow,
+from src.layers.business_layer.ai_agents.workflows.data_analysis_workflow import (
+    DataAnalysisWorkflow,
 )
 from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow import (
     DataIngestionWorkflow,
@@ -27,23 +27,23 @@ class TopLevelWorkflow(BaseWorkflow):
         self,
         chat_model: BaseChatModel,
         data_ingestion_workflow: DataIngestionWorkflow,
-        data_reporting_workflow: DataReportingWorkflow,
+        data_analysis_workflow: DataAnalysisWorkflow,
     ):
         self.name = "top_level_workflow"
         self.chat_model = chat_model
         self.data_ingestion_workflow = data_ingestion_workflow
-        self.data_reporting_workflow = data_reporting_workflow
+        self.data_analysis_workflow = data_analysis_workflow
         delegate_to_data_ingestion_workflow = TopLevelHandoffTool(
             team_name=self.data_ingestion_workflow.name,
         )
-        delegate_to_data_reporting_workflow = TopLevelHandoffTool(
-            team_name=self.data_reporting_workflow.name,
+        delegate_to_data_analysis_workflow = TopLevelHandoffTool(
+            team_name=self.data_analysis_workflow.name,
         )
         self.manager = create_react_agent(
             model=self.chat_model,
             tools=[
                 delegate_to_data_ingestion_workflow,
-                delegate_to_data_reporting_workflow,
+                delegate_to_data_analysis_workflow,
             ],
             prompt=(
                 """
@@ -52,12 +52,12 @@ class TopLevelWorkflow(BaseWorkflow):
                 GOAL:
                 - Your sole purpose is to manage two teams:
                     - A Data Ingestion Team: Assign tasks related to data ingestion to this team.
-                    - A Data Reporting Team: Assign tasks related to data reporting to this team.
+                    - A Data Analysis Team: Assign tasks related to data reporting to this team.
                 INSTRUCTIONS:
                 - Based on the conversation history, decide the next step.
                 - DO NOT do any work yourself.
                 CRITICAL RULES:
-                - ALWAYS assign work to ONE TEAM AT TIME.
+                - ALWAYS assign work to one team at time.
                 - DO NOT call teams in parallel.
                 """
             ),
@@ -70,12 +70,10 @@ class TopLevelWorkflow(BaseWorkflow):
     ) -> MessagesState:
         return await self.data_ingestion_workflow.run(state)
 
-    async def _call_data_reporting_workflow(
+    async def _call_data_analysis_workflow(
         self, state: TopLevelStateModel
     ) -> TopLevelStateModel:
-        print("ABC")
-        print(f"task_description: {state['task_description']}")
-        return await self.data_reporting_workflow.run(
+        return await self.data_analysis_workflow.run(
             input_message=state["task_description"]
         )
 
@@ -86,7 +84,7 @@ class TopLevelWorkflow(BaseWorkflow):
             node=self.manager,
             destinations={
                 self.data_ingestion_workflow.name: self.data_ingestion_workflow.name,
-                self.data_reporting_workflow.name: self.data_reporting_workflow.name,
+                self.data_analysis_workflow.name: self.data_analysis_workflow.name,
             },
         )
         builder.add_node(
@@ -94,8 +92,8 @@ class TopLevelWorkflow(BaseWorkflow):
             action=self._call_data_ingestion_workflow,
         )
         builder.add_node(
-            node=self.data_reporting_workflow.name,
-            action=self._call_data_reporting_workflow,
+            node=self.data_analysis_workflow.name,
+            action=self._call_data_analysis_workflow,
         )
 
         builder.add_edge(start_key=START, end_key=self.manager.name)
@@ -103,7 +101,7 @@ class TopLevelWorkflow(BaseWorkflow):
             start_key=self.data_ingestion_workflow.name, end_key=self.manager.name
         )
         builder.add_edge(
-            start_key=self.data_reporting_workflow.name, end_key=self.manager.name
+            start_key=self.data_analysis_workflow.name, end_key=self.manager.name
         )
         graph = builder.compile(name=self.name)
         logger.info(f"Graph {self.name} compiled successfully!")

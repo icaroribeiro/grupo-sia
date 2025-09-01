@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from src.layers.core_logic_layer.logging import logger
 
 
-class DataReportingHandoffToolInput(BaseModel):
+class DataAnalysisHandoffToolInput(BaseModel):
     task_description: Annotated[
         str,
         Field(
@@ -17,13 +17,13 @@ class DataReportingHandoffToolInput(BaseModel):
     tool_call_id: Annotated[str, InjectedToolCallId] = Field(...)
 
 
-class DataReportingHandoffTool(BaseTool):
+class DataAnalysisHandoffTool(BaseTool):
     name: str = "handoff_tool"
     description: str | None = (
         "Hands off a task to another agent with a description and relevant context."
     )
     agent_name: str
-    args_schema: Type[BaseModel] = DataReportingHandoffToolInput
+    args_schema: Type[BaseModel] = DataAnalysisHandoffToolInput
 
     def __init__(
         self,
