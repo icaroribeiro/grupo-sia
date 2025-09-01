@@ -1,8 +1,11 @@
 import re
 import uuid
 from langchain_core.messages import HumanMessage
-from src.layers.business_layer.ai_agents.tools.data_reporting_handoff_tool import (
-    DataReportingHandoffTool,
+from src.layers.business_layer.ai_agents.models.data_analysis_state_model import (
+    DataAnalysisStateModel,
+)
+from src.layers.business_layer.ai_agents.tools.data_analysis_handoff_tool import (
+    DataAnalysisHandoffTool,
 )
 from src.layers.core_logic_layer.logging import logger
 from langgraph.graph import StateGraph, START, END
@@ -12,44 +15,34 @@ from langchain_core.tools import BaseTool
 from langchain_core.runnables import Runnable
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 import functools
-from langchain_core.messages import BaseMessage, ToolMessage, AIMessage  # noqa: F401
+from langchain_core.messages import BaseMessage  # noqa: F401
 from langgraph.prebuilt import ToolNode  # noqa: F401
-from typing import TypedDict
-from typing import Sequence
-
-from langgraph.graph.message import add_messages
-from typing_extensions import Annotated
 
 
-class NewStateModel(TypedDict):
-    messages: Annotated[Sequence[BaseMessage], add_messages]
-    next_agent: str
-
-
-class DataReportingWorkflow(BaseWorkflow):
+class DataAnalysisWorkflow(BaseWorkflow):
     def __init__(
         self,
         chat_model: BaseChatModel,
         async_query_sql_database_tools: list[BaseTool],
     ):
-        self.name = "data_reporting_team"
+        self.name = "data_analysis_team"
         self.chat_model = chat_model
         self.data_analysis_agent_tools = async_query_sql_database_tools
-        self.delegate_to_data_analysis_agent = DataReportingHandoffTool(
+        self.delegate_to_data_analysis_agent = DataAnalysisHandoffTool(
             agent_name="data_analysis_agent",
         )
-        self.delegate_to_data_reporting_agent = DataReportingHandoffTool(
-            agent_name="data_reporting_agent",
+        self.delegate_to_data_formatting_agent = DataAnalysisHandoffTool(
+            agent_name="data_formatting_agent",
         )
         self.__graph = self.__build_graph()
 
     @staticmethod
     def call_persona(
-        state: NewStateModel,
+        state: DataAnalysisStateModel,
         name: str,
         prompt: str,
         llm_with_tools: Runnable[BaseMessage, BaseMessage],
-    ) -> NewStateModel:
+    ) -> DataAnalysisStateModel:
         logger.info(f"Calling {name} persona...")
         messages = state["messages"]
         # logger.info(f"Messages: {messages}")
@@ -63,68 +56,25 @@ class DataReportingWorkflow(BaseWorkflow):
         result = agent_chain.invoke(messages)
         return {"messages": messages + [result]}
 
-    # @staticmethod
-    # def route_supervisor(
-    #     state: NewStateModel,
-    #     name: str,
-    # ) -> str:
-    #     logger.info(f"Routing from {name}...")
-    #     last_message = state["messages"][-1]
-    #     logger.info(f"Last_message: {last_message}")
-    #     routes_to: str = ""
-    #     # if (
-    #     #     isinstance(last_message, AIMessage)
-    #     #     and "data analysis agent" in last_message.content.lower()
-    #     # ):
-    #     #     routes_to = "data_analysis_agent"
-    #     # if (
-    #     #     isinstance(last_message, AIMessage)
-    #     #     and "data reporting agent" in last_message.content.lower()
-    #     # ):
-    #     #     routes_to = "data_reporting_agent"
-    #     if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-    #         routes_to = "supervisor_tools"
-    #     else:
-    #         routes_to = END
-    #     logger.info(f"To {routes_to}...")
-    #     return routes_to
-
     @staticmethod
     def route_supervisor(
-        state: NewStateModel,
+        state: DataAnalysisStateModel,
         name: str,
     ) -> str:
         logger.info(f"Routing from {name}...")
         last_message = state["messages"][-1]
         logger.info(f"Last_message: {last_message}")
-        # If the last message has tool calls, route to supervisor_tools
+        routes_to: str = ""
         if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-            logger.info("To supervisor_tools...")
-            return "supervisor_tools"
-        # If a ToolMessage for transfer_to_data_analyst_agent exists, but not for transfer_to_data_reporting_agent,
-        # route to supervisor_tools to delegate to data_reporting_agent
-        has_analysis_handoff = any(
-            isinstance(m, ToolMessage) and m.name == "transfer_to_data_analyst_agent"
-            for m in state["messages"]
-        )
-        has_reporting_handoff = any(
-            isinstance(m, ToolMessage) and m.name == "transfer_to_data_reporting_agent"
-            for m in state["messages"]
-        )
-        if has_analysis_handoff and not has_reporting_handoff:
-            logger.info("To supervisor_tools for reporting handoff...")
-            return "supervisor_tools"
-        # If a ToolMessage for transfer_to_data_reporting_agent exists, end the workflow
-        if has_reporting_handoff:
-            logger.info("To END...")
-            return END
-        # Default to supervisor_tools for initial or continued processing
-        logger.info("To supervisor_tools...")
-        return "supervisor_tools"
+            routes_to = "supervisor_tools"
+        else:
+            routes_to = END
+        logger.info(f"To {routes_to}...")
+        return routes_to
 
     @staticmethod
     def route_agent(
-        state: NewStateModel,
+        state: DataAnalysisStateModel,
         name: str,
     ) -> str:
         logger.info(f"Routing from {name} agent...")
@@ -139,7 +89,7 @@ class DataReportingWorkflow(BaseWorkflow):
         return routes_to
 
     @staticmethod
-    def handoff_node(state: NewStateModel) -> dict:
+    def handoff_node(state: DataAnalysisStateModel) -> dict:
         logger.info("Calling handoff_node...")
         last_message = state["messages"][-1]
         logger.info(f"Last_message.content: {last_message.content}")
@@ -158,7 +108,7 @@ class DataReportingWorkflow(BaseWorkflow):
         return {"messages": state["messages"], "next_agent": "supervisor"}
 
     @staticmethod
-    def route_handoff(state: NewStateModel) -> str:
+    def route_handoff(state: DataAnalysisStateModel) -> str:
         logger.info("Routing from handoff_node...")
         # logger.info(f"state: {state}")
         next_agent = state.get("next_agent", "supervisor")
@@ -166,7 +116,7 @@ class DataReportingWorkflow(BaseWorkflow):
         return next_agent
 
     def __build_graph(self) -> StateGraph:
-        builder = StateGraph(state_schema=NewStateModel)
+        builder = StateGraph(state_schema=DataAnalysisStateModel)
 
         builder.add_node(
             "supervisor",
@@ -180,21 +130,17 @@ class DataReportingWorkflow(BaseWorkflow):
                     GOAL:
                     - Your sole purpose is to manage two agents:
                         - A Data Analysis Agent: Assign tasks related to data analysis to this agent.
-                        - A Data Reporting Agent: Assign tasks related to data reporting to this agent.
+                        - A Data Formatting Agent: Assign tasks related to data formatting to this agent.
                     INSTRUCTIONS:
                     - DO NOT do any work yourself.
                     CRITICAL RULES:
-                    - Delegate tasks sequentially: first to Data Analysis Agent, then to Data Reporting Agent.
                     - DO NOT call agents in parallel.
-                    - DO NOT summarize or output a final result until the Data Reporting Agent provides the formatted report.
-                    - If the Data Analysis Agent returns an error, propagate the error to the Data Reporting Agent for reporting.
                     """
                 ),
-                # llm_with_tools=self.chat_model,
                 llm_with_tools=self.chat_model.bind_tools(
                     tools=[
                         self.delegate_to_data_analysis_agent,
-                        self.delegate_to_data_reporting_agent,
+                        self.delegate_to_data_formatting_agent,
                     ]
                 ),
             ),
@@ -222,20 +168,20 @@ class DataReportingWorkflow(BaseWorkflow):
             ),
         )
         builder.add_node(
-            "data_reporting_agent",
+            "data_formatting_agent",
             functools.partial(
                 self.call_persona,
-                name="data_reporting_agent",
+                name="data_formatting_agent",
                 prompt=(
                     """
                     ROLE:
-                    - You're a data reporting agent.
+                    - You're a data formatting agent.
                     GOAL:
-                    - Your sole purpose is to report data.
+                    - Your sole purpose is to format data.
                     - DO NOT perform any other tasks.
                     CRITICAL RULES:
                     - ALWAYS check for any formatting instructions before responding.
-                    - ALWAYS interpret the response, and if it's already in a suitable format, you can return it without any changes.
+                    - Interpret the analysis result and if it's already in a suitable format, you can return it without any changes.
                     """
                 ),
                 llm_with_tools=self.chat_model,
@@ -247,7 +193,7 @@ class DataReportingWorkflow(BaseWorkflow):
             ToolNode(
                 tools=[
                     self.delegate_to_data_analysis_agent,
-                    self.delegate_to_data_reporting_agent,
+                    self.delegate_to_data_formatting_agent,
                 ]
             ),
         )
@@ -256,18 +202,9 @@ class DataReportingWorkflow(BaseWorkflow):
         builder.add_edge(START, "supervisor")
         builder.add_edge("tools", "data_analysis_agent")
         builder.add_edge("supervisor_tools", "handoff_node")
-        # builder.add_edge("data_analysis_agent", "supervisor")
-        # builder.add_edge("data_reporting_agent", "supervisor")
-        # builder.add_edge("handoff_node", "data_analysis_agent")
-        # builder.add_edge("handoff_node", "data_reporting_agent")
         builder.add_conditional_edges(
             "supervisor",
             functools.partial(self.route_supervisor, name="supervisor"),
-            # {
-            #     "data_analysis_agent": "data_analysis_agent",
-            #     # "data_reporting_agent": "data_reporting_agent",
-            #     END: END,
-            # },
             {"supervisor_tools": "supervisor_tools", END: END},
         )
         builder.add_conditional_edges(
@@ -275,7 +212,7 @@ class DataReportingWorkflow(BaseWorkflow):
             self.route_handoff,
             {
                 "data_analysis_agent": "data_analysis_agent",
-                "data_reporting_agent": "data_reporting_agent",
+                "data_formatting_agent": "data_formatting_agent",
                 "supervisor": "supervisor",
             },
         )
@@ -288,8 +225,8 @@ class DataReportingWorkflow(BaseWorkflow):
             },
         )
         builder.add_conditional_edges(
-            "data_reporting_agent",
-            functools.partial(self.route_agent, name="data_reporting_agent"),
+            "data_formatting_agent",
+            functools.partial(self.route_agent, name="data_formatting_agent"),
             {
                 "supervisor": "supervisor",
             },
@@ -301,7 +238,7 @@ class DataReportingWorkflow(BaseWorkflow):
         logger.info(graph.get_graph().draw_ascii())
         return graph
 
-    async def run(self, input_message: str) -> NewStateModel:
+    async def run(self, input_message: str) -> DataAnalysisStateModel:
         logger.info(f"Starting {self.name} with input: '{input_message[:100]}...'")
         input_messages = [HumanMessage(content=input_message)]
         thread_id = str(uuid.uuid4())

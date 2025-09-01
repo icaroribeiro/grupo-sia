@@ -1,10 +1,10 @@
 from openai import BaseModel
 
 
-class DataReportingRequest(BaseModel):
+class DataAnalysisRequest(BaseModel):
     question: str
     format_instructions: dict | None = None
 
 
-class DataReportingResponse(BaseModel):
+class DataAnalysisResponse(BaseModel):
     answer: str | dict

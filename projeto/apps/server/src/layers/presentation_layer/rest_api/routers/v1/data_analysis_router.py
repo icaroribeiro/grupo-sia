@@ -8,55 +8,53 @@ from src.layers.business_layer.ai_agents.workflows.top_level_workflow import (
 )
 from src.layers.core_logic_layer.container.container import Container
 from src.layers.core_logic_layer.logging import logger
-from src.layers.presentation_layer.rest_api.schemas.data_reporting_schema import (
-    DataReportingRequest,
-    DataReportingResponse,
+from src.layers.presentation_layer.rest_api.schemas.data_analysis_schema import (
+    DataAnalysisRequest,
+    DataAnalysisResponse,
 )
 
 router = APIRouter()
 
 
 @router.post(
-    "/data-reporting",
-    response_model=DataReportingResponse,
+    "/data-analysis",
+    response_model=DataAnalysisResponse,
     response_model_exclude_none=True,
     status_code=status.HTTP_200_OK,
 )
 @inject
-async def data_reporting(
+async def data_analysis(
     response: Response,
-    data_reporting_request: DataReportingRequest,
+    data_analysis_request: DataAnalysisRequest,
     top_level_workflow: TopLevelWorkflow = Depends(
         Provide[Container.top_level_workflow]
     ),
 ):
-    prompt = """
+    input_message = """
     INSTRUCTIONS:
-    - Perform a multi-step procedure to report data based on the user question.
+    - Perform a multi-step procedure to analyze data based on the user's question.
     - The procedure consists of the following tasks executed only by the team responsible for data reporting.
-        1. Analyze the user question accurately: {question}
-        2. Report the answer to user question objectively.
+        1. Analyze the user's question accurately: {question}
     """
-    if not data_reporting_request.format_instructions:
-        input_message = prompt.format(question=data_reporting_request.question)
+    if not data_analysis_request.format_instructions:
+        input_message = input_message.format(question=data_analysis_request.question)
     else:
         # This creates a string similar to what JsonOutputParser().get_format_instructions() would produce.
         format_instructions = json.dumps(
-            data_reporting_request.format_instructions, indent=2
+            data_analysis_request.format_instructions, indent=2
         )
-        prompt += """
-        CRITICAL RULES:
-        - Your final answer MUST be a JSON object that strictly adheres to the following JSON schema. 
-        - Do not include any other text or explanations outside of the JSON object itself.\n
+        input_message += """
+        2. Format the final answer to the user's question as a JSON object that strictly adheres to the following schema:
         ```json
         {format_instructions}
         ```
+        CRITICAL RULES:
+        - DO NOT include any other text or explanations outside of the JSON object itself.\n
         """
-        input_message = prompt.format(
-            question=data_reporting_request.question,
+        input_message = input_message.format(
+            question=data_analysis_request.question,
             format_instructions=format_instructions,
         )
-
     result = await top_level_workflow.run(input_message=input_message)
     logger.info(f"Final result: {result}")
 
@@ -64,8 +62,8 @@ async def data_reporting(
     try:
         clean_json_string = content.strip("`\n").lstrip("json\n").rstrip("`")
         data_object = json.loads(clean_json_string)
-        return DataReportingResponse(answer=data_object)
+        return DataAnalysisResponse(answer=data_object)
     except json.JSONDecodeError:
         logger.info("The content is not valid JSON.")
 
-    return DataReportingResponse(answer=content)
+    return DataAnalysisResponse(answer=content)
