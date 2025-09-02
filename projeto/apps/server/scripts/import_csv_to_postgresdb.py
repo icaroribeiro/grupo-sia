@@ -8,8 +8,8 @@ from src.layers.business_layer.ai_agents.models.invoice_item_ingestion_config_mo
     InvoiceItemIngestionConfigModel,
 )
 from src.layers.business_layer.ai_agents.models.tool_output_model import ToolOutputModel
-from src.layers.business_layer.ai_agents.tools.insert_ingestion_args_into_database_tool import (
-    InsertIngestionArgsIntoDatabaseTool,
+from src.layers.business_layer.ai_agents.tools.insert_records_into_database_tool import (
+    InsertRecordsIntoDatabaseTool,
 )
 from src.layers.business_layer.ai_agents.tools.map_csvs_to_ingestion_args_tool import (
     MapCSVsToIngestionArgsTool,
@@ -70,12 +70,12 @@ async def main() -> None:
         SQLAlchemyInvoiceModel.get_table_name(): SQLAlchemyInvoiceModel,
         SQLAlchemyInvoiceItemModel.get_table_name(): SQLAlchemyInvoiceItemModel,
     }
-    insert_ingestion_args_into_database_tool = InsertIngestionArgsIntoDatabaseTool(
+    insert_records_into_database_tool = InsertRecordsIntoDatabaseTool(
         postgresdb=postgresdb,
         sqlalchemy_model_by_table_name=sqlalchemy_model_by_table_name,
         ingestion_config_dict=ingestion_config_dict,
     )
-    tool_output: ToolOutputModel = await insert_ingestion_args_into_database_tool._arun(
+    tool_output: ToolOutputModel = await insert_records_into_database_tool._arun(
         ingestion_args_list=ingestion_args_list
     )
     if tool_output.result is None:

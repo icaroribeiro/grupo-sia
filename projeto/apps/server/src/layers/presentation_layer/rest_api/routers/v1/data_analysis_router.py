@@ -33,7 +33,7 @@ async def data_analysis(
     input_message = """
     INSTRUCTIONS:
     - Perform a multi-step procedure to analyze data based on the user's question.
-    - The procedure consists of the following tasks executed only by the team responsible for data reporting.
+    - The procedure consists of the following tasks executed only by the team responsible for data analysis.
         1. Analyze the user's question accurately: {question}
     """
     if not data_analysis_request.format_instructions:
@@ -49,15 +49,15 @@ async def data_analysis(
         {format_instructions}
         ```
         CRITICAL RULES:
-        - DO NOT include any other text or explanations outside of the JSON object itself.\n
+        - A JSON object must always be returned, not a string of a JSON object.
+        - DO NOT include any other text or explanations outside of the JSON object itself.
         """
         input_message = input_message.format(
             question=data_analysis_request.question,
             format_instructions=format_instructions,
         )
     result = await top_level_workflow.run(input_message=input_message)
-    logger.info(f"Final result: {result}")
-
+    logger.info(f"API request final result: {result}")
     content = result[-1].content
     try:
         clean_json_string = content.strip("`\n").lstrip("json\n").rstrip("`")
@@ -65,5 +65,4 @@ async def data_analysis(
         return DataAnalysisResponse(answer=data_object)
     except json.JSONDecodeError:
         logger.info("The content is not valid JSON.")
-
     return DataAnalysisResponse(answer=content)

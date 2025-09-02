@@ -43,7 +43,7 @@ class DataAnalysisHandoffTool(BaseTool):
         logger.info(f"Executing handoff to {self.agent_name}...")
         logger.info(f"Task description for next agent: {task_description}")
         return ToolMessage(
-            content=f"transfer_to_agent:{self.agent_name}::task:{task_description}",
+            content=f"transfer_to_agent={self.agent_name}::task={task_description}",
             name=self.name,
             tool_call_id=tool_call_id,
         )

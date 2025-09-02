@@ -3,12 +3,6 @@ import os
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, File, Response, UploadFile, status
 
-from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow import (
-    DataIngestionWorkflow,
-)
-from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow_2 import (
-    DataIngestionWorkflow2,
-)
 from src.layers.business_layer.ai_agents.workflows.top_level_workflow import (
     TopLevelWorkflow,
 )
@@ -25,20 +19,14 @@ router = APIRouter()
 @router.post(
     "/data-ingestion",
     response_model=DataIngestionResponse,
-    status_code=status.HTTP_201_CREATED,
     response_model_exclude_none=True,
+    status_code=status.HTTP_200_OK,
 )
 @inject
 async def data_ingestion(
     response: Response,
     file: UploadFile = File(...),
     config: dict = Depends(Provide[Container.config]),
-    data_ingestion_workflow: DataIngestionWorkflow = Depends(
-        Provide[Container.data_ingestion_workflow]
-    ),
-    data_ingestion_workflow_2: DataIngestionWorkflow2 = Depends(
-        Provide[Container.data_ingestion_workflow_2]
-    ),
     top_level_workflow: TopLevelWorkflow = Depends(
         Provide[Container.top_level_workflow]
     ),
@@ -68,18 +56,10 @@ async def data_ingestion(
     ingestion_dir_path = config["app_settings"].ingestion_data_dir_path
     prompt = """
     INSTRUCTIONS:     
-    - Perform a multi-step procedure to insert records into database.
-    - The procedure consists of three stages executed by ONLY the data ingestion team, and you must delegate the work to a single agent for each stage in the order listed.
-    - The stages are:
+    - Perform a multi-step procedure to insert invoice and invoice items records into database.
+    - The procedure consists of the following tasks executed only by the team responsible for data ingestion.
         1. Unzip files from ZIP archive located at '{file_path}' to the directory '{extracted_dir_path}'.
-        2. Map CSV files to ingestion arguments to the directory '{ingestion_dir_path}'.
-        3. Insert records from ingestion arguments into database.
-    - You must always delegate to ONE AGENT AT TIME.
-    - You must wait for the result of the current agent's task before moving to the next stage.
-    CRITICAL RULES:
-    - DO NOT ask for additional input. All tasks are fully defined.
-    - Each stage is dependent on the successful completion of the previous one.
-    - DO NOT begin the next stage until the current one is fully completed and verified.
+        2. Map extracted CSV files to database ingestion arguments to the directory '{ingestion_dir_path}'.
     """
     input_message = prompt.format(
         file_path=file_path,
@@ -87,36 +67,9 @@ async def data_ingestion(
         ingestion_dir_path=ingestion_dir_path,
     )
 
-    # result = await data_ingestion_workflow.run(input_message=input_message)
     result = await top_level_workflow.run(input_message=input_message)
-    logger.info(f"result: {result}")
-    # answer: str = result[-1].content
-    # logger.info(f"Final result: {answer}")
+    logger.info(f"API request final result: {result}")
     content = result[-1].content
     return DataIngestionResponse(status=content)
 
-    # prompt = """
-    # INSTRUCTIONS:
-    # - Perform a multi-step data ingestion procedure to insert records into database.
-    # - The data ingestion consists of three stages, and you must delegate the work to a single agent for each stage in the order listed.
-    # - The stages are:
-    # 1. Unzip files from ZIP Archive located at '{file_path}'
-    #     - You MUST send files to the destionation directory '{extracted_dir_path}'
-    #     - You MUST inform the result of this stage to the agent responsible for the next stage.
-    # 2. Map extracted CSV files to ingestion arguments
-    #     - You MUST save files in destionation directory '{ingestion_dir_path}'.
-    #     - You MUST inform the result of this stage to the agent responsible for the next stage.
-    # 3. Insert Ingestion Arguments Into Database.
-    #     - The result of this stage contains information about inserting records into the database.
-    # INSTRUCTIONS:
-    # - You must always pay attention to the result of a stage execution to get any data needed to perfom the next stage.
-    # - You must delegate to one agent at time inside the team and inform the result of a previous tool call when needed.
-    # - You must wait for the result of the current agent's task before moving to the next stage and always inform the destination directory in your request when it is necessary.
-    # CRITICAL RULES:
-    # - Only one team is in charge of executing all the stages.
-    # - Do NOT ask for additional input. All tasks are fully defined.
-    # - Each stage is dependent on the successful completion of the previous one.
-    # - DO NOT begin the next stage until the current one is fully completed and verified.
-    # """
-
-    # 3. Insert Ingestion Arguments Into Database.
+    # 3. Insert invoice and invoice item records from ingestion arguments into database.
