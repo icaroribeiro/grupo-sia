@@ -7,8 +7,8 @@ from src.layers.business_layer.ai_agents.llm.llm import LLM
 from src.layers.business_layer.ai_agents.toolkits.async_sql_database_toolkit import (
     AsyncSQLDatabaseToolkit,
 )
-from src.layers.business_layer.ai_agents.tools.insert_ingestion_args_into_database_tool import (
-    InsertIngestionArgsIntoDatabaseTool,
+from src.layers.business_layer.ai_agents.tools.insert_records_into_database_tool import (
+    InsertRecordsIntoDatabaseTool,
 )
 from src.layers.business_layer.ai_agents.tools.map_csvs_to_ingestion_args_tool import (
     MapCSVsToIngestionArgsTool,
@@ -21,9 +21,6 @@ from src.layers.business_layer.ai_agents.workflows.data_analysis_workflow import
 )
 from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow import (
     DataIngestionWorkflow,
-)
-from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow_2 import (
-    DataIngestionWorkflow2,
 )
 from src.layers.business_layer.ai_agents.workflows.top_level_workflow import (
     TopLevelWorkflow,
@@ -54,11 +51,13 @@ class Container(containers.DeclarativeContainer):
     unzip_files_from_zip_archive_tool = providers.Singleton(
         UnzipFilesFromZipArchiveTool
     )
+
     map_csvs_to_ingestion_args_tool = providers.Singleton(
         MapCSVsToIngestionArgsTool, ingestion_config_dict=config.ingestion_config_dict
     )
-    insert_ingestion_args_into_database_tool = providers.Singleton(
-        InsertIngestionArgsIntoDatabaseTool,
+
+    insert_records_into_database_tool = providers.Singleton(
+        InsertRecordsIntoDatabaseTool,
         postgresdb=postgresdb,
         sqlalchemy_model_by_table_name=config.sqlalchemy_model_by_table_name,
         ingestion_config_dict=config.ingestion_config_dict,
@@ -69,15 +68,7 @@ class Container(containers.DeclarativeContainer):
         chat_model=llm.provided.chat_model,
         unzip_files_from_zip_archive_tool=unzip_files_from_zip_archive_tool,
         map_csvs_to_ingestion_args_tool=map_csvs_to_ingestion_args_tool,
-        insert_ingestion_args_into_database_tool=insert_ingestion_args_into_database_tool,
-    )
-
-    data_ingestion_workflow_2 = providers.Singleton(
-        DataIngestionWorkflow2,
-        chat_model=llm.provided.chat_model,
-        unzip_files_from_zip_archive_tool=unzip_files_from_zip_archive_tool,
-        map_csvs_to_ingestion_args_tool=map_csvs_to_ingestion_args_tool,
-        insert_ingestion_args_into_database_tool=insert_ingestion_args_into_database_tool,
+        insert_records_into_database_tool=insert_records_into_database_tool,
     )
 
     async_sql_database_toolkit = providers.Singleton(
