@@ -8,3 +8,4 @@ from typing_extensions import Annotated
 class DataIngestionStateModel(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
     next_agent: str
+    ingestion_args_list: list[dict[str, str]]

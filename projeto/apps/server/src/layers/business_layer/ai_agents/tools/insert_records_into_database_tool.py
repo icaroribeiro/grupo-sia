@@ -10,12 +10,16 @@ from src.layers.data_access_layer.postgresdb.models.base_model import (
 )
 from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB
 from langchain_core.messages import ToolMessage
+from typing import Annotated
+
+from langchain_core.tools import InjectedToolCallId
 
 
 class InsertRecordsIntoDatabaseInput(BaseModel):
     ingestion_args_list: list[dict[str, str]] = Field(
         ..., description="List of ingestion arguments."
     )
+    tool_call_id: Annotated[str, InjectedToolCallId] = Field(...)
 
 
 class InsertRecordsIntoDatabaseTool(BaseTool):
@@ -57,7 +61,7 @@ class InsertRecordsIntoDatabaseTool(BaseTool):
                     if table_name not in self.sqlalchemy_model_by_table_name:
                         logger.error(f"Error: Invalid table name '{table_name}'")
                         return ToolMessage(
-                            content=f"result=Table name {table_name} is invalid.",
+                            content="total_count:0",
                             name=self.name,
                             tool_call_id=tool_call_id,
                         )
@@ -77,7 +81,7 @@ class InsertRecordsIntoDatabaseTool(BaseTool):
                         message = f"Error: Failed to find file at {file_path}: {error}"
                         logger.error(message)
                         return ToolMessage(
-                            content="result=None",
+                            content="total_count:0",
                             name=self.name,
                             tool_call_id=tool_call_id,
                         )
@@ -85,7 +89,7 @@ class InsertRecordsIntoDatabaseTool(BaseTool):
                         message = f"Error: Failed to decode data from file {file_path}: {error}"
                         logger.error(message)
                         return ToolMessage(
-                            content="result=None",
+                            content="total_count:0",
                             name=self.name,
                             tool_call_id=tool_call_id,
                         )
@@ -93,7 +97,7 @@ class InsertRecordsIntoDatabaseTool(BaseTool):
                         message = f"Error: Failed to read file {file_path}: {error}"
                         logger.error(message)
                         return ToolMessage(
-                            content="result=None",
+                            content="total_count:0",
                             name=self.name,
                             tool_call_id=tool_call_id,
                         )
@@ -131,7 +135,7 @@ class InsertRecordsIntoDatabaseTool(BaseTool):
                                 f"Error processing record for {table_name}: {error}"
                             )
                             return ToolMessage(
-                                content=f"result={str(error)}.",
+                                content="total_count:0",
                                 name=self.name,
                                 tool_call_id=tool_call_id,
                             )
@@ -146,7 +150,7 @@ class InsertRecordsIntoDatabaseTool(BaseTool):
             # Catch any other unexpected errors during the session.
             logger.error(f"An unexpected error occurred in the tool: {error}")
             return ToolMessage(
-                content=f"result={str(error)}.",
+                content="total_count:0",
                 name=self.name,
                 tool_call_id=tool_call_id,
             )
@@ -154,7 +158,7 @@ class InsertRecordsIntoDatabaseTool(BaseTool):
         if not any(count_map.values()):
             logger.warning("Warning: No new records were available to insert.")
             return ToolMessage(
-                content="result=No new records inserted.",
+                content="total_count:0",
                 name=self.name,
                 tool_call_id=tool_call_id,
             )
@@ -167,12 +171,14 @@ class InsertRecordsIntoDatabaseTool(BaseTool):
                 )
 
         return ToolMessage(
-            content=f"result=Successfully inserted {total_count} records.",
+            content=f"total_count:{total_count}",
             name=self.name,
             tool_call_id=tool_call_id,
         )
 
-    def _run(self, ingestion_args_list: list[dict[str, str]]) -> ToolMessage:
+    def _run(
+        self, ingestion_args_list: list[dict[str, str]], tool_call_id: str
+    ) -> ToolMessage:
         message = "Warning: Synchronous execution is not supported. Use _arun instead."
         logger.warning(message)
         raise NotImplementedError(message)

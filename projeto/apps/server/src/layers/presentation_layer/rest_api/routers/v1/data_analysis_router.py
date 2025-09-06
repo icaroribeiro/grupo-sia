@@ -1,12 +1,11 @@
 import json
 
-from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, Response, status
 
 from src.layers.business_layer.ai_agents.workflows.top_level_workflow import (
     TopLevelWorkflow,
 )
-from src.layers.core_logic_layer.container.container import Container
+from src.layers.core_logic_layer.dependencies.dependencies import Dependencies
 from src.layers.core_logic_layer.logging import logger
 from src.layers.presentation_layer.rest_api.schemas.data_analysis_schema import (
     DataAnalysisRequest,
@@ -22,13 +21,10 @@ router = APIRouter()
     response_model_exclude_none=True,
     status_code=status.HTTP_200_OK,
 )
-@inject
 async def data_analysis(
     response: Response,
     data_analysis_request: DataAnalysisRequest,
-    top_level_workflow: TopLevelWorkflow = Depends(
-        Provide[Container.top_level_workflow]
-    ),
+    top_level_workflow: TopLevelWorkflow = Depends(Dependencies.get_top_level_workflow),
 ):
     input_message = """
     INSTRUCTIONS:

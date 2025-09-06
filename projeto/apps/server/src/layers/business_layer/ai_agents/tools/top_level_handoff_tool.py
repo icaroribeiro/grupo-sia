@@ -8,12 +8,12 @@ from src.layers.core_logic_layer.logging import logger
 
 
 class TopLevelHandoffToolInput(BaseModel):
-    # task_description: Annotated[
-    #     str,
-    #     Field(
-    #         description="Description of what the next team should do, including all of the relevant context."
-    #     ),
-    # ]
+    task_description: Annotated[
+        str,
+        Field(
+            description="Description of what the next team should do, including all of the relevant context."
+        ),
+    ]
     tool_call_id: Annotated[str, InjectedToolCallId] = Field(...)
 
 
@@ -37,26 +37,26 @@ class TopLevelHandoffTool(BaseTool):
 
     async def _arun(
         self,
-        # task_description: str,
+        task_description: str,
         tool_call_id: Annotated[str, InjectedToolCallId],
     ) -> ToolMessage:
         logger.info(f"Executing handoff to {self.team_name}...")
-        # logger.info(f"Task description for next team: {task_description}")
+        logger.info(f"Task description for next team: {task_description}")
         return ToolMessage(
-            # content=f"transfer_to_team={self.team_name}::task={task_description}",
-            content=f"transfer_to_team={self.team_name}",
+            content=f"transfer_to_team={self.team_name}::task={task_description}",
+            # content=f"transfer_to_team={self.team_name}",
             name=self.name,
             tool_call_id=tool_call_id,
         )
 
     def _run(
         self,
-        # task_description: Annotated[
-        #     str,
-        #     Field(
-        #         description="Description of what the next team should do, including all of the relevant context."
-        #     ),
-        # ],
+        task_description: Annotated[
+            str,
+            Field(
+                description="Description of what the next team should do, including all of the relevant context."
+            ),
+        ],
         tool_call_id: Annotated[str, InjectedToolCallId],
     ) -> ToolMessage:
         message = "Warning: Synchronous execution is not supported. Use _arun instead."

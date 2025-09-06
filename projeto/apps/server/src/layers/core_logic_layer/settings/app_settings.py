@@ -13,5 +13,6 @@ class AppSettings(BaseSettings):
 
     port: int = Field(default=8000)
     host: str = Field(default="localhost")
-    ingestion_data_dir_path: str = Field(default="data/ingestion")
     upload_data_dir_path: str = Field(default="data/upload")
+    upload_extracted_data_dir_path: str = Field(default="data/upload/extracted")
+    ingestion_data_dir_path: str = Field(default="data/ingestion")

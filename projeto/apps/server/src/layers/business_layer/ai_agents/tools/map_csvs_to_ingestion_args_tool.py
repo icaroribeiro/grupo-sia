@@ -4,27 +4,17 @@ from typing import Annotated, Any, Type
 
 import pandas as pd
 from langchain_core.messages import ToolMessage
-
-# from src.layers.business_layer.ai_agents.models.tool_output_model import (
-#     ToolOutputModel,
-# )
 from langchain_core.tools import BaseTool, InjectedToolCallId
-from langgraph.prebuilt import InjectedState
 from langgraph.types import Command
 from pydantic import BaseModel, Field
 
-from src.layers.business_layer.ai_agents.models.data_ingestion_state_model import (
-    DataIngestionStateModel,
-)
 from src.layers.core_logic_layer.logging import logger
 
 
 class MapCSVsToIngestionArgsInput(BaseModel):
+    csv_file_paths: list[str] = Field(..., description="Paths of extracted CSV files.")
     destination_dir_path: str = Field(
         ..., description="Path to the destination directory."
-    )
-    state: Annotated[DataIngestionStateModel, InjectedState] = Field(
-        ..., description="Current state of messages."
     )
     tool_call_id: Annotated[str, InjectedToolCallId] = Field(...)
 
@@ -48,12 +38,11 @@ class MapCSVsToIngestionArgsTool(BaseTool):
 
     def _run(
         self,
+        csv_file_paths: list[str],
         destination_dir_path: str,
-        state: Annotated[DataIngestionStateModel, InjectedState],
         tool_call_id: str,
     ) -> Command:
         logger.info(f"Calling {self.name}...")
-        csv_file_paths = state.get("csv_file_paths")
         try:
             ingestion_args: list[dict[str, str]] = list()
             for file_path in csv_file_paths:
@@ -74,32 +63,26 @@ class MapCSVsToIngestionArgsTool(BaseTool):
                                 f"Error: Failed to find file at {file_path}: {error}"
                             )
                             logger.error(message)
-                            # return ToolOutputModel(status=Status.FAILED, result=None)
-                            return Command(
-                                update={
-                                    "ingestion_args": [],
-                                    "messages": [message],
-                                }
+                            return ToolMessage(
+                                content="ingestion_args_list:[]",
+                                name=self.name,
+                                tool_call_id=tool_call_id,
                             )
                         except UnicodeDecodeError as error:
                             message = f"Error: Failed to decode data from file {file_path}: {error}"
                             logger.error(message)
-                            # return ToolOutputModel(status=Status.FAILED, result=None)
-                            return Command(
-                                update={
-                                    "ingestion_args": [],
-                                    "messages": [message],
-                                }
+                            return ToolMessage(
+                                content="ingestion_args_list:[]",
+                                name=self.name,
+                                tool_call_id=tool_call_id,
                             )
                         except Exception as error:
                             message = f"Error: Failed to read file {file_path}: {error}"
                             logger.error(message)
-                            # return ToolOutputModel(status=Status.FAILED, result=None)
-                            return Command(
-                                update={
-                                    "ingestion_args": [],
-                                    "messages": [message],
-                                }
+                            return ToolMessage(
+                                content="ingestion_args_list:[]",
+                                name=self.name,
+                                tool_call_id=tool_call_id,
                             )
 
                         df_concatenated: pd.DataFrame = pd.DataFrame()
@@ -146,36 +129,28 @@ class MapCSVsToIngestionArgsTool(BaseTool):
                                 ),
                             }
                         )
-            # return ToolOutputModel(status=Status.SUCCEED, result=ingestion_args)
-            tool_output_message = ToolMessage(
-                content=str(ingestion_args),
+            return ToolMessage(
+                content=f"ingestion_args_list:{str(ingestion_args)}",
+                name=self.name,
                 tool_call_id=tool_call_id,
-            )
-            return Command(
-                update={
-                    "ingestion_args": ingestion_args,
-                    "message": [tool_output_message],
-                }
             )
         except Exception as error:
             message = f"Error: {str(error)}"
             logger.error(message)
-            # return ToolOutputModel(status=Status.FAILED, result=None)
-            return Command(
-                update={
-                    "ingestion_args": [],
-                    "messages": [message],
-                }
+            return ToolMessage(
+                content="ingestion_args_list:[]",
+                name=self.name,
+                tool_call_id=tool_call_id,
             )
 
     async def _arun(
         self,
+        csv_file_paths: list[str],
         destination_dir_path: str,
-        state: Annotated[DataIngestionStateModel, InjectedState],
         tool_call_id: str,
-    ) -> Command:
+    ) -> ToolMessage:
         return self._run(
+            csv_file_paths=csv_file_paths,
             destination_dir_path=destination_dir_path,
-            state=state,
             tool_call_id=tool_call_id,
         )

@@ -28,19 +28,17 @@ class UnzipFilesFromZipArchiveTool(BaseTool):
         logger.info(f"Calling {self.name}...")
         try:
             os.makedirs(destination_dir_path, exist_ok=True)
-            extracted_files = []
+            extracted_file_paths = []
             with zipfile.ZipFile(file_path, "r") as zip_ref:
                 zip_ref.extractall(destination_dir_path)
-                extracted_files = [
+                extracted_file_paths = [
                     os.path.join(destination_dir_path, name)
                     for name in zip_ref.namelist()
                     if not name.endswith("/")
                 ]
             return ToolMessage(
-                content=f"result:{
-                    str(
-                        [file.replace('\\', '/') for file in extracted_files],
-                    )
+                content=f"csv_file_paths:{
+                    [file.replace('\\', '/') for file in extracted_file_paths]
                 }",
                 name=self.name,
                 tool_call_id=tool_call_id,
@@ -49,7 +47,7 @@ class UnzipFilesFromZipArchiveTool(BaseTool):
             message = f"Error: {str(error)}"
             logger.error(message)
             return ToolMessage(
-                content="result:[]",
+                content="csv_file_paths:[]",
                 name=self.name,
                 tool_call_id=tool_call_id,
             )
