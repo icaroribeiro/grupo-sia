@@ -93,41 +93,41 @@ class TopLevelWorkflow(BaseWorkflow):
         #     input_message=state["task_description"]
         # )
 
-    # @staticmethod
-    # def handoff_node(state: TopLevelStateModel) -> TopLevelStateModel:
-    #     logger.info("Calling handoff_node...")
-    #     last_message = state["messages"][-1]
-    #     logger.info(f"Last_message.content: {last_message.content}")
-    #     pattern = r"transfer_to_team=(\w+)::task=(.+)"
-    #     match = re.search(pattern, last_message.content)
-    #     if match:
-    #         team_name = match.group(1)
-    #         task_description = match.group(2)
-    #         logger.info(f"Parsed team: {team_name}, task= {task_description}")
-    #         new_task_message = HumanMessage(content=task_description)
-    #         return {
-    #             "messages": state["messages"] + [new_task_message],
-    #             "next_team": team_name,
-    #         }
-    #     logger.warning("No valid team transfer found in handoff_node")
-    #     return {"messages": state["messages"], "next_team": "manager"}
-
     @staticmethod
     def handoff_node(state: TopLevelStateModel) -> TopLevelStateModel:
         logger.info("Calling handoff_node...")
         last_message = state["messages"][-1]
         logger.info(f"Last_message.content: {last_message.content}")
-        pattern = r"transfer_to_team=(\w+)"
+        pattern = r"transfer_to_team=(\w+)::task=(.+)"
         match = re.search(pattern, last_message.content)
         if match:
             team_name = match.group(1)
-            logger.info(f"Parsed team: {team_name}")
+            task_description = match.group(2)
+            logger.info(f"Parsed team: {team_name}, task= {task_description}")
+            new_task_message = HumanMessage(content=task_description)
             return {
-                "messages": state["messages"],
+                "messages": state["messages"] + [new_task_message],
                 "next_team": team_name,
             }
         logger.warning("No valid team transfer found in handoff_node")
         return {"messages": state["messages"], "next_team": "manager"}
+
+    # @staticmethod
+    # def handoff_node(state: TopLevelStateModel) -> TopLevelStateModel:
+    #     logger.info("Calling handoff_node...")
+    #     last_message = state["messages"][-1]
+    #     logger.info(f"Last_message.content: {last_message.content}")
+    #     pattern = r"transfer_to_team=(\w+)"
+    #     match = re.search(pattern, last_message.content)
+    #     if match:
+    #         team_name = match.group(1)
+    #         logger.info(f"Parsed team: {team_name}")
+    #         return {
+    #             "messages": state["messages"],
+    #             "next_team": team_name,
+    #         }
+    #     logger.warning("No valid team transfer found in handoff_node")
+    #     return {"messages": state["messages"], "next_team": "manager"}
 
     @staticmethod
     def route_handoff(state: TopLevelStateModel) -> str:
