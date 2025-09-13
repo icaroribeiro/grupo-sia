@@ -11,13 +11,13 @@ Este desafio consiste no desenvolvimento de uma aplicação para automação da 
 
 A aplicação foi desenvolvida com base em múltiplos agentes de IA utilizando [**Python**](https://www.python.org/) e [**LangGraph**](https://www.langchain.com/langgraph).
 
-A seguir, é apresentado o fluxo de trabalho (_workflow_) da aplicação indicando que existe um Agente Supervisor (`supervisor`) e a representação de três agentes assistentes que trabalham em conjunto para a criação do arquivo XLSX:
+A seguir, é apresentado o fluxo de trabalho da aplicação indicando que existe um Agente Supervisor (`supervisor`) e três nós de agentes especializados que trabalham em conjunto para o processamento de dados e geração de planilhas nos formatos CSV e XLSX:
 
-1. O Agente de Coleta de Dados (`data_gathering_agent`)
-2. O Agente de Análise de Dados (`data_analysis_agent`)
-3. O Agente de Reporte de Dados (`data_reporting_agent`)
+1. O nó de manipulação de dados (`data_wrangling_node`)
+2. O nó de análise de dados (`data_analysis_node`)
+3. O nó de reporte de dados (`data_reporting_node`)
 
-![texto alternativo](assets/images/MealVoucherWorkflow.png)
+![texto alternativo](assets/images/meal_voucher_workflow.png)
 
 ## Como configurar a aplicação?
 
