@@ -20,7 +20,7 @@ from langgraph.graph import StateGraph, MessagesState, START
 import uuid
 from langchain_core.messages import HumanMessage
 from langgraph.prebuilt import create_react_agent
-from src.layers.core_logic_layer.settings import app_settings
+from src.layers.core_logic_layer.settings.app_settings import AppSettings
 
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 from langchain.agents.agent_types import AgentType
@@ -29,11 +29,13 @@ from langchain.agents.agent_types import AgentType
 class MealVoucherWorkflow(BaseWorkflow):
     def __init__(
         self,
+        app_settings: AppSettings,
         chat_model: BaseChatModel,
         dataframes_dict: dict[str, DataFrameParams],
         extract_absense_return_date_tool: ExtractAbsenseReturnDateTool,
         calculate_absense_days_tool: CalculateAbsenseDaysTool,
     ):
+        self.app_settings = app_settings
         self.name = "meal_voucher_team"
         self.chat_model = chat_model
         self.dataframes_dict = dataframes_dict
@@ -129,7 +131,7 @@ class MealVoucherWorkflow(BaseWorkflow):
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "df_partial_wrangling_result_1.csv",
             ),
         )
@@ -147,7 +149,7 @@ class MealVoucherWorkflow(BaseWorkflow):
         all_results.append(result)
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "df_partial_wrangling_result_1.csv",
             ),
             header=0,
@@ -183,7 +185,7 @@ class MealVoucherWorkflow(BaseWorkflow):
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "df_partial_wrangling_result_2.csv",
             ),
         )
@@ -201,7 +203,7 @@ class MealVoucherWorkflow(BaseWorkflow):
         all_results.append(result)
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "df_partial_wrangling_result_2.csv",
             ),
             header=0,
@@ -239,7 +241,7 @@ class MealVoucherWorkflow(BaseWorkflow):
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "df_partial_wrangling_result_3.csv",
             ),
         )
@@ -257,7 +259,7 @@ class MealVoucherWorkflow(BaseWorkflow):
         all_results.append(result)
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "df_partial_wrangling_result_3.csv",
             ),
             header=0,
@@ -329,7 +331,7 @@ class MealVoucherWorkflow(BaseWorkflow):
         formatted_input: str = input.format(
             state_mapping=STATE_MAPPING,
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "df_partial_wrangling_result_4.csv",
             ),
         )
@@ -363,7 +365,7 @@ class MealVoucherWorkflow(BaseWorkflow):
         dataframes_dict["df_employee_absense"].content = df_employee_absense
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "df_partial_wrangling_result_4.csv",
             ),
             header=0,
@@ -395,7 +397,7 @@ class MealVoucherWorkflow(BaseWorkflow):
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "df_partial_wrangling_result_5.csv",
             ),
         )
@@ -413,7 +415,7 @@ class MealVoucherWorkflow(BaseWorkflow):
         all_results.append(result)
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "df_partial_wrangling_result_5.csv",
             ),
             header=0,
@@ -574,7 +576,7 @@ class MealVoucherWorkflow(BaseWorkflow):
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "df_partial_wrangling_result_6.csv",
             ),
         )
@@ -604,7 +606,7 @@ class MealVoucherWorkflow(BaseWorkflow):
         all_results = []
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "df_partial_wrangling_result_6.csv",
             ),
             header=0,
@@ -644,7 +646,7 @@ class MealVoucherWorkflow(BaseWorkflow):
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "df_partial_analysis_result_1.csv",
             ),
         )
@@ -662,7 +664,7 @@ class MealVoucherWorkflow(BaseWorkflow):
         all_results.append(result)
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "df_partial_analysis_result_1.csv",
             ),
             header=0,
@@ -691,7 +693,7 @@ class MealVoucherWorkflow(BaseWorkflow):
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "df_partial_analysis_result_2.csv",
             ),
         )
@@ -709,7 +711,7 @@ class MealVoucherWorkflow(BaseWorkflow):
         all_results.append(result)
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "df_partial_analysis_result_2.csv",
             ),
             header=0,
@@ -753,7 +755,7 @@ class MealVoucherWorkflow(BaseWorkflow):
             """
         formatted_input: str = input.format(
             output_path=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "df_partial_analysis_result_3.csv",
             ),
         )
@@ -782,7 +784,7 @@ class MealVoucherWorkflow(BaseWorkflow):
     ) -> StateGraph:
         df = pd.read_csv(
             filepath_or_buffer=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "df_partial_analysis_result_3.csv",
             ),
             header=0,
@@ -846,11 +848,11 @@ class MealVoucherWorkflow(BaseWorkflow):
             """
         formatted_input: str = input.format(
             output_csv_file_path=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "VR MENSAL 05.2025.csv",
             ),
             output_xlsx_file_path=os.path.join(
-                f"{app_settings.output_data_dir_path}",
+                f"{self.app_settings.output_data_dir_path}",
                 "VR MENSAL 05.2025.xlsx",
             ),
         )
@@ -924,6 +926,12 @@ class MealVoucherWorkflow(BaseWorkflow):
         logger.info(f"Graph {self.name} compiled successfully!")
         logger.info(f"Nodes in graph: {graph.nodes.keys()}")
         logger.info(graph.get_graph().draw_ascii())
+        graph.get_graph().draw_mermaid_png(
+            output_file_path=os.path.join(
+                f"{self.app_settings.output_data_dir_path}",
+                f"{self.name}.png",
+            )
+        )
         return graph
 
     async def run(self, input_message: str) -> dict:
