@@ -1,5 +1,8 @@
-from openai import BaseModel
+from typing import Literal
+from pydantic import BaseModel, Field
 
 
 class DataIngestionResponse(BaseModel):
-    status: str
+    status: Literal["Ingested", "UnIngested"] = Field(
+        ..., description="The status of data ingestion procedure."
+    )

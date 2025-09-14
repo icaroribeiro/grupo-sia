@@ -27,4 +27,6 @@ dependencies = [
     "alembic>=1.16.4",
     "psycopg2>=2.9.10",
     "langgraph-supervisor>=0.0.28",
+    "ipython>=9.5.0",
+    "graphviz>=0.21",
 ]

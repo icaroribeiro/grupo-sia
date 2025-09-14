@@ -51,24 +51,33 @@ async def data_ingestion(
         logger.error(message)
         raise ServerError(message=message)
 
-    prompt = """
-    INSTRUCTIONS:
-    - Perform a multi-step procedure to insert invoice and invoice items records into database.
-    - The procedure consists of the following tasks directed to data ingestion team:
-        1. Unzip files from ZIP archive located at '{file_path}' to the directory '{extracted_dir_path}'.
-        2. Map extracted CSV files located at '{extracted_dir_path}' to database ingestion arguments to the directory '{ingestion_dir_path}'.
-        3. Insert records from ingestion arguments into database.
-    CRITICAL RULES:
-    - DO NOT proceed with one task if the previous only was not completed.
-    - DO NOT perform handoffs in parallel.
-    """
-    input_message = prompt.format(
-        file_path=file_path,
-        extracted_dir_path=extracted_dir_path,
-        ingestion_dir_path=ingestion_dir_path,
-    )
+    data_ingestion_response: DataIngestionResponse = DataIngestionResponse()
+    try:
+        prompt = """
+        INSTRUCTIONS:
+        - Perform a multi-step procedure to insert invoice and invoice items records into database.
+        - The procedure consists of the following tasks directed to data ingestion team:
+            1. Unzip files from ZIP archive located at '{file_path}' to the directory '{extracted_dir_path}'.
+            2. Map extracted CSV files located at '{extracted_dir_path}' to database ingestion arguments to the directory '{ingestion_dir_path}'.
+            3. Insert records from ingestion arguments into database.
+        CRITICAL RULES:
+        - DO NOT proceed with one task if the previous only was not completed.
+        - DO NOT perform handoffs in parallel.
+        """
+        input_message = prompt.format(
+            file_path=file_path,
+            extracted_dir_path=extracted_dir_path,
+            ingestion_dir_path=ingestion_dir_path,
+        )
 
-    result = await top_level_workflow.run(input_message=input_message)
-    logger.info(f"API request final result: {result}")
-    content = result[-1].content
-    return DataIngestionResponse(status=content)
+        result = await top_level_workflow.run(input_message=input_message)
+        logger.info(f"API request final result: {result}")
+        content = result[-1].content
+        logger.info(f"API request final result content: {content}")
+        return data_ingestion_response
+    except Exception as error:
+        message = f"Error: Failed to ingest data into database: {error}"
+        logger.error(message)
+        data_ingestion_response = DataIngestionResponse(status="UnIngested")
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return data_ingestion_response

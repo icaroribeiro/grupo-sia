@@ -124,6 +124,7 @@ class Dependencies:
 
     @staticmethod
     def get_data_ingestion_workflow(
+        app_settings: Annotated[AppSettings, Depends(get_app_settings)],
         llm: Annotated[LLM, Depends(get_llm)],
         unzip_files_from_zip_archive_tool: Annotated[
             UnzipFilesFromZipArchiveTool, Depends(get_unzip_files_from_zip_archive_tool)
@@ -137,6 +138,7 @@ class Dependencies:
         ],
     ) -> DataIngestionWorkflow:
         return DataIngestionWorkflow(
+            app_settings=app_settings,
             chat_model=llm.chat_model,
             unzip_files_from_zip_archive_tool=unzip_files_from_zip_archive_tool,
             map_csvs_to_ingestion_args_tool=map_csvs_to_ingestion_args_tool,
@@ -145,18 +147,21 @@ class Dependencies:
 
     @staticmethod
     def get_data_analysis_workflow(
+        app_settings: Annotated[AppSettings, Depends(get_app_settings)],
         llm: Annotated[LLM, Depends(get_llm)],
         async_sql_database_toolkit: Annotated[
             AsyncSQLDatabaseToolkit, Depends(get_async_sql_database_toolkit)
         ],
     ) -> DataAnalysisWorkflow:
         return DataAnalysisWorkflow(
+            app_settings=app_settings,
             chat_model=llm.chat_model,
             async_query_sql_database_tools=async_sql_database_toolkit.get_tools(),
         )
 
     @staticmethod
     def get_top_level_workflow(
+        app_settings: Annotated[AppSettings, Depends(get_app_settings)],
         llm: Annotated[LLM, Depends(get_llm)],
         data_ingestion_workflow: Annotated[
             DataIngestionWorkflow, Depends(get_data_ingestion_workflow)
@@ -166,6 +171,7 @@ class Dependencies:
         ],
     ) -> TopLevelWorkflow:
         return TopLevelWorkflow(
+            app_settings=app_settings,
             chat_model=llm.chat_model,
             data_ingestion_workflow=data_ingestion_workflow,
             data_analysis_workflow=data_analysis_workflow,

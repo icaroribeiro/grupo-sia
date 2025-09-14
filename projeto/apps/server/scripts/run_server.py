@@ -1,11 +1,22 @@
 import subprocess
 
 from src.layers.core_logic_layer.logging import logger
+from src.layers.core_logic_layer.settings import app_settings
 
-
-def main() -> None:
+if __name__ == "__main__":
     try:
-        subprocess.run(["uv", "run", "src/main.py"], check=True)
+        subprocess.run(
+            [
+                "uvicorn",
+                "src.main:app",
+                "--host",
+                f"{app_settings.host}",
+                "--port",
+                f"{app_settings.port}",
+                "--reload",
+            ],
+            check=True,
+        )
     except KeyboardInterrupt:
         message = "Uvicorn server closed due to KeyboardInterrupt"
         logger.error(message)
@@ -15,7 +26,3 @@ def main() -> None:
     except Exception as error:
         message = f"Error: Failed to initiate Uvicorn server: {error}"
         logger.error(message)
-
-
-if __name__ == "__main__":
-    main()

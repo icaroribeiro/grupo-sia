@@ -1,6 +1,8 @@
+import os
 import re
 import uuid
 from langchain_core.messages import HumanMessage
+from src.layers.core_logic_layer.settings.app_settings import AppSettings
 from src.layers.business_layer.ai_agents.models.data_analysis_state_model import (
     DataAnalysisStateModel,
 )
@@ -25,10 +27,12 @@ from langgraph.prebuilt import ToolNode
 class DataAnalysisWorkflow(BaseWorkflow):
     def __init__(
         self,
+        app_settings: AppSettings,
         chat_model: BaseChatModel,
         async_query_sql_database_tools: list[BaseTool],
     ):
         self.name = "data_analysis_team"
+        self.app_settings = app_settings
         self.chat_model = chat_model
         self.data_analysis_agent_tools = async_query_sql_database_tools
         self.delegate_to_data_analysis_agent = DataAnalysisHandoffTool(
@@ -243,6 +247,12 @@ class DataAnalysisWorkflow(BaseWorkflow):
         logger.info(f"Graph {self.name} compiled successfully!")
         logger.info(f"Nodes in graph: {graph.nodes.keys()}")
         logger.info(graph.get_graph().draw_ascii())
+        graph.get_graph().draw_mermaid_png(
+            output_file_path=os.path.join(
+                f"{self.app_settings.output_data_dir_path}",
+                f"{self.name}.png",
+            )
+        )
         return graph
 
     # async def run(self, input_message: str) -> DataAnalysisStateModel:
