@@ -26,6 +26,7 @@ class Container(containers.DeclarativeContainer):
 
     meal_voucher_workflow = providers.Singleton(
         MealVoucherWorkflow,
+        app_settings=config.app_settings,
         chat_model=llm.provided.chat_model,
         dataframes_dict=config.dataframes_dict,
         extract_absense_return_date_tool=extract_absense_return_date_tool,

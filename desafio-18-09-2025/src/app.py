@@ -18,6 +18,7 @@ class App:
             pandas.create_input_dataframes_from_files(app_settings.input_data_dir_path)
         )
         container: Container = Container()
+        container.config.app_settings.from_value(app_settings)
         container.config.ai_settings.from_value(ai_settings)
         container.config.dataframes_dict.from_value(dataframes_dict)
         container.wire(
