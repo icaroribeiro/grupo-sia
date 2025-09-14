@@ -1,4 +1,5 @@
-from openai import BaseModel
+from typing import Literal
+from pydantic import BaseModel, Field
 
 
 class DataAnalysisRequest(BaseModel):
@@ -7,4 +8,9 @@ class DataAnalysisRequest(BaseModel):
 
 
 class DataAnalysisResponse(BaseModel):
-    answer: str | dict
+    status: Literal["Analyzed", "UnAnalyzed"] = Field(
+        ..., description="The status of the data analysis procedure."
+    )
+    answer: str | dict | None = Field(
+        ..., description="The answer to the user's question."
+    )

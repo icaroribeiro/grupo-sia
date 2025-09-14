@@ -1,6 +1,9 @@
 import functools
+import os
 import re
 import uuid
+
+# from server.src.layers.core_logic_layer.settings.app_settings import AppSettings
 from src.layers.core_logic_layer.logging import logger
 from langgraph.graph import StateGraph, START, END
 from langchain_core.language_models import BaseChatModel
@@ -28,11 +31,13 @@ from src.layers.business_layer.ai_agents.workflows.data_ingestion_workflow impor
 class TopLevelWorkflow(BaseWorkflow):
     def __init__(
         self,
+        app_settings,
         chat_model: BaseChatModel,
         data_ingestion_workflow: DataIngestionWorkflow,
         data_analysis_workflow: DataAnalysisWorkflow,
     ):
-        self.name = "TopLevelWorkflow"
+        self.name = "top_level_team"
+        self.app_settings = app_settings
         self.chat_model = chat_model
         self.data_ingestion_workflow = data_ingestion_workflow
         self.data_analysis_workflow = data_analysis_workflow
@@ -210,6 +215,12 @@ class TopLevelWorkflow(BaseWorkflow):
         logger.info(f"Graph {self.name} compiled successfully!")
         logger.info(f"Nodes in graph: {graph.nodes.keys()}")
         logger.info(graph.get_graph().draw_ascii())
+        graph.get_graph().draw_mermaid_png(
+            output_file_path=os.path.join(
+                f"{self.app_settings.output_data_dir_path}",
+                f"{self.name}.png",
+            )
+        )
         return graph
 
     async def run(self, input_message: str) -> TopLevelStateModel:

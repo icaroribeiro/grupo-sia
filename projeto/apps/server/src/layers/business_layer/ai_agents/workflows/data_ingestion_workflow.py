@@ -1,10 +1,12 @@
 import functools
+import os
 import re
 import uuid
 from langchain_core.messages import HumanMessage
 from langchain_core.language_models import BaseChatModel
 from langgraph.graph import StateGraph, START, END
 
+from src.layers.core_logic_layer.settings.app_settings import AppSettings
 from src.layers.business_layer.ai_agents.models.data_ingestion_state_model import (
     DataIngestionStateModel,
 )
@@ -34,12 +36,14 @@ from langgraph.prebuilt import ToolNode
 class DataIngestionWorkflow(BaseWorkflow):
     def __init__(
         self,
+        app_settings: AppSettings,
         chat_model: BaseChatModel,
         unzip_files_from_zip_archive_tool: UnzipFilesFromZipArchiveTool,
         map_csvs_to_ingestion_args_tool: MapCSVsToIngestionArgsTool,
         insert_records_into_database_tool: InsertRecordsIntoDatabaseTool,
     ):
         self.name = "data_ingestion_team"
+        self.app_settings = app_settings
         self.chat_model = chat_model
         self.unzip_files_from_zip_archive_tool = unzip_files_from_zip_archive_tool
         self.map_csvs_to_ingestion_args_tool = map_csvs_to_ingestion_args_tool
@@ -415,6 +419,12 @@ class DataIngestionWorkflow(BaseWorkflow):
         logger.info(f"Graph {self.name} compiled successfully!")
         logger.info(f"Nodes in graph: {graph.nodes.keys()}")
         logger.info(graph.get_graph().draw_ascii())
+        graph.get_graph().draw_mermaid_png(
+            output_file_path=os.path.join(
+                f"{self.app_settings.output_data_dir_path}",
+                f"{self.name}.png",
+            )
+        )
         return graph
 
     # async def run(self, input_message: str) -> DataIngestionStateModel:

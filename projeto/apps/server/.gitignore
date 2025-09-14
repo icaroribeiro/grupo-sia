@@ -1,9 +1,13 @@
 .venv
 .env
+
 data/ingestion/*
 !data/ingestion/.gitkeep
+
 data/upload/*
 !data/upload/.gitkeep
 !data/upload/extracted
 data/upload/extracted/*
 !data/upload/extracted/.gitkeep
+
+!data/output/*

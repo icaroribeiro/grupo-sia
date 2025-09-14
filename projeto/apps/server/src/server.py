@@ -1,4 +1,3 @@
-from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 
@@ -13,23 +12,47 @@ from src.layers.presentation_layer.rest_api.routers.v1.router import router as v
 from src.server_error import ServerError
 
 
-@asynccontextmanager
-async def app_lifespan(app: FastAPI):
-    logger.info("Application startup initiating...")
-    logger.info("Application startup complete.")
-    yield
-    logger.info("Application shutdown initiating...")
-    logger.info("Application shutdown complete.")
-
-
 class Server:
     __APP: FastAPI | None = None
 
     def __init__(self) -> None:
-        self.__APP = FastAPI()
+        self.__APP = FastAPI(
+            title="Grupo SIA REST API",
+            description="A REST API developed using Python, LangGraph framework and Postgres database.\n\nSome useful links:\n- [The REST API repository](https://github.com/icaroribeiro/grupo-sia/tree/projeto-30-10-2025)",  # noqa: E501
+            version="1.0.0",
+            contact={
+                "name": "Ícaro Ribeiro",
+                "email": "icaroribeiro@hotmail.com",
+                "url": "https://github.com/icaroribeiro",
+            },
+            license_info={
+                "name": "MIT",
+            },
+            openapi_tags=[
+                {
+                    "name": "healthcheck",
+                    "description": "Everything about health check",
+                },
+                {
+                    "name": "data-ingestion",
+                    "description": "Everything about data ingestion",
+                },
+                {
+                    "name": "data-analysis",
+                    "description": "Everything about data analysis",
+                },
+            ],
+            servers=[
+                {
+                    "url": "http://localhost:8000",
+                    "description": "Production environment",
+                },
+            ],
+        )
         self.setup_routers()
         self.setup_middlewares()
         self.setup_exception_handlers()
+        self.setup_event_handlers()
 
     def setup_routers(self) -> None:
         self.__APP.include_router(router=v1_router, prefix="/api/v1")
@@ -47,6 +70,18 @@ class Server:
         self.__APP.add_exception_handler(
             ServerError, ExceptionHandler.handle_server_error
         )
+
+    def setup_event_handlers(self) -> None:
+        self.__APP.add_event_handler("startup", self.__startup_handler)
+        self.__APP.add_event_handler("shutdown", self.__shutdown_handler)
+
+    async def __startup_handler(self) -> None:
+        logger.info("Server startup initiating...")
+        logger.info("Server startup complete.")
+
+    async def __shutdown_handler(self) -> None:
+        logger.info("Server shutdown initiating...")
+        logger.info("Server shutdown complete.")
 
     @property
     def app(self) -> FastAPI:
