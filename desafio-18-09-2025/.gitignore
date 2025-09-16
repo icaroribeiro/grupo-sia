@@ -1,0 +1,5 @@
+.venv
+.env
+data/output/*
+!data/output/.gitkeep
+!data/output/meal_voucher_team.png
