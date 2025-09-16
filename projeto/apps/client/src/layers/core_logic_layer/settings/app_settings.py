@@ -13,3 +13,4 @@ class AppSettings(BaseSettings):
 
     port: int = Field(default=5000)
     host: str = Field(default="localhost")
+    rest_api_url_path: str = Field(default="http://localhost:8000/api/v1")

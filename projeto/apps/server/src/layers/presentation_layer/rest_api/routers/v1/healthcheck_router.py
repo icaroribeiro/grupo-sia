@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Response, status
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.layers.core_logic_layer.dependencies.dependencies import Dependencies
@@ -22,11 +23,10 @@ async def healthcheck(
 ):
     healthcheck_response: HealthcheckResponse = HealthcheckResponse(status="Healthy")
     try:
-        # async with postgresdb.async_session() as async_session:
-        #     sql_statement = text("""SELECT 1""")
-        #     await async_session.execute(statement=sql_statement)
-        #     return healthcheck_response
-        return healthcheck_response
+        async with postgresdb.async_session() as async_session:
+            sql_statement = text("""SELECT 1""")
+            await async_session.execute(statement=sql_statement)
+            return healthcheck_response
     except Exception as error:
         message = f"Error: Failed to check if application is healthy: {error}"
         logger.error(message)

@@ -1,3 +1,2 @@
 [server]
 runOnSave = true
-enableCORS = true
