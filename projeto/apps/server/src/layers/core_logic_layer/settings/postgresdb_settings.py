@@ -12,8 +12,8 @@ class PostgresDBSettings(BaseSettings):
     )
 
     driver: str = Field(default="postgresql")
-    username: str = Field(default="postgresdbuser")
-    password: str = Field(default="postgresdbpassword")
+    username: str = Field(default="postgres")
+    password: str = Field(default="postgres")
     host: str = Field(default="localhost")
     port: int = Field(default=5432)
     database: str = Field(default="notas_fiscais_db")
