@@ -1,0 +1,11 @@
+.venv
+.env
+
+data/output/*
+!data/output/.gitkeep
+!data/output/credit_card_fraud_analysis_team.png
+
+data/upload/*
+!data/upload/.gitkeep
+data/upload/extracted/*
+!data/upload/extracted/.gitkeep
