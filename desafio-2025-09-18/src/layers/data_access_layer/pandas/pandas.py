@@ -30,7 +30,7 @@ class Pandas:
                             index_col=None,
                         )
                         dataframes_dict["df_employee_admission"] = DataFrameParams(
-                            name="df_employee_admission", description="", content=df
+                            name="df_employee_admission", content=df
                         )
                     case "AFASTAMENTOS.xlsx":
                         df = pd.read_excel(
@@ -45,7 +45,7 @@ class Pandas:
                             index_col=None,
                         )
                         dataframes_dict["df_employee_absense"] = DataFrameParams(
-                            name="df_employee_absense", description="", content=df
+                            name="df_employee_absense", content=df
                         )
                     case "APRENDIZ.xlsx":
                         df = pd.read_excel(
@@ -58,7 +58,7 @@ class Pandas:
                             index_col=None,
                         )
                         dataframes_dict["df_apprentice_employee"] = DataFrameParams(
-                            name="df_apprentice_employee", description="", content=df
+                            name="df_apprentice_employee", content=df
                         )
                     case "ATIVOS.xlsx":
                         df = pd.read_excel(
@@ -75,7 +75,6 @@ class Pandas:
                         )
                         dataframes_dict["df_active_employee"] = DataFrameParams(
                             name="df_active_employee",
-                            description="",
                             content=df,
                         )
                     case "Base dias uteis.xlsx":
@@ -90,7 +89,6 @@ class Pandas:
                         ).dropna()
                         dataframes_dict["df_syndicate_working_days"] = DataFrameParams(
                             name="df_syndicate_working_days",
-                            description="",
                             content=df,
                         )
                     case "Base sindicato x valor.xlsx":
@@ -106,7 +104,6 @@ class Pandas:
                         dataframes_dict["df_syndicate_meal_voucher_value"] = (
                             DataFrameParams(
                                 name="df_syndicate_meal_voucher_value",
-                                description="",
                                 content=df,
                             )
                         )
@@ -122,7 +119,7 @@ class Pandas:
                             index_col=None,
                         )
                         dataframes_dict["df_employee_dismissal"] = DataFrameParams(
-                            name="df_employee_dismissal", description="", content=df
+                            name="df_employee_dismissal", content=df
                         )
                     case "ESTÁGIO.xlsx":
                         df = pd.read_excel(
@@ -136,7 +133,7 @@ class Pandas:
                             index_col=None,
                         )
                         dataframes_dict["df_intern_employee"] = DataFrameParams(
-                            name="df_intern_employee", description="", content=df
+                            name="df_intern_employee", content=df
                         )
                     case "EXTERIOR.xlsx":
                         df = pd.read_excel(
@@ -150,7 +147,7 @@ class Pandas:
                             index_col=None,
                         )
                         dataframes_dict["df_employee_abroad"] = DataFrameParams(
-                            name="df_employee_abroad", description="", content=df
+                            name="df_employee_abroad", content=df
                         )
                     case "FÉRIAS.xlsx":
                         df = pd.read_excel(
@@ -164,7 +161,7 @@ class Pandas:
                             index_col=None,
                         )
                         dataframes_dict["df_employee_vacation"] = DataFrameParams(
-                            name="df_employee_vacation", description="", content=df
+                            name="df_employee_vacation", content=df
                         )
 
         # Save each DataFrame to a CSV file and return the dictionary

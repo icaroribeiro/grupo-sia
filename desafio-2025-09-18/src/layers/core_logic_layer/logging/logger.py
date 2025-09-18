@@ -3,7 +3,7 @@ import logging
 
 class Logger:
     def __init__(self):
-        self.__logger = self.__create_logger()
+        self.__logger = None
 
     @property
     def logger(self) -> logging.Logger:
