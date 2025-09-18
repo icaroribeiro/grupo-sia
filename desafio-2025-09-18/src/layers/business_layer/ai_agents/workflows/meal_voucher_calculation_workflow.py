@@ -3,8 +3,8 @@ import os
 import re
 from langchain.agents import AgentExecutor
 import pandas as pd
-from src.layers.business_layer.ai_agents.tools.meal_voucher_handoff_tool import (
-    MealVoucherHandoffTool,
+from src.layers.business_layer.ai_agents.tools.meal_voucher_calculation_handoff_tool import (
+    MealVoucherCalculationHandoffTool,
 )
 from src.layers.data_access_layer.pandas.models.dataframe_params import DataFrameParams
 from src.layers.business_layer.ai_agents.tools.calculate_absense_days_tool import (
@@ -26,7 +26,7 @@ from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe
 from langchain.agents.agent_types import AgentType
 
 
-class MealVoucherWorkflow(BaseWorkflow):
+class MealVoucherCalculationWorkflow(BaseWorkflow):
     def __init__(
         self,
         app_settings: AppSettings,
@@ -36,7 +36,7 @@ class MealVoucherWorkflow(BaseWorkflow):
         calculate_absense_days_tool: CalculateAbsenseDaysTool,
     ):
         self.app_settings = app_settings
-        self.name = "meal_voucher_team"
+        self.name = "meal_voucher_calculation_workflow"
         self.chat_model = chat_model
         self.dataframes_dict = dataframes_dict
         self.extract_absense_return_date_tool = extract_absense_return_date_tool
@@ -55,13 +55,13 @@ class MealVoucherWorkflow(BaseWorkflow):
             - Do not ask for confirmation or provide intermediate results.
             - Execute all steps provided in the prompt in the correct order.
             """
-        self.delegate_to_data_wrangling_agent = MealVoucherHandoffTool(
+        self.delegate_to_data_wrangling_agent = MealVoucherCalculationHandoffTool(
             node_name="data_wrangling_node"
         )
-        self.delegate_to_data_analysis_agent = MealVoucherHandoffTool(
+        self.delegate_to_data_analysis_agent = MealVoucherCalculationHandoffTool(
             node_name="data_analysis_node"
         )
-        self.delegate_to_data_reporting_agent = MealVoucherHandoffTool(
+        self.delegate_to_data_reporting_agent = MealVoucherCalculationHandoffTool(
             node_name="data_reporting_node"
         )
         self.__graph = self.__build_graph()

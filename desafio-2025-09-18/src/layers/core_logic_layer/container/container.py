@@ -7,8 +7,8 @@ from src.layers.business_layer.ai_agents.tools.calculate_absense_days_tool impor
 from src.layers.business_layer.ai_agents.tools.extract_absense_return_date_tool import (
     ExtractAbsenseReturnDateTool,
 )
-from src.layers.business_layer.ai_agents.workflows.meal_voucher_workflow import (
-    MealVoucherWorkflow,
+from src.layers.business_layer.ai_agents.workflows.meal_voucher_calculation_workflow import (
+    MealVoucherCalculationWorkflow,
 )
 from src.layers.data_access_layer.pandas.pandas import Pandas
 
@@ -24,8 +24,8 @@ class Container(containers.DeclarativeContainer):
 
     calculate_absense_days_tool = providers.Singleton(CalculateAbsenseDaysTool)
 
-    meal_voucher_workflow = providers.Singleton(
-        MealVoucherWorkflow,
+    meal_voucher_calculation_workflow = providers.Singleton(
+        MealVoucherCalculationWorkflow,
         app_settings=config.app_settings,
         chat_model=llm.provided.chat_model,
         dataframes_dict=config.dataframes_dict,

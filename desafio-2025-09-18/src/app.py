@@ -5,8 +5,8 @@ from src.layers.data_access_layer.pandas.pandas import Pandas
 from dependency_injector.wiring import inject
 from dependency_injector.wiring import Provide
 
-from src.layers.business_layer.ai_agents.workflows.meal_voucher_workflow import (
-    MealVoucherWorkflow,
+from src.layers.business_layer.ai_agents.workflows.meal_voucher_calculation_workflow import (
+    MealVoucherCalculationWorkflow,
 )
 from src.layers.core_logic_layer.logging import logger
 
@@ -30,8 +30,8 @@ class App:
     @inject
     async def start(
         self,
-        meal_voucher_workflow: MealVoucherWorkflow = Provide[
-            Container.meal_voucher_workflow
+        meal_voucher_calculation_workflow: MealVoucherCalculationWorkflow = Provide[
+            Container.meal_voucher_calculation_workflow
         ],
     ) -> None:
         input_message: str = """
@@ -43,5 +43,7 @@ class App:
             3. Data reporting
         """
 
-        result = await meal_voucher_workflow.run(input_message=input_message)
+        result = await meal_voucher_calculation_workflow.run(
+            input_message=input_message
+        )
         logger.info(f"result: {result}")
