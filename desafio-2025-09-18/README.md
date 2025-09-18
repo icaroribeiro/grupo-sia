@@ -1,4 +1,4 @@
-# Desafio 18-09-2025
+# desafio-2025-09-18
 
 - [Introdução](#introdução)
 - [Como configurar a aplicação?](#como-configurar-a-aplicação)
