@@ -1,4 +1,4 @@
-# Desafio 18-09-2025
+# desafio-2025-09-18
 
 - [Introdução](#introdução)
 - [Como configurar a aplicação?](#como-configurar-a-aplicação)
@@ -17,7 +17,7 @@ A seguir, é apresentado o fluxo de trabalho da aplicação indicando que existe
 2. O nó de análise de dados (`data_analysis_node`)
 3. O nó de reporte de dados (`data_reporting_node`)
 
-![texto alternativo](data/output/meal_voucher_team.png)
+![texto alternativo](data/output/meal_voucher_calculation_workflow.png)
 
 ## Como configurar a aplicação?
 

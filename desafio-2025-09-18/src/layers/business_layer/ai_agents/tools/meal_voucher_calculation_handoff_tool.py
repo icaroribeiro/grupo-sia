@@ -8,7 +8,7 @@ from langchain_core.messages import ToolMessage
 from langgraph.prebuilt import InjectedState
 
 
-class MealVoucherHandoffToolInput(BaseModel):
+class MealVoucherCalculationHandoffToolInput(BaseModel):
     task_description: Annotated[
         str,
         Field(
@@ -19,13 +19,13 @@ class MealVoucherHandoffToolInput(BaseModel):
     tool_call_id: Annotated[str, InjectedToolCallId] = Field(...)
 
 
-class MealVoucherHandoffTool(BaseTool):
+class MealVoucherCalculationHandoffTool(BaseTool):
     name: str = "handoff_tool"
     description: str | None = (
         "Hands off a task to another node with a description and relevant context."
     )
     node_name: str
-    args_schema: Type[BaseModel] = MealVoucherHandoffToolInput
+    args_schema: Type[BaseModel] = MealVoucherCalculationHandoffToolInput
 
     def __init__(
         self,
