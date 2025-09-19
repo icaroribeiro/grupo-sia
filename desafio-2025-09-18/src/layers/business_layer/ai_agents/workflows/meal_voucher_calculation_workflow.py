@@ -734,7 +734,6 @@ class MealVoucherCalculationWorkflow(BaseWorkflow):
             Perform the following steps in order:
 
             1. From the `df1` (df_partial_analysis_result_2) DataFrame:
-            - Check how many days are there in May 2025.
             - Add a new column named `effective_working_days` and fill out the rows with the value of Formula: 
                 - `df1`['effective_working_days'] = (number of days in Mai 2025) - `df1`['vacation_days'] - `df1`['absense_days']
                 - For each row, handle missing values of `vacation_days` and `absense_days` by setting them to 0.
