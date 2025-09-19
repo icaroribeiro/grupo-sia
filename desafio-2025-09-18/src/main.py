@@ -4,13 +4,13 @@ from src.layers.core_logic_layer.logging import logger
 
 
 async def main() -> None:
+    logger.info("Starting application execution...")
     try:
-        logger.info("Application startup has started...")
         app: App = App()
-        await app.start()
-        logger.info("Success: Application startup complete.")
+        await app.run()
+        logger.info("Success: Application execution completed.")
     except Exception as error:
-        message = f"Error: Failed to startup Application: {str(error)}"
+        message = f"Error: Failed to run application: {str(error)}"
         logger.error(message)
         raise
 

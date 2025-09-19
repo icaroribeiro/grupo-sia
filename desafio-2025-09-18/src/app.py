@@ -28,7 +28,7 @@ class App:
         )
 
     @inject
-    async def start(
+    async def run(
         self,
         meal_voucher_calculation_workflow: MealVoucherCalculationWorkflow = Provide[
             Container.meal_voucher_calculation_workflow
