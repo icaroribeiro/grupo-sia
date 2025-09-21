@@ -1,4 +1,3 @@
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 
 from src.app_error import AppError
@@ -11,7 +10,7 @@ class LLM:
         self.__chat_model = self.__create_chat_model(ai_settings=ai_settings)
 
     @property
-    def chat_model(self) -> ChatOpenAI | ChatGoogleGenerativeAI:
+    def chat_model(self) -> ChatOpenAI:
         logger.info("Chat Model startup initiating...")
         if not self.__chat_model:
             message = f"Error: Invalid LLM provider: {self.__provider}"
@@ -24,19 +23,9 @@ class LLM:
     @staticmethod
     def __create_chat_model(
         ai_settings: AISettings,
-    ) -> ChatOpenAI | ChatGoogleGenerativeAI | None:
-        match ai_settings.llm_provider:
-            case "openai":
-                return ChatOpenAI(
-                    model=ai_settings.llm_model,
-                    temperature=ai_settings.llm_temperature,
-                    api_key=ai_settings.llm_api_key,
-                )
-            case "google_genai":
-                return ChatGoogleGenerativeAI(
-                    model=ai_settings.llm_model,
-                    temperature=ai_settings.llm_temperature,
-                    api_key=ai_settings.llm_api_key,
-                )
-            case _:
-                return None
+    ) -> ChatOpenAI:
+        return ChatOpenAI(
+            model=ai_settings.llm_model,
+            temperature=ai_settings.llm_temperature,
+            api_key=ai_settings.llm_api_key,
+        )
