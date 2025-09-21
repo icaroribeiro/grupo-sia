@@ -11,8 +11,8 @@ class AppSettings(BaseSettings):
         env_ignore_extra=True,
     )
 
-    port: int = Field(default=8501)
     host: str = Field(default="localhost")
+    port: int = Field(default=8501)
     output_data_dir_path: str = Field(default="data/output")
     upload_data_dir_path: str = Field(default="data/upload")
     upload_extracted_data_dir_path: str = Field(default="data/upload/extracted")
