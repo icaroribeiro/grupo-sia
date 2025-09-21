@@ -1,9 +1,10 @@
 .venv
 .env
+.streamlit/config.toml
 
 data/output/*
 !data/output/.gitkeep
-!data/output/credit_card_fraud_analysis_team.png
+!data/output/data_analysis_workflow.png
 
 data/upload/*
 !data/upload/.gitkeep
