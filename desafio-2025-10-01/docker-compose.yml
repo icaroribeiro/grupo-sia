@@ -1,0 +1,31 @@
+services:
+  app:
+    container_name: app-container
+    build:
+      context: .
+    env_file:
+      - ./.env
+    restart: always
+    ports:
+      - 8501:8501
+    depends_on:
+      - postgres
+    volumes:
+      - app_data:/var/lib/app/data
+
+  postgres:
+    container_name: postgres-container
+    image: postgres:latest
+    environment:
+      - POSTGRES_DB=langchain_chat_history_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  app_data:
+  postgres_data:

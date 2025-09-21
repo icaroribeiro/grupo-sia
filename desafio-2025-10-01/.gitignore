@@ -3,7 +3,7 @@
 
 data/output/*
 !data/output/.gitkeep
-!data/output/credit_card_fraud_analysis_team.png
+!data/output/data_analysis_analysis_team.png
 
 data/upload/*
 !data/upload/.gitkeep

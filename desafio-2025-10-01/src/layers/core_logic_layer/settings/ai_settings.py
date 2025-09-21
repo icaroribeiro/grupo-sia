@@ -11,7 +11,6 @@ class AISettings(BaseSettings):
         env_ignore_extra=True,
     )
 
-    llm_provider: str = Field(default="google_genai")
-    llm_model: str = Field(default="gemini-2.0-flash")
+    llm_model: str = Field(default="gpt-4.1-nano")
     llm_temperature: float = Field(default=0.1)
     llm_api_key: str = Field(default=...)

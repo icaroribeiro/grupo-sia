@@ -1,30 +1,31 @@
 import functools
-import os
 import re
-import uuid
-from langgraph.checkpoint.memory import InMemorySaver
+import pandas as pd
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import BaseMessage, HumanMessage
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import Runnable
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
-
-from src.layers.business_layer.ai_agents.models.credit_card_fraud_analysis_state_model import (
-    CreditCardFraudAnalysisStateModel,
+from src.layers.business_layer.ai_agents.models.data_analysis_state_model import (
+    DataAnalysisStateModel,
 )
-from src.layers.business_layer.ai_agents.tools.credit_card_fraud_analysis_handoff_tool import (
-    CreditCardFraudAnalysisHandoffTool,
+from langchain.agents.agent_types import AgentType
+from langchain.agents import AgentExecutor
+from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
+from src.layers.business_layer.ai_agents.tools.data_analysis_handoff_tool import (
+    DataAnalysisHandoffTool,
 )
 from src.layers.business_layer.ai_agents.tools.unzip_files_from_zip_archive_tool import (
     UnzipFilesFromZipArchiveTool,
 )
-from src.layers.business_layer.ai_agents.workflows.base_workflow import BaseWorkflow
 from src.layers.core_logic_layer.logging import logger
 from src.layers.core_logic_layer.settings.app_settings import AppSettings
 
 
-class CreditCardFraudAnalysisWorkflow(BaseWorkflow):
+class DataAnalysisWorkflow:
+    __WORKFLOW: StateGraph | None = None
+
     def __init__(
         self,
         app_settings: AppSettings,
@@ -32,21 +33,30 @@ class CreditCardFraudAnalysisWorkflow(BaseWorkflow):
         unzip_files_from_zip_archive_tool: UnzipFilesFromZipArchiveTool,
     ):
         self.app_settings = app_settings
-        self.name = "credit_card_fraud_analysis_team"
+        self.name = "data_analysis_analysis_workflow"
         self.chat_model = chat_model
         self.unzip_files_from_zip_archive_tool = unzip_files_from_zip_archive_tool
-        self.delegate_to_unzip_file_agent = CreditCardFraudAnalysisHandoffTool(
+        self.delegate_to_unzip_file_agent = DataAnalysisHandoffTool(
             agent_name="unzip_file_agent",
         )
-        self.__graph = self.__build_graph()
+        self.delegate_to_data_analysis_agent = DataAnalysisHandoffTool(
+            agent_name="data_analysis_agent",
+        )
+        self.__WORKFLOW = None
+
+    @property
+    def workflow(self) -> StateGraph:
+        if not self.__WORKFLOW:
+            self.__WORKFLOW = self.__build()
+        return self.__WORKFLOW
 
     @staticmethod
     def persona_node(
-        state: CreditCardFraudAnalysisStateModel,
+        state: DataAnalysisStateModel,
         name: str,
         prompt: str,
         llm_with_tools: Runnable[BaseMessage, BaseMessage],
-    ) -> CreditCardFraudAnalysisStateModel:
+    ) -> DataAnalysisStateModel:
         # logger.info(f"Calling {name} persona...")
         messages = state["messages"]
         # logger.info(f"Messages: {messages}")
@@ -75,17 +85,81 @@ class CreditCardFraudAnalysisWorkflow(BaseWorkflow):
 
         return {"messages": messages + [response]}
 
+    def data_analysis_agent(
+        self,
+        state: DataAnalysisStateModel,
+        name: str,
+        prompt: str,
+    ) -> DataAnalysisStateModel:
+        # logger.info(f"Calling {name}...")
+        messages = state["messages"]
+        # logger.info(f"Messages: {messages}")
+
+        csv_file_paths = state.get("csv_file_paths", [])
+        if not csv_file_paths:
+            logger.warning("No csv file paths found in state. Skipping data analysis.")
+        #     return {"messages": messages}
+
+        dataframes: list[pd.DataFrame] = []
+        for csv_file_path in csv_file_paths:
+            dataframes.append(pd.read_csv(filepath_or_buffer=csv_file_path))
+        if len(dataframes):
+            logger.warning(f"{len(dataframes)} dataframes read for data analysis.")
+
+        agent_executor: AgentExecutor = create_pandas_dataframe_agent(
+            llm=self.chat_model,
+            df=dataframes,
+            # agent_type="tool-calling",
+            agent_type=AgentType.OPENAI_FUNCTIONS,
+            allow_dangerous_code=True,
+            prefix=prompt,
+            verbose=True,
+        )
+
+        response = agent_executor.invoke(messages)
+        # logger.info(f"{name} response: {response}")
+
+        # It's to deduplicate tool calls before updating the state by ensuring that
+        # only unique tool calls (based on name and arguments) are passed to
+        # the tools node.
+        if hasattr(response, "tool_calls") and response.tool_calls:
+            seen = set()
+            unique_tool_calls = []
+            for tool_call in response.tool_calls:
+                tool_key = (tool_call["name"], str(tool_call["args"]))
+                if tool_key not in seen:
+                    seen.add(tool_key)
+                    unique_tool_calls.append(tool_call)
+            response.tool_calls = unique_tool_calls
+
+        response_dict = agent_executor.invoke(messages)
+        final_output = response_dict.get("output", "No response generated.")
+        new_messages = messages + [AIMessage(content=final_output)]
+        return {"messages": new_messages}
+
     @staticmethod
-    def tool_output_node(state: CreditCardFraudAnalysisStateModel):
-        # logger.info("Calling tool output node...")
+    def tool_output_node(state: DataAnalysisStateModel):
+        # messages = state["messages"]
+        # logger.info(f"Messages: {messages}")
         last_message = state["messages"][-1]
-        # logger.info(f"Last message: {last_message}")
+        logger.info(f"Last message: {last_message}")
+
+        if "csv_file_paths" in last_message.content:
+            pattern = r"csv_file_paths:(.+)"
+            match = re.search(pattern, last_message.content)
+            if match:
+                csv_file_paths_str = match.group(1)
+                try:
+                    csv_file_paths = eval(csv_file_paths_str)
+                    state["csv_file_paths"] = csv_file_paths
+                except Exception as e:
+                    logger.error(f"Error parsing csv file paths: {e}")
         return state
 
     @staticmethod
     def handoff_node(
-        state: CreditCardFraudAnalysisStateModel,
-    ) -> CreditCardFraudAnalysisStateModel:
+        state: DataAnalysisStateModel,
+    ) -> DataAnalysisStateModel:
         # logger.info("Calling handoff_node node...")
         last_message = state["messages"][-1]
         # logger.info(f"Last_message: {last_message}")
@@ -105,7 +179,7 @@ class CreditCardFraudAnalysisWorkflow(BaseWorkflow):
 
     @staticmethod
     def route_supervisor(
-        state: CreditCardFraudAnalysisStateModel,
+        state: DataAnalysisStateModel,
         name: str,
     ) -> str:
         # logger.info(f"Routing from {name}...")
@@ -121,7 +195,7 @@ class CreditCardFraudAnalysisWorkflow(BaseWorkflow):
 
     @staticmethod
     def route_agent(
-        state: CreditCardFraudAnalysisStateModel,
+        state: DataAnalysisStateModel,
         name: str,
     ) -> str:
         # logger.info(f"Routing from {name} agent...")
@@ -138,27 +212,14 @@ class CreditCardFraudAnalysisWorkflow(BaseWorkflow):
         return routes_to
 
     @staticmethod
-    def route_tool_output(state: CreditCardFraudAnalysisStateModel) -> str:
+    def route_tool_output(state: DataAnalysisStateModel) -> str:
         # logger.info("Routing from tool output...")
-        last_message = state["messages"][-1]
+        # last_message = state["messages"][-1]
         # logger.info(f"Last message: {last_message}")
-
-        if last_message.name == "unzip_files_from_zip_archive_tool":
-            # After unzipping, route back to the supervisor to decide the next step
-            # (which should be mapping the CSVs).
-            return "supervisor"
-        # elif last_message.name == "insert_records_into_database_tool":
-        #     # After inserting, the task is complete.
-        #     return END
-        # else:
-        #     # For any other tool or unexpected output, route back to the supervisor.
-        #     return "supervisor"
-        else:
-            # For any other tool or unexpected output, route back to the supervisor.
-            return END
+        return "supervisor"
 
     @staticmethod
-    def route_handoff(state: CreditCardFraudAnalysisStateModel) -> str:
+    def route_handoff(state: DataAnalysisStateModel) -> str:
         # logger.info("Routing from handoff_node...")
         # last_message = state["messages"][-1]
         # logger.info(f"Last message: {last_message}")
@@ -166,8 +227,8 @@ class CreditCardFraudAnalysisWorkflow(BaseWorkflow):
         # logger.info(f"To {next_agent}...")
         return next_agent
 
-    def __build_graph(self) -> StateGraph:
-        builder = StateGraph(state_schema=CreditCardFraudAnalysisStateModel)
+    def __build(self) -> StateGraph:
+        builder = StateGraph(state_schema=DataAnalysisStateModel)
 
         builder.add_node(
             node="supervisor",
@@ -179,21 +240,23 @@ class CreditCardFraudAnalysisWorkflow(BaseWorkflow):
                     ROLE:
                     - You're a supervisor.
                     GOAL:
-                    - Your sole purpose is to manage one agent:
-                        - An Unzip File Agent: Assign tasks related to unzip files from ZIP archive to this agent.
+                    - Your primary purpose is to manage two agents to fulfill user requests:
+                        - Unzip File Agent: Use this agent exclusively for decompressing ZIP files.
+                        - Data Analyst Agent: Use this agent to answer specific questions about the data.
                     INSTRUCTIONS:
-                    - Based on the conversation history, decide the next step.
-                    - DO NOT do any work yourself.
+                    - Based on the provided instructions, decide the next action.
+                    - If the instruction is to "unzip files," hand off to the 'Unzip File Agent' and DO NOT proceed with any other task.
+                    - If the instruction is a "question" about the data, hand off to the 'Data Analyst Agent'.
+                    - DO NOT perform any work yourself. Your only job is to delegate.
                     CRITICAL RULES:
-                    - DO NOT proceed with one task if the previous only was not completed.
-                    - DO NOT perform handoffs in parallel.
-                    - ALWAYS assign work to one agent at time.
-                    - DO NOT call agents in parallel.
+                    - The workflow **must end** immediately after the 'Unzip File Agent' completes its task. Do not hand off to the 'Data Analyst Agent' unless a separate, explicit data analysis question is asked.
+                    - DO NOT call agents in parallel. Always assign work to one agent at a time.
                     """
                 ),
                 llm_with_tools=self.chat_model.bind_tools(
                     tools=[
                         self.delegate_to_unzip_file_agent,
+                        self.delegate_to_data_analysis_agent,
                     ]
                 ),
             ),
@@ -203,6 +266,7 @@ class CreditCardFraudAnalysisWorkflow(BaseWorkflow):
             action=ToolNode(
                 tools=[
                     self.delegate_to_unzip_file_agent,
+                    self.delegate_to_data_analysis_agent,
                 ]
             ),
         )
@@ -224,6 +288,20 @@ class CreditCardFraudAnalysisWorkflow(BaseWorkflow):
                 llm_with_tools=self.chat_model.bind_tools(
                     tools=[self.unzip_files_from_zip_archive_tool]
                 ),
+            ),
+        )
+        builder.add_node(
+            node="data_analysis_agent",
+            action=functools.partial(
+                self.data_analysis_agent,
+                name="data_analysis_agent",
+                prompt="""
+                ROLE:
+                - You're a data analysis agent.
+                GOAL:
+                - Your sole purpose is to respond user's question properly.
+                - DO NOT perform any other tasks.
+                """,
             ),
         )
         builder.add_node(
@@ -251,6 +329,7 @@ class CreditCardFraudAnalysisWorkflow(BaseWorkflow):
             path=self.route_handoff,
             path_map={
                 "unzip_file_agent": "unzip_file_agent",
+                "data_analysis_agent": "data_analysis_agent",
                 "supervisor": "supervisor",
             },
         )
@@ -262,32 +341,13 @@ class CreditCardFraudAnalysisWorkflow(BaseWorkflow):
                 "supervisor": "supervisor",
             },
         )
-
-        checkpointer = InMemorySaver()
-        graph = builder.compile(name=self.name, checkpointer=checkpointer)
-        logger.info(f"Graph {self.name} compiled successfully!")
-        logger.info(f"Nodes in graph: {graph.nodes.keys()}")
-        # logger.info(graph.get_graph().draw_ascii())
-        graph.get_graph().draw_mermaid_png(
-            output_file_path=os.path.join(
-                f"{self.app_settings.output_data_dir_path}",
-                f"{self.name}.png",
-            )
+        builder.add_conditional_edges(
+            source="data_analysis_agent",
+            path=functools.partial(self.route_agent, name="data_analysis_agent"),
+            path_map={
+                "tools": "tools",
+                "supervisor": "supervisor",
+            },
         )
-        return graph
 
-    async def run(self, input_message: str) -> dict:
-        logger.info(f"Starting {self.name} with input: '{input_message[:100]}...'")
-        input_messages = [HumanMessage(content=input_message)]
-        thread_id = str(uuid.uuid4())
-        input_state = {"messages": input_messages}
-
-        async for chunk in self.__graph.astream(
-            input_state,
-            subgraphs=True,
-            config={"configurable": {"thread_id": thread_id}},
-        ):
-            self._pretty_print_messages(chunk, last_message=True)
-        result = chunk[1]["supervisor"]["messages"]
-        # logger.info(f"{self.name} final result: complete.")
-        return {"messages": result}
+        return builder

@@ -1,10 +1,11 @@
 import subprocess
 
 from src.layers.core_logic_layer.logging import logger
-from src.layers.core_logic_layer.settings import app_settings
+from src.layers.core_logic_layer.settings.app_settings import AppSettings
 
 if __name__ == "__main__":
     try:
+        app_settings = AppSettings()
         subprocess.run(
             [
                 "streamlit",
