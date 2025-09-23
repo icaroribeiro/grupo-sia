@@ -1,6 +1,6 @@
 services:
-  app:
-    container_name: app-container
+  streamlit_app:
+    container_name: streamlit-app-container
     build:
       context: .
     env_file:
@@ -9,12 +9,12 @@ services:
     ports:
       - 8501:8501
     depends_on:
-      - postgres
+      - postgresql
     volumes:
-      - app_data:/var/lib/app/data
+      - streamlit_app_data:/var/lib/streamlit_app/data
 
-  postgres:
-    container_name: postgres-container
+  postgresql:
+    container_name: postgresql-container
     image: postgres:latest
     environment:
       - POSTGRES_DB=langchain_chat_history_db
@@ -24,8 +24,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgresql_data:/var/lib/postgresql/data
 
 volumes:
-  app_data:
-  postgres_data:
+  streamlit_app_data:
+  postgresql_data:
