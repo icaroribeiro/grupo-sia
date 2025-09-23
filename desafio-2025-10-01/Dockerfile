@@ -1,4 +1,4 @@
-# Use Python 3.13-bookworm as the base image for the builder stage to ensure compatibility
+# Stage 1: Use Python 3.13-bookworm as the base image for the builder stage to ensure compatibility
 FROM python:3.13-bookworm AS base
 
 # Builder stage to install dependencies and prepare the application
@@ -27,7 +27,7 @@ COPY . /app/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --verbose
 
-# Runtime stage using slim image for a smaller, production-ready footprint
+# Stage 2: Runtime stage using slim image for a smaller, production-ready footprint
 FROM python:3.13-slim-bookworm AS runtime
 
 # Set the working directory to /app in the runtime stage
