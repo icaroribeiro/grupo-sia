@@ -39,7 +39,7 @@ class ChatPage:
             with st.chat_message("assistant"):
                 st.markdown(message["answer"])
 
-        query = st.chat_input(
+        prompt = st.chat_input(
             "Escreva sua pergunta...",
             disabled=not st.session_state.data_ready_for_chat,
         )
@@ -48,24 +48,24 @@ class ChatPage:
             st.warning(
                 "Por favor, carregue um arquivo no menu 'Upload' primeiro para habilitar o bate-papo."
             )
-        elif query:
+        elif prompt:
             with st.chat_message("user"):
-                st.markdown(query)
-            self.process_chat_query(query=query)
+                st.markdown(prompt)
+            self.process_chat_question(question=prompt)
 
-    def process_chat_query(
+    def process_chat_question(
         self,
-        query: str,
+        question: str,
     ) -> None:
         try:
             with st.spinner("💡 Gerando resposta..."):
                 input_message = f"""
                 INSTRUCTIONS:
-                    - Perform the following tasks:
-                    1. Analyze the user's question accurately: {query}
-                    2. Respond the user's question objectivelly.
+                - Perform the following tasks:
+                    1. Analyze the user's question accurately: {question}
+                    2. Return a clear, conside and objective response.
                 CRITICAL RULES:
-                    - DO NOT assign any of these tasks to Unzip file Agent.
+                - DO NOT assign any of these tasks to Unzip file Agent.
                 """
                 response = asyncio.run(
                     self.workflow_runner.run_workflow(
@@ -79,7 +79,7 @@ class ChatPage:
                     "tool_calls", []
                 )
                 st.session_state.chat_history.append(
-                    {"question": query, "answer": final_response}
+                    {"question": question, "answer": final_response}
                 )
                 with st.chat_message("assistant"):
                     st.markdown(final_response)
