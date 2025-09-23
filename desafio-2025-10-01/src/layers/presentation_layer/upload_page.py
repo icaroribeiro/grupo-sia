@@ -5,7 +5,9 @@ import asyncio
 from dependency_injector.wiring import Provide, inject
 from src.layers.business_layer.ai_agents.workflow_runner import WorkflowRunner
 from src.layers.core_logic_layer.container.container import Container
-from src.layers.core_logic_layer.settings.app_settings import AppSettings
+from src.layers.core_logic_layer.settings.streamlit_app_settings import (
+    StreamlitAppSettings,
+)
 from src.layers.core_logic_layer.logging import logger
 
 
@@ -13,7 +15,9 @@ class UploadPage:
     @inject
     def __init__(
         self,
-        app_settings: AppSettings = Provide[Container.app_settings],
+        streamlit_app_settings: StreamlitAppSettings = Provide[
+            Container.streamlit_app_settings
+        ],
         data_analysis_workflow=Provide[Container.data_analysis_workflow],
         workflow_runner: WorkflowRunner = Provide[Container.workflow_runner],
     ) -> None:
@@ -23,7 +27,7 @@ class UploadPage:
             st.session_state.data_ready_for_chat = False
         if "uploaded_file" not in st.session_state:
             st.session_state.uploaded_file = ""
-        self.app_settings = app_settings
+        self.streamlit_app_settings = streamlit_app_settings
         self.data_analysis_workflow = data_analysis_workflow
         self.workflow_runner = workflow_runner
 
@@ -49,10 +53,10 @@ class UploadPage:
         zip_file = st.file_uploader("📤 Carregar um arquivo .zip", type=["zip"])
         if zip_file is not None:
             try:
-                upload_data_dir_path = self.app_settings.upload_data_dir_path
+                upload_data_dir_path = self.streamlit_app_settings.upload_data_dir_path
                 self.__delete_non_hidden_files(dir_path=upload_data_dir_path)
                 upload_extracted_data_dir_path = (
-                    self.app_settings.upload_extracted_data_dir_path
+                    self.streamlit_app_settings.upload_extracted_data_dir_path
                 )
                 self.__delete_non_hidden_files(dir_path=upload_extracted_data_dir_path)
                 file_path = os.path.join(upload_data_dir_path, zip_file.name)
@@ -71,7 +75,7 @@ class UploadPage:
     ):
         file_path = st.session_state.uploaded_file
         upload_extracted_data_dir_path = (
-            self.app_settings.upload_extracted_data_dir_path
+            self.streamlit_app_settings.upload_extracted_data_dir_path
         )
 
         with st.spinner("Starting workflow to decompress the file..."):

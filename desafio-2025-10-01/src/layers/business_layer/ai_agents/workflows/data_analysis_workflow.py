@@ -20,7 +20,9 @@ from src.layers.business_layer.ai_agents.tools.unzip_files_from_zip_archive_tool
     UnzipFilesFromZipArchiveTool,
 )
 from src.layers.core_logic_layer.logging import logger
-from src.layers.core_logic_layer.settings.app_settings import AppSettings
+from src.layers.core_logic_layer.settings.streamlit_app_settings import (
+    StreamlitAppSettings,
+)
 
 
 class DataAnalysisWorkflow:
@@ -28,11 +30,11 @@ class DataAnalysisWorkflow:
 
     def __init__(
         self,
-        app_settings: AppSettings,
+        streamlit_app_settings: StreamlitAppSettings,
         chat_model: BaseChatModel,
         unzip_files_from_zip_archive_tool: UnzipFilesFromZipArchiveTool,
     ):
-        self.app_settings = app_settings
+        self.streamlit_app_settings = streamlit_app_settings
         self.name = "data_analysis_workflow"
         self.chat_model = chat_model
         self.unzip_files_from_zip_archive_tool = unzip_files_from_zip_archive_tool

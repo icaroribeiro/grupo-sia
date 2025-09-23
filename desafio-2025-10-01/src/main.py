@@ -1,4 +1,4 @@
-from src.app import App
+from src.streamlit_app import App
 from src.layers.core_logic_layer.container.container import Container
 from src.layers.core_logic_layer.logging import logger
 
@@ -9,7 +9,7 @@ def main() -> None:
         container: Container = Container()
         container.wire(
             modules=[
-                "src.app",
+                "src.streamlit_app",
                 "src.layers.presentation_layer",
             ]
         )
