@@ -2,22 +2,21 @@ from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph import StateGraph
 from src.layers.core_logic_layer.logging import logger
-
-from src.layers.data_access_layer.postgres.postgres import Postgres
+from src.layers.data_access_layer.postgresql.postgresql import PostgreSQL
 
 
 class WorkflowRunner:
-    def __init__(self, postgres: Postgres):
-        self.postgres = postgres
+    def __init__(self, postgresql: PostgreSQL):
+        self.postgresql = postgresql
 
     async def run_workflow(
         self, workflow_builder: StateGraph, input_message: str, thread_id: str
     ) -> dict:
         try:
             async with AsyncPostgresSaver.from_conn_string(
-                conn_string=self.postgres.get_conn_string()
+                conn_string=self.postgresql.get_conn_string()
             ) as checkpointer:
-                table_exists = await self.postgres.table_exists("checkpoints")
+                table_exists = await self.postgresql.table_exists("checkpoints")
 
                 if not table_exists:
                     logger.info(

@@ -2,10 +2,10 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class PostgresSettings(BaseSettings):
+class PostgreSQLSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
-        env_prefix="POSTGRES_",
+        env_prefix="POSTGRESQL_",
         env_file_encoding="utf-8",
         extra="ignore",
         env_ignore_extra=True,

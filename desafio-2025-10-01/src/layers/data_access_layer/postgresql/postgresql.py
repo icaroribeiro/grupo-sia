@@ -1,24 +1,23 @@
-# src\layers\data_access_layer\postgres\postgres.py
 import asyncpg
 from langchain_community.utilities.sql_database import SQLDatabase
 
-from src.layers.core_logic_layer.settings.postgres_settings import PostgresSettings
+from src.layers.core_logic_layer.settings.postgresql_settings import PostgreSQLSettings
 
 
-class Postgres(SQLDatabase):
-    def __init__(self, postgres_settings: PostgresSettings):
-        self.postgres_settings = postgres_settings
+class PostgreSQL(SQLDatabase):
+    def __init__(self, postgresql_settings: PostgreSQLSettings):
+        self.postgresql_settings = postgresql_settings
 
     def get_conn_string(self) -> str:
         return (
             "{driver}://{user}:{password}@{host}:{port}/{db}?sslmode=disable"
         ).format(
-            driver=self.postgres_settings.driver,
-            user=self.postgres_settings.user,
-            password=self.postgres_settings.password,
-            host=self.postgres_settings.host,
-            port=self.postgres_settings.port,
-            db=self.postgres_settings.db,
+            driver=self.postgresql_settings.driver,
+            user=self.postgresql_settings.user,
+            password=self.postgresql_settings.password,
+            host=self.postgresql_settings.host,
+            port=self.postgresql_settings.port,
+            db=self.postgresql_settings.db,
         )
 
     async def table_exists(self, table_name: str) -> bool:
