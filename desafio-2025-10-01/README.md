@@ -1,0 +1,3 @@
+$ dos2unix entrypoint.sh
+
+dos2unix: converting file entrypoint.sh to Unix format...
