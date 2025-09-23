@@ -1,34 +1,52 @@
-# Stage 1: the builder image, used to build the virtual environment
-FROM python:3.13-bookworm AS builder
+# Use Python 3.13-bookworm as the base image for the builder stage to ensure compatibility
+FROM python:3.13-bookworm AS base
 
-RUN pip install uv==0.6.12
+# Builder stage to install dependencies and prepare the application
+FROM base AS builder
 
-ENV UV_CACHE_DIR=/tmp/uv_cache
-
+# Set the working directory to /app for all subsequent commands
 WORKDIR /app
 
-COPY pyproject.toml uv.lock ./
+# Configure uv to compile Python bytecode for faster startup and use copy mode to avoid symlink issues
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 
-RUN uv venv
-RUN . .venv/bin/activate
-RUN --mount=type=cache,target=$UV_CACHE_DIR uv sync --no-dev --no-install-project
+# Install uv package manager to manage dependencies efficiently
+RUN pip install uv
 
-# Stage 2: the runtime image, used to just run the code provided its virtual environment
+# Copy only dependency files first to leverage Docker's layer caching
+COPY pyproject.toml uv.lock /app/
+
+# Install dependencies into a virtual environment, caching packages to speed up builds
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --no-dev
+
+# Copy the full application code after dependencies to minimize cache invalidation
+COPY . /app/
+
+# Install the application and dependencies, using verbose output for debugging
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --verbose
+
+# Runtime stage using slim image for a smaller, production-ready footprint
 FROM python:3.13-slim-bookworm AS runtime
 
+# Set the working directory to /app in the runtime stage
 WORKDIR /app
 
-ENV VIRTUAL_ENV=/app/.venv \
-    PATH="/app/.venv/bin:$PATH"
+# Copy the entire /app directory (including virtual environment) from the builder stage
+COPY --from=builder /app /app
 
-COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
+# Set PYTHONPATH to /app to ensure Python can find modules in the application directory
+ENV PYTHONPATH="/app"
 
-COPY .streamlit .streamlit
-COPY scripts scripts
-COPY src src
+# Add the virtual environment's bin directory to PATH for easy access to executables
+ENV PATH="/app/.venv/bin:$PATH"
 
-RUN chmod +x scripts/entrypoint.sh
+# Make the entrypoint script executable to allow it to run on container startup
+RUN chmod +x entrypoint.sh
 
+# Expose port 8501 for the Streamlit application
 EXPOSE 8501
 
-ENTRYPOINT ["./scripts/entrypoint.sh"]
+# Run the entrypoint script using sh to start the application
+ENTRYPOINT ["sh", "entrypoint.sh"]
