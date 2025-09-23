@@ -3,19 +3,19 @@ format:
 	ruff check --select I --fix . \
 	ruff format .
 
-# App tasks.
-run-app:
-	uv run scripts/run_app.py
+# Streamlit App tasks.
+launch-streamlit-app:
+	uv run launch_streamlit_app.py
 
-# Containers tasks.
-startup-app-container:
-	docker-compose up --build -d app
+# Streamlit App and PostgreSQL containers tasks.
+startup-streamlit-app-container:
+	docker-compose up --build -d streamlit-app
 
-shutdown-app-container:
-	docker-compose down -v app
+shutdown-streamlit-app-container:
+	docker-compose down -v streamlit-app
 
-startup-postgres-container:
-	docker-compose up --build -d postgres
+startup-postgresql-container:
+	docker-compose up --build -d postgresql
 
-shutdown-postgres-container:
-	docker-compose down -v postgres
+shutdown-postgresql-container:
+	docker-compose down -v postgresql
