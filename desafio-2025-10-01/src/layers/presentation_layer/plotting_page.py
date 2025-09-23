@@ -1,20 +1,36 @@
 # plotting_page.py
 import asyncio
+import uuid
 import streamlit as st
-from dependency_injector.wiring import Provide, inject
+from dependency_injector.wiring import inject
 import json
 
+from src.layers.core_logic_layer.logging import logger
+from src.layers.business_layer.ai_agents.workflow_runner import WorkflowRunner
 from src.layers.business_layer.ai_agents.workflows.data_analysis_workflow import (
     DataAnalysisWorkflow,
 )
+from dependency_injector.wiring import Provide
 from src.layers.core_logic_layer.container.container import Container
-from src.layers.core_logic_layer.logging import logger
 
 
 class PlottingPage:
-    def __init__(self) -> None:
+    @inject
+    def __init__(
+        self,
+        data_analysis_workflow: DataAnalysisWorkflow = Provide[
+            Container.data_analysis_workflow
+        ],
+        workflow_runner: WorkflowRunner = Provide[Container.workflow_runner],
+    ) -> None:
+        if "thread_id" not in st.session_state:
+            st.session_state.thread_id = str(uuid.uuid4())
         if "plotting_chat_history" not in st.session_state:
             st.session_state.plotting_chat_history = []
+        if "data_ready_for_chat" not in st.session_state:
+            st.session_state.data_ready_for_chat = False
+        self.data_analysis_workflow = data_analysis_workflow
+        self.workflow_runner = workflow_runner
 
     def show(self) -> None:
         st.title("📊 Plotagem de Dados")
@@ -27,17 +43,14 @@ class PlottingPage:
                 st.markdown(message["question"])
             with st.chat_message("assistant"):
                 try:
-                    # Assuming the AI's response is a JSON string of an Altair chart spec
                     chart_spec = json.loads(message["answer"])
                     st.altair_chart(chart_spec, use_container_width=True)
                 except (json.JSONDecodeError, TypeError):
-                    # If it's not a valid JSON, display it as plain text
                     st.markdown(message["answer"])
 
-        # Control the chat input based on whether a file has been uploaded and processed
         prompt = st.chat_input(
-            "Type your question...",
-            disabled=not st.session_state.get("data_ready_for_chat", False),
+            "Escreva sua pergunta...",
+            disabled=not st.session_state.data_ready_for_chat,
         )
 
         if not st.session_state.get("data_ready_for_chat", False):
@@ -47,15 +60,11 @@ class PlottingPage:
         elif prompt:
             with st.chat_message("user"):
                 st.markdown(prompt)
-            self.process_plot_query(question=prompt)
+            self.process_plot_question(question=prompt)
 
-    @inject
-    def process_plot_query(
+    def process_plot_question(
         self,
         question: str,
-        data_analysis_workflow: DataAnalysisWorkflow = Provide[
-            Container.data_analysis_workflow
-        ],
     ) -> None:
         try:
             with st.spinner("💡 Gerando gráfico ou análise..."):
@@ -69,14 +78,16 @@ class PlottingPage:
                 - DO NOT assign any of these tasks to Unzip file Agent.
                 """
                 response = asyncio.run(
-                    data_analysis_workflow.run(input_message=input_message)
+                    self.workflow_runner.run_workflow(
+                        self.data_analysis_workflow.workflow,
+                        input_message,
+                        st.session_state.session_thread_id,
+                    )
                 )
-
                 final_response = response["messages"][-1].content
                 tool_calls = response["messages"][-1].additional_kwargs.get(
                     "tool_calls", []
                 )
-
                 st.session_state.plotting_chat_history.append(
                     {"question": question, "answer": final_response}
                 )
@@ -88,7 +99,6 @@ class PlottingPage:
                         st.markdown(final_response)
                         if tool_calls:
                             st.json(tool_calls)
-
         except Exception as err:
             logger.error(
                 f"An error occurred when processing plot query: {err}", exc_info=True
