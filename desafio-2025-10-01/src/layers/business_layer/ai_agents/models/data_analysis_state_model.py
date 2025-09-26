@@ -1,11 +1,5 @@
-from typing import Sequence, TypedDict
-
-from langchain_core.messages import BaseMessage
-from langgraph.graph.message import add_messages
-from typing_extensions import Annotated
+from src.layers.business_layer.ai_agents.models.base_state_model import BaseStateModel
 
 
-class DataAnalysisStateModel(TypedDict):
-    messages: Annotated[Sequence[BaseMessage], add_messages]
-    next_agent: str
+class DataAnalysisStateModel(BaseStateModel):
     csv_file_paths: list[str]
