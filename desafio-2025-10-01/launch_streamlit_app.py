@@ -21,8 +21,8 @@ if __name__ == "__main__":
             check=True,
         )
     except KeyboardInterrupt:
-        message = "Streamlit client closed due to KeyboardInterrupt"
+        message = "Streamlit application closed due to KeyboardInterrupt"
         logger.error(message)
     except Exception as error:
-        message = f"Error: Failed to initiate Streamlit client: {error}"
+        message = f"Error: Failed to initiate Streamlit application: {error}"
         logger.error(message)
