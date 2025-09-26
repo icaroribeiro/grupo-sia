@@ -89,7 +89,7 @@ class UploadPage:
                 """
                 asyncio.run(
                     self.workflow_runner.run_workflow(
-                        self.data_analysis_workflow.workflow,
+                        self.data_analysis_workflow,
                         input_message,
                         st.session_state.session_thread_id,
                     )
