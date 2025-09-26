@@ -3,6 +3,8 @@ services:
     container_name: streamlit-app-container
     build:
       context: .
+    environment:
+      - STREAMLIT_APP_HOST=0.0.0.0
     env_file:
       - ./.env
     restart: always
