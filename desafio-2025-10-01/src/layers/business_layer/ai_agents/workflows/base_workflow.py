@@ -96,7 +96,7 @@ class BaseWorkflow(ABC):
         routes_to: str = ""
 
         if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-            routes_to = "supervisor_tools"
+            routes_to = "supervisor_agent_tools"
         else:
             routes_to = END
         # logger.info(f"To {routes_to}...")

@@ -104,7 +104,7 @@ class DataAnalysisWorkflow(BaseWorkflow):
             action=ToolNode(tools=[self.unzip_files_from_zip_archive_tool]),
         )
         builder.add_node(
-            node="supervisor_tools",
+            node="supervisor_agent_tools",
             action=ToolNode(
                 tools=[
                     self.delegate_to_unzip_file_agent,
@@ -117,7 +117,7 @@ class DataAnalysisWorkflow(BaseWorkflow):
 
     def _add_edges(self, builder: StateGraph) -> None:
         builder.add_edge(start_key=START, end_key=self.supervisor_agent.name)
-        builder.add_edge(start_key="supervisor_tools", end_key="handoff_node")
+        builder.add_edge(start_key="supervisor_agent_tools", end_key="handoff_node")
         builder.add_edge(start_key="tools", end_key="tool_output_node")
         builder.add_edge(
             start_key="tool_output_node", end_key=self.supervisor_agent.name
@@ -129,7 +129,7 @@ class DataAnalysisWorkflow(BaseWorkflow):
             path=functools.partial(
                 self.route_supervisor, name=self.supervisor_agent.name
             ),
-            path_map={"supervisor_tools": "supervisor_tools", END: END},
+            path_map={"supervisor_agent_tools": "supervisor_agent_tools", END: END},
         )
         builder.add_conditional_edges(
             source="handoff_node",
