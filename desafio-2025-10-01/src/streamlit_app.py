@@ -1,13 +1,11 @@
 import uuid
+
 import streamlit as st
 
 from src.layers.core_logic_layer.logging import logger
 from src.layers.presentation_layer.about_page import AboutPage
-from src.layers.presentation_layer.chat_page import ChatPage
+from src.layers.presentation_layer.ead_page import EADPage
 from src.layers.presentation_layer.home_page import HomePage
-from src.layers.presentation_layer.plotting_page import PlottingPage
-from src.layers.presentation_layer.upload_page import UploadPage
-# from src.layers.presentation_layer.upload_page import UploadPage
 
 
 class App:
@@ -18,32 +16,24 @@ class App:
             logger.info(
                 f"New session started with thread_id: {st.session_state.session_thread_id}"
             )
-        self.setup_pages()
+        self.__setup_pages()
 
-    def setup_pages(self) -> None:
-        self.__PAGES = {
+    def __setup_pages(self) -> None:
+        self.__pages = {
             "home": {
                 "title": "Ínicio",
                 "func": HomePage().show,
             },
-            "upload": {
-                "title": "Upload",
-                "func": UploadPage().show,
-            },
-            "chat": {
-                "title": "Bate-Papo",
-                "func": ChatPage().show,
-            },
-            "plotting": {
-                "title": "Plotagem",
-                "func": PlottingPage().show,
+            "ead": {
+                "title": "A.E.D.",
+                "func": EADPage().show,
             },
             "about": {
                 "title": "Sobre",
                 "func": AboutPage().show,
             },
         }
-        for page, value in self.__PAGES.items():
+        for page, value in self.__pages.items():
             st.sidebar.button(
                 value["title"],
                 on_click=self.__set_page,
@@ -53,11 +43,13 @@ class App:
         self.current_page_name = st.query_params.get("page", "home")
 
     def run(self) -> None:
-        page = self.__PAGES.get(self.current_page_name)
-        if page["func"]:
-            page["func"]()
+        page = self.__pages.get(self.current_page_name)
+        func = page.get("func", None)
+        if func:
+            func()
         else:
-            st.error("Page not found!")
+            logger.error("Page function not found!")
+            st.error("Page function not found!")
 
     @staticmethod
     def __set_page(page_name: str) -> None:
