@@ -1,8 +1,8 @@
-from pydantic import BaseModel, ConfigDict
 from langgraph.graph import StateGraph
+from pydantic import BaseModel, ConfigDict
 
 
-class StateGraphModel(BaseModel):
+class BaseStateGraphModel(BaseModel):
     name: str
     graph: StateGraph
 

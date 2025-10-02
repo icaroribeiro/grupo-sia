@@ -1,8 +1,8 @@
 from langchain_openai import ChatOpenAI
 
-from src.streamlit_app_error import StreamlitAppError
 from src.layers.core_logic_layer.logging import logger
 from src.layers.core_logic_layer.settings.ai_settings import AISettings
+from src.streamlit_app_error import StreamlitAppError
 
 
 class LLM:
@@ -13,10 +13,10 @@ class LLM:
     def chat_model(self) -> ChatOpenAI:
         logger.info("Chat Model startup initiating...")
         if not self.__chat_model:
-            message = f"Error: Invalid LLM provider: {self.__provider}"
+            message = f"Invalid LLM provider: {self.__provider}"
             logger.error(message)
             raise StreamlitAppError(message)
-        message = "Success: Chat Model startup complete."
+        message = "Chat Model startup complete."
         logger.info(message)
         return self.__chat_model
 

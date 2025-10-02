@@ -5,8 +5,8 @@ class UnzipFileAgent(BaseAgent):
     name: str = "unzip_file_agent"
     prompt: str = """
         ROLE:
-        - You're an unzip file agent.
+        - You are an unzip file agent.
+        
         GOAL:
-        - Your sole purpose is to unzip files from ZIP archive.
-        - DO NOT perform any other tasks.
+        - Unzip a file based on the user's request.
     """

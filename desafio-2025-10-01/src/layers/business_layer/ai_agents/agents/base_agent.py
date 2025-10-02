@@ -1,5 +1,5 @@
-from pydantic import BaseModel
 from langchain_core.language_models import BaseChatModel
+from pydantic import BaseModel
 
 
 class BaseAgent(BaseModel):

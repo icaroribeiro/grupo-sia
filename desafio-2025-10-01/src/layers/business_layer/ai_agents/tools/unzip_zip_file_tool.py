@@ -9,18 +9,18 @@ from pydantic import BaseModel, Field
 from src.layers.core_logic_layer.logging import logger
 
 
-class UnzipFilesFromZipArchiveInput(BaseModel):
-    file_path: str = Field(..., description="Path to the ZIP archive.")
+class UnzipZipFileToolInput(BaseModel):
+    file_path: str = Field(default=..., description="Path to the ZIP file.")
     destination_dir_path: str = Field(
-        ..., description="Path to the destination directory."
+        default=..., description="Path to the destination directory."
     )
     tool_call_id: Annotated[str, InjectedToolCallId] = Field(...)
 
 
-class UnzipFilesFromZipArchiveTool(BaseTool):
-    name: str = "unzip_files_from_zip_archive_tool"
-    description: str = "Unzip files from ZIP archive to a destination directory."
-    args_schema: Type[BaseModel] = UnzipFilesFromZipArchiveInput
+class UnzipZipFileTool(BaseTool):
+    name: str = "unzip_zip_file_tool"
+    description: str = "Unzip ZIP file to a destination directory."
+    args_schema: Type[BaseModel] = UnzipZipFileToolInput
 
     def _run(
         self, file_path: str, destination_dir_path: str, tool_call_id: str
@@ -36,15 +36,15 @@ class UnzipFilesFromZipArchiveTool(BaseTool):
                     for name in zip_ref.namelist()
                     if not name.endswith("/")
                 ]
+            csv_file_paths = [file.replace("\\", "/") for file in extracted_file_paths]
+            logger.info(f"ZIP file unzipped resulting in file paths: {csv_file_paths}")
             return ToolMessage(
-                content=f"csv_file_paths:{
-                    [file.replace('\\', '/') for file in extracted_file_paths]
-                }",
+                content=f"csv_file_paths:{csv_file_paths}",
                 name=self.name,
                 tool_call_id=tool_call_id,
             )
         except Exception as error:
-            message = f"Error: {str(error)}"
+            message = f"{str(error)}"
             logger.error(message)
             return ToolMessage(
                 content="csv_file_paths:[]",

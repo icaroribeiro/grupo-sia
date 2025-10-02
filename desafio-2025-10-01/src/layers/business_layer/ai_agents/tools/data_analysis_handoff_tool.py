@@ -14,26 +14,21 @@ class DataAnalysisHandoffToolInput(BaseModel):
             description="Description of what the next agent should do, including all of the relevant context."
         ),
     ]
-    tool_call_id: Annotated[str, InjectedToolCallId] = Field(...)
+    tool_call_id: Annotated[str, InjectedToolCallId] = Field(default=...)
 
 
 class DataAnalysisHandoffTool(BaseTool):
-    name: str = "handoff_tool"
-    description: str | None = (
+    name: str = "data_analysis_handoff_tool"
+    description: str = (
         "Hands off a task to another agent with a description and relevant context."
     )
-    agent_name: str
     args_schema: Type[BaseModel] = DataAnalysisHandoffToolInput
+    agent_name: str
 
-    def __init__(
-        self,
-        agent_name: str,
-        description: str | None = None,
-    ):
+    def __init__(self, agent_name: str):
         super().__init__(agent_name=agent_name)
         self.name = f"transfer_to_{agent_name}"
         self.agent_name = agent_name
-        self.description = description or f"Ask {agent_name} for help."
 
     async def _arun(
         self,

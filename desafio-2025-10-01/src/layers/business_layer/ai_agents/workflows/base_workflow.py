@@ -1,24 +1,27 @@
-from langgraph.graph import END
+import re
+from abc import ABC, abstractmethod
+from typing import Optional
+
+from langchain_core.messages import BaseMessage, HumanMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables import Runnable
+from langgraph.graph import END, StateGraph
+
 from src.layers.business_layer.ai_agents.agents.base_agent import BaseAgent
+from src.layers.business_layer.ai_agents.models.base_state_graph_model import (
+    BaseStateGraphModel,
+)
 from src.layers.business_layer.ai_agents.models.base_state_model import BaseStateModel
 from src.layers.business_layer.ai_agents.models.data_analysis_state_model import (
     DataAnalysisStateModel,
 )
-import re
-from langchain_core.messages import BaseMessage, HumanMessage
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.runnables import Runnable
 from src.layers.core_logic_layer.logging import logger
-from abc import ABC, abstractmethod
-from typing import Optional
-from src.layers.business_layer.ai_agents.models.state_graph_model import StateGraphModel
-from langgraph.graph import StateGraph
 
 
 class BaseWorkflow(ABC):
     def __init__(self) -> None:
         self.name: str = ""
-        self._workflow: Optional[StateGraphModel] = None
+        self._workflow: Optional[BaseStateGraphModel] = None
 
     @property
     def workflow(self) -> StateGraph:
@@ -27,7 +30,7 @@ class BaseWorkflow(ABC):
         return self._workflow.graph
 
     @abstractmethod
-    def _build_workflow(self) -> StateGraphModel:
+    def _build_workflow(self) -> BaseStateGraphModel:
         pass
 
     @staticmethod
@@ -36,7 +39,7 @@ class BaseWorkflow(ABC):
         agent: BaseAgent,
         llm_with_tools: Runnable[BaseMessage, BaseMessage],
     ) -> DataAnalysisStateModel:
-        # logger.info(f"Calling {agent.name}...")
+        logger.info(f"Calling {agent.name}...")
         messages = state["messages"]
         # logger.info(f"Messages: {messages}")
         prompt_template = ChatPromptTemplate.from_messages(
@@ -68,7 +71,7 @@ class BaseWorkflow(ABC):
     def handoff_node(
         state: BaseStateModel,
     ) -> BaseStateModel:
-        # logger.info("Calling handoff_node node...")
+        logger.info("Calling handoff by supervisor...")
         last_message = state["messages"][-1]
         # logger.info(f"Last_message: {last_message}")
         pattern = r"transfer_to_agent=(\w+)::task=(.+)"
@@ -90,16 +93,15 @@ class BaseWorkflow(ABC):
         state: BaseStateModel,
         name: str,
     ) -> str:
-        # logger.info(f"Routing from {name}...")
+        logger.info(f"Routing from {name}...")
         last_message = state["messages"][-1]
         # logger.info(f"Last_message: {last_message}")
         routes_to: str = ""
-
         if hasattr(last_message, "tool_calls") and last_message.tool_calls:
             routes_to = "supervisor_agent_tools"
         else:
             routes_to = END
-        # logger.info(f"To {routes_to}...")
+        logger.info(f"To {routes_to}...")
         return routes_to
 
     @staticmethod
@@ -108,11 +110,10 @@ class BaseWorkflow(ABC):
         name: str,
         routes_to_by_tool_name: dict[str, str] | None,
     ) -> str:
-        # logger.info(f"Routing from {name} agent...")
+        logger.info(f"Routing from {name}...")
         last_message = state["messages"][-1]
         # logger.info(f"Last message: {last_message}")
         routes_to: str = ""
-
         if hasattr(last_message, "tool_calls") and last_message.tool_calls:
             if routes_to_by_tool_name:
                 first_tool_name = last_message.tool_calls[0].get(
@@ -123,15 +124,14 @@ class BaseWorkflow(ABC):
                 routes_to = "tools"
         else:
             routes_to = "supervisor_agent"
-
-        # logger.info(f"To {routes_to}...")
+        logger.info(f"To {routes_to}...")
         return routes_to
 
     @staticmethod
     def route_handoff(state: BaseStateModel) -> str:
-        # logger.info("Routing from handoff_node...")
+        logger.info("Routing from handoff by supervisor...")
         # last_message = state["messages"][-1]
         # logger.info(f"Last message: {last_message}")
         next_agent = state.get("next_agent", "supervisor_agent")
-        # logger.info(f"To {next_agent}...")
+        logger.info(f"To {next_agent}...")
         return next_agent
