@@ -6,15 +6,20 @@ class HomePage:
         pass
 
     def show(self) -> None:
-        st.title("🏡 Aplicativo de Análise de Dados!")
-        st.markdown(
+        st.title("🏡 Bem-vindo ao Aplicativo de Análise Exploratória de Dados!")
+        st.write(
             """
-            Ao enviar um arquivo .zip contendo seus conjuntos de dados, você pode:
+            Este aplicativo foi desenvolvido como uma solução genérica para trabalhar 
+            com qualquer arquivo CSV, fornecendo respostas a perguntas de usuário, como
+            também gerar gráficos e apresentar conclusões.
 
-            * **Carregar e Descompactar**: Acesse o menu **Upload** para enviar seu arquivo .zip com segurança.
+            Acesse o menu **A.E.D. (Análise Exploratória de Dados)** para realizar as
+            seguintes operações:
+            
+            * **Enviar e Descompactar um Arquivo ZIP**: Solicite o envio seu arquivo .zip para análise de dados.
 
-            * **Conversar com um Agente**: Acesse o menu **Bate-Papo** para fazer perguntas sobre seus dados em linguagem natural.
+            * **Conversar com um Agente**: Faça perguntas sobre seus dados em linguagem natural.
 
-            * **Gerar Gráficos**: Acesse o menu **Plotagem** para visualizar as principais tendências e padrões em seus dados com gráficos poderosos.
+            * **Gerar Gráficos**: Gere gráficos para visualizar as principais tendências e padrões em seus dados.
             """
         )
