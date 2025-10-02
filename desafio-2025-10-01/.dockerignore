@@ -1,0 +1,9 @@
+.git
+.gitignore
+__pycache__
+.env*
+.venv
+.ruff_cache
+.streamlit/*
+Makefile
+README.md
