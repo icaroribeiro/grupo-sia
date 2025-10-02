@@ -14,3 +14,5 @@ class AISettings(BaseSettings):
     llm_model: str = Field(default="gpt-4.1-nano")
     llm_temperature: float = Field(default=0.1)
     llm_api_key: str = Field(default=...)
+    llm_max_retries: int = Field(default=3)
+    llm_retry_delay: int = Field(default=5)
