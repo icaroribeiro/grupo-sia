@@ -1,0 +1,35 @@
+[project]
+name = "projeto-final-2025-10-30"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.16.4",
+    "asyncpg>=0.30.0",
+    "dependency-injector>=4.48.1",
+    "grandalf>=0.8",
+    "graphviz>=0.21",
+    "ipython>=9.5.0",
+    "langchain-community>=0.3.29",
+    "langchain-experimental>=0.3.4",
+    "langchain-openai>=0.3.33",
+    "langgraph>=0.6.7",
+    "langgraph-checkpoint-postgres>=2.0.23",
+    "numpy>=2.3.3",
+    "openpyxl>=3.1.5",
+    "pandas>=2.3.2",
+    "psycopg-binary>=3.2.10",
+    "psycopg2>=2.9.10",
+    "pydantic>=2.11.9",
+    "pydantic-settings>=2.10.1",
+    "python-dotenv>=1.1.1",
+    "sqlalchemy>=2.0.41",
+    "streamlit>=1.49.1",
+    "tabulate>=0.9.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.13.0",
+]
