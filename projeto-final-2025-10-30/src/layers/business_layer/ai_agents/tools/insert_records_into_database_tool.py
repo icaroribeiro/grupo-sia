@@ -7,10 +7,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy.exc import IntegrityError
 
 from src.layers.core_logic_layer.logging import logger
-from src.layers.data_access_layer.postgresdb.models.base_model import (
+from src.layers.data_access_layer.postgresql.models.base_model import (
     BaseModel as SQLAlchemyBaseModel,
 )
-from src.layers.data_access_layer.postgresdb.postgresdb import PostgresDB
+from src.layers.data_access_layer.postgresql.postgresql import PostgreSQL
 
 
 class InsertRecordsIntoDatabaseInput(BaseModel):
@@ -25,23 +25,23 @@ class InsertRecordsIntoDatabaseTool(BaseTool):
     description: str = (
         "Insert ingestion args into Postgres database using SQLALchemy ORM."
     )
-    postgresdb: PostgresDB
+    postgresql: PostgreSQL
     sqlalchemy_model_by_table_name: dict[str, Type[SQLAlchemyBaseModel]]
     ingestion_config_dict: dict[int, dict[str, Any]]
     args_schema: Type[BaseModel] = InsertRecordsIntoDatabaseInput
 
     def __init__(
         self,
-        postgresdb: PostgresDB,
+        postgresql: PostgreSQL,
         sqlalchemy_model_by_table_name: dict[str, Type[SQLAlchemyBaseModel]],
         ingestion_config_dict: dict[int, dict[str, Any]],
     ):
         super().__init__(
-            postgresdb=postgresdb,
+            postgresql=postgresql,
             sqlalchemy_model_by_table_name=sqlalchemy_model_by_table_name,
             ingestion_config_dict=ingestion_config_dict,
         )
-        self.postgresdb = postgresdb
+        self.postgresql = postgresql
         self.sqlalchemy_model_by_table_name = sqlalchemy_model_by_table_name
         self.ingestion_config_dict = ingestion_config_dict
 
@@ -52,7 +52,7 @@ class InsertRecordsIntoDatabaseTool(BaseTool):
         count_map: dict[str, int] = dict()
         try:
             count_map: dict[str, int] = dict()
-            async with self.postgresdb.async_session() as async_session:
+            async with self.postgresql.async_session() as async_session:
                 for index, ingestion_args in enumerate(ingestion_args_list):
                     table_name = ingestion_args["table_name"]
                     file_path = ingestion_args["file_path"]
