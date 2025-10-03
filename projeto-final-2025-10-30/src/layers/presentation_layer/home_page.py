@@ -6,17 +6,14 @@ class HomePage:
         pass
 
     def show(self) -> None:
-        st.title(
-            "🏡 Bem-vindo ao Aplicativo de Classificação e Gerenciamento de Notas Fiscais!"
-        )
+        st.title("🏡 Aplicativo de Classificação e Gerenciamento de Notas Fiscais!")
         st.write(
             """
-            Este aplicativo foi desenvolvido como uma solução genérica para trabalhar 
-            com qualquer arquivo CSV, fornecendo respostas a perguntas de usuário, como
-            também gerar gráficos e apresentar conclusões.
+            Este aplicativo foi desenvolvido como uma solução para trabalhar com notas fiscais 
+            em formato CSV, possibilitando a análise de dados e geração de recursos gráficos e outras visualizações,
+            como também formulação de conclusões baseadas em perguntas de usuário.
 
-            Acesse o menu **A.E.D. (Análise Exploratória de Dados)** para realizar as
-            seguintes operações:
+            Acesse o menu **Bate-Papo** para realizar as seguintes operações:
             
             * **Enviar e Descompactar um Arquivo ZIP**: Solicite o envio seu arquivo .zip para análise de dados.
 
