@@ -5,7 +5,7 @@ from typing import Optional
 from langchain_core.messages import BaseMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import Runnable
-from langgraph.graph import END, StateGraph
+from langgraph.graph import StateGraph
 
 from src.layers.business_layer.ai_agents.agents.base_agent import BaseAgent
 from src.layers.business_layer.ai_agents.models.base_state_graph_model import (
@@ -69,69 +69,56 @@ class BaseWorkflow(ABC):
 
     @staticmethod
     def handoff_node(
-        state: BaseStateModel,
+        state: BaseStateModel, agent: BaseAgent, next: str
     ) -> BaseStateModel:
-        logger.info("Calling handoff by supervisor...")
+        logger.info(f"Calling handoff by {agent.name}...")
         last_message = state["messages"][-1]
         # logger.info(f"Last_message: {last_message}")
-        pattern = r"transfer_to_agent=(\w+)::task=(.+)"
+        pattern = r"delegate_to=(\w+)::task=(.+)"
         match = re.search(pattern, last_message.content)
         if match:
-            agent_name = match.group(1)
+            name = match.group(1)
             task_description = match.group(2)
-            # logger.info(f"Parsed agent: {agent_name}, task= {task_description}")
             new_task_message = HumanMessage(content=task_description)
             return {
                 "messages": state["messages"] + [new_task_message],
-                "next_agent": agent_name,
+                next: name,
             }
-        logger.warning("No valid agent transfer found in handoff_node")
-        return {"messages": state["messages"], "next_agent": "supervisor_agent"}
+        logger.warning("No valid entity to delegate found in handoff_node")
+        return {"messages": state["messages"], next: "manager"}
 
     @staticmethod
-    def route_supervisor(
+    def route_tools(
         state: BaseStateModel,
-        name: str,
+        agent: BaseAgent,
+        routes_to: str,
+        is_handoff: bool = False,
     ) -> str:
-        logger.info(f"Routing from {name}...")
+        logger.info(f"Routing from {agent.name}...")
         last_message = state["messages"][-1]
         # logger.info(f"Last_message: {last_message}")
         routes_to: str = ""
         if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-            routes_to = "supervisor_agent_tools"
-        else:
-            routes_to = END
-        logger.info(f"To {routes_to}...")
-        return routes_to
-
-    @staticmethod
-    def route_agent(
-        state: BaseStateModel,
-        name: str,
-        routes_to_by_tool_name: dict[str, str] | None,
-    ) -> str:
-        logger.info(f"Routing from {name}...")
-        last_message = state["messages"][-1]
-        # logger.info(f"Last message: {last_message}")
-        routes_to: str = ""
-        if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-            if routes_to_by_tool_name:
-                first_tool_name = last_message.tool_calls[0].get(
-                    "name"
-                ) or last_message.tool_calls[0].get("function", {}).get("name")
-                routes_to = routes_to_by_tool_name.get(first_tool_name, "tools")
+            first_tool_call_name = last_message.tool_calls[0].get(
+                "name"
+            ) or last_message.tool_calls[0].get("function", {}).get("name")
+            if first_tool_call_name == "insert_records_into_database_tool":
+                routes_to = "insert_records_tool_node"
             else:
-                routes_to = "tools"
+                if not is_handoff:
+                    routes_to = "tools"
+                else:
+                    routes_to = "handoff_tools"
         else:
-            routes_to = "supervisor_agent"
+            routes_to = routes_to
         logger.info(f"To {routes_to}...")
         return routes_to
 
     @staticmethod
     def route_handoff(state: BaseStateModel) -> str:
-        logger.info("Routing from handoff by supervisor...")
+        logger.info("Routing from handoff...")
         # last_message = state["messages"][-1]
         # logger.info(f"Last message: {last_message}")
-        next_agent = state.get("next_agent", "supervisor_agent")
-        logger.info(f"To {next_agent}...")
-        return next_agent
+        next = state.get("next", "manager")
+        logger.info(f"To {next}...")
+        return next

@@ -22,8 +22,8 @@ class DataAnalysisHandoffTool(BaseTool):
     description: str = (
         "Hands off a task to another agent with a description and relevant context."
     )
-    args_schema: Type[BaseModel] = DataAnalysisHandoffToolInput
     agent_name: str
+    args_schema: Type[BaseModel] = DataAnalysisHandoffToolInput
 
     def __init__(self, agent_name: str):
         super().__init__(agent_name=agent_name)

@@ -5,7 +5,7 @@ class DataAnalysisAgent(BaseAgent):
     name: str = "data_analysis_agent"
     prompt: str = """
         ROLE:
-        - You are an expert data analysis agent.
+        - You are a data analysis agent.
         GOAL:
         - Answer questions about a pandas DataFrame named `df`.
         - Always answer questions in the same language in which they are asked, matching the user's language.
