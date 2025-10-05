@@ -48,9 +48,7 @@ class DataAnalysisWorkflow(BaseWorkflow):
         self.data_analysis_agent = data_analysis_agent
         self.supervisor_agent = supervisor_agent
         self.delegate_to_unzip_file_agent_tool = delegate_to_unzip_file_agent_tool
-        self.delegate_to_data_analysis_agent_tool = (
-            delegate_to_data_analysis_agent_tool,
-        )
+        self.delegate_to_data_analysis_agent_tool = delegate_to_data_analysis_agent_tool
         self.eda_tools = eda_tools
 
     def _build_workflow(self) -> DataAnalysisStateGraphModel:
@@ -106,7 +104,10 @@ class DataAnalysisWorkflow(BaseWorkflow):
                 ]
             ),
         )
-        builder.add_node(node="handoff_node", action=self.handoff_node)
+        builder.add_node(
+            node="handoff_node",
+            action=functools.partial(self.handoff_node, agent=self.supervisor_agent),
+        )
         builder.add_node(node="cleanup_node", action=self.cleanup_node)
 
     def __add_edges(self, builder: StateGraph) -> None:
@@ -132,8 +133,9 @@ class DataAnalysisWorkflow(BaseWorkflow):
             source=self.unzip_file_agent.name,
             path=functools.partial(
                 self.route_tools,
-                name=self.unzip_file_agent.name,
+                agent=self.unzip_file_agent,
                 routes_to=self.supervisor_agent.name,
+                is_handoff=False,
             ),
             path_map={
                 "tools": "tools",
@@ -144,7 +146,7 @@ class DataAnalysisWorkflow(BaseWorkflow):
             source=self.data_analysis_agent.name,
             path=functools.partial(
                 self.route_tools,
-                name=self.data_analysis_agent.name,
+                agent=self.data_analysis_agent,
                 routes_to_by_tool_name={
                     "python_repl_ast": "data_analysis_agent_tools",
                     "generate_distribution_tool": "data_analysis_agent_tools",
@@ -159,7 +161,7 @@ class DataAnalysisWorkflow(BaseWorkflow):
             source=self.supervisor_agent.name,
             path=functools.partial(
                 self.route_tools,
-                name=self.supervisor_agent.name,
+                agent=self.supervisor_agent,
                 routes_to=END,
                 is_handoff=True,
             ),
