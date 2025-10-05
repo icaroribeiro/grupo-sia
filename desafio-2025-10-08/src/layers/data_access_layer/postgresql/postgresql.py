@@ -1,3 +1,4 @@
+import os
 import asyncpg
 from langchain_community.utilities.sql_database import SQLDatabase
 
@@ -9,6 +10,10 @@ class PostgreSQL(SQLDatabase):
         self.postgresql_settings = postgresql_settings
 
     def get_conn_string(self) -> str:
+        database_url = os.environ.get("DATABASE_URL")
+        if database_url:
+            return database_url
+
         return (
             "{driver}://{user}:{password}@{host}:{port}/{db}?sslmode=disable"
         ).format(
