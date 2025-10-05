@@ -17,15 +17,13 @@ RUN pip install uv
 COPY pyproject.toml uv.lock /app/
 
 # Install dependencies into a virtual environment, caching packages to speed up builds
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project --no-dev
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-install-project --no-dev
 
 # Copy the full application code after dependencies to minimize cache invalidation
 COPY . /app/
 
 # Install the application and dependencies, using verbose output for debugging
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --verbose
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --verbose
 
 # Stage 2: Runtime stage using slim image for a smaller, production-ready footprint
 FROM python:3.13-slim-bookworm AS runtime
