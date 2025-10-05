@@ -6,6 +6,7 @@ FROM base AS builder
 
 # Configure Railway service id
 ARG RAILWAY_SERVICE_ID=5009ffcc-811a-43c6-8bf2-87ec7af20d09
+RUN echo $RAILWAY_SERVICE_ID
 
 # Set the working directory to /app for all subsequent commands
 WORKDIR /app
