@@ -16,6 +16,9 @@ RUN pip install uv
 # Copy only dependency files first to leverage Docker's layer caching
 COPY pyproject.toml uv.lock /app/
 
+RUN echo $RAILWAY_SERVICE_ID
+RUN echo ${RAILWAY_SERVICE_ID}
+
 # Install dependencies into a virtual environment, caching packages to speed up builds
 RUN --mount=type=cache,id=s/${RAILWAY_SERVICE_ID}-uv-package-cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-dev
