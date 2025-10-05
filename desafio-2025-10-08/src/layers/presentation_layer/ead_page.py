@@ -153,13 +153,17 @@ class EADPage:
                 CRITICAL RULES:
                     - DO NOT call handoffs in parallel. Always assign work to one agent if the previous was completed.
                 """
-                asyncio.run(
+                response = asyncio.run(
                     self.workflow_runner.run_workflow(
                         self.data_analysis_workflow,
                         input_message,
                         st.session_state.session_thread_id,
                     )
                 )
+                final_message = response["messages"][-1]
+                logger.info(f"final_message: {final_message}\n\n")
+                final_response_str = final_message.content
+                logger.info(f"final_response_str: {final_response_str}\n\n")
                 extracted_files = [
                     os.path.join(upload_extracted_data_dir_path, f)
                     for f in os.listdir(upload_extracted_data_dir_path)
@@ -236,7 +240,9 @@ class EADPage:
                     )
                 )
                 final_message = response["messages"][-1]
+                logger.info(f"final_message: {final_message}\n\n")
                 final_response_str = final_message.content
+                logger.info(f"final_response_str: {final_response_str}\n\n")
                 tool_calls = final_message.additional_kwargs.get("tool_calls", [])
                 response_data = self.__extract_json_from_content(final_response_str)
                 with st.chat_message("assistant"):

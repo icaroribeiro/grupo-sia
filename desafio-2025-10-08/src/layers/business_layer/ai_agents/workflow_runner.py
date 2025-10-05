@@ -82,7 +82,9 @@ class WorkflowRunner:
                         final_state = await compiled_graph_with_checkpointer.aget_state(
                             config={"configurable": {"thread_id": thread_id}}
                         )
+                        logger.info(f"final_state: {final_state}\n\n")
                         result_messages = final_state.values["messages"]
+                        logger.info(f"result_messages: {result_messages}\n\n")
                         return {"messages": result_messages}
                 except Exception as e:
                     logger.error(
