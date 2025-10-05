@@ -14,9 +14,7 @@ class PostgreSQL(SQLDatabase):
         if database_url:
             return database_url
 
-        return (
-            "{driver}://{user}:{password}@{host}:{port}/{db}?sslmode=disable"
-        ).format(
+        return ("{driver}://{user}:{password}@{host}:{port}/{db}").format(
             driver=self.postgresql_settings.driver,
             user=self.postgresql_settings.user,
             password=self.postgresql_settings.password,
