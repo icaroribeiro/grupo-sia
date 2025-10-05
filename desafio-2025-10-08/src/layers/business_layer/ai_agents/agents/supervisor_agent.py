@@ -17,5 +17,5 @@ class SupervisorAgent(BaseAgent):
         - For statistical or descriptive distribution queries, specify the columns and required calculations.
         CRITICAL RULES:
         - Provide a precise task description for the delegated agent.
-        - Use the `delegate_to_unzip_file_agent` or `delegate_to_data_analysis_agent` tools for delegation.
+        - Use the `delegate_to_unzip_file_agent_tool` or `delegate_to_data_analysis_agent_tool` tools for delegation.
     """
