@@ -91,8 +91,8 @@ class DataAnalysisWorkflow(BaseWorkflow):
                 agent=self.supervisor_agent,
                 llm_with_tools=self.supervisor_agent.chat_model.bind_tools(
                     tools=[
-                        self.delegate_to_unzip_file_agent,
-                        self.delegate_to_data_analysis_agent,
+                        self.delegate_to_unzip_file_agent_tool,
+                        self.delegate_to_data_analysis_agent_tool,
                     ]
                 ),
             ),
@@ -101,8 +101,8 @@ class DataAnalysisWorkflow(BaseWorkflow):
             node="handoff_tools",
             action=ToolNode(
                 tools=[
-                    self.delegate_to_unzip_file_agent,
-                    self.delegate_to_data_analysis_agent,
+                    self.delegate_to_unzip_file_agent_tool,
+                    self.delegate_to_data_analysis_agent_tool,
                 ]
             ),
         )
