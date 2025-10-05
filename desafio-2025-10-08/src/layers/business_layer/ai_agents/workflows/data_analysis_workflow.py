@@ -135,6 +135,7 @@ class DataAnalysisWorkflow(BaseWorkflow):
                 self.route_tools,
                 agent=self.unzip_file_agent,
                 routes_to=self.supervisor_agent.name,
+                routes_to_by_tool_name={},
                 is_handoff=False,
             ),
             path_map={
@@ -147,10 +148,12 @@ class DataAnalysisWorkflow(BaseWorkflow):
             path=functools.partial(
                 self.route_tools,
                 agent=self.data_analysis_agent,
+                routes_to=self.supervisor_agent.name,
                 routes_to_by_tool_name={
                     "python_repl_ast": "data_analysis_agent_tools",
                     "generate_distribution_tool": "data_analysis_agent_tools",
                 },
+                is_handoff=False,
             ),
             path_map={
                 "data_analysis_agent_tools": "data_analysis_agent_tools",
@@ -163,6 +166,7 @@ class DataAnalysisWorkflow(BaseWorkflow):
                 self.route_tools,
                 agent=self.supervisor_agent,
                 routes_to=END,
+                routes_to_by_tool_name={},
                 is_handoff=True,
             ),
             path_map={"handoff_tools": "handoff_tools", END: END},
