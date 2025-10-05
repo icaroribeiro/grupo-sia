@@ -4,10 +4,6 @@ FROM python:3.13-bookworm AS base
 # Builder stage to install dependencies and prepare the application
 FROM base AS builder
 
-# Configure Railway service id
-ARG RAILWAY_SERVICE_ID
-RUN echo $RAILWAY_SERVICE_ID
-
 # Set the working directory to /app for all subsequent commands
 WORKDIR /app
 
@@ -21,14 +17,14 @@ RUN pip install uv
 COPY pyproject.toml uv.lock /app/
 
 # Install dependencies into a virtual environment, caching packages to speed up builds
-RUN --mount=type=cache,id=s/uv-package-cache,target=/root/.cache/uv \
+RUN --mount=type=cache,id=s/5009ffcc-811a-43c6-8bf2-87ec7af20d09-uv-package-cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-dev
 
 # Copy the full application code after dependencies to minimize cache invalidation
 COPY . /app/
 
 # Install the application and dependencies, using verbose output for debugging
-RUN --mount=type=cache,id=s/uv-app-install,target=/root/.cache/uv \
+RUN --mount=type=cache,id=s/5009ffcc-811a-43c6-8bf2-87ec7af20d09-uv-app-install,target=/root/.cache/uv \
     uv sync --frozen --no-dev --verbose
 
 # Stage 2: Runtime stage using slim image for a smaller, production-ready footprint
