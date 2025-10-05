@@ -294,8 +294,10 @@ class DataIngestionWorkflow(BaseWorkflow):
         logger.info("Routing from tool_output...")
         last_message = state["messages"][-1]
         # logger.info(f"Last message: {last_message}")
-        routes_to: str = fallback
+        routes_to: str = ""
         if routes_to_by_tool_name:
             routes_to = routes_to_by_tool_name.get(last_message.name, fallback)
+        else:
+            routes_to = self.supervisor_agent.name
         logger.info(f"To {routes_to}...")
         return routes_to
