@@ -6,7 +6,6 @@ from src.layers.core_logic_layer.logging import logger
 from src.layers.presentation_layer.about_page import AboutPage
 from src.layers.presentation_layer.ead_page import EADPage
 from src.layers.presentation_layer.home_page import HomePage
-from src.layers.presentation_layer.upload_test_page import UploadTestPage
 
 
 class App:
@@ -32,10 +31,6 @@ class App:
             "about": {
                 "title": "Sobre",
                 "func": AboutPage().show,
-            },
-            "test": {
-                "title": "Testa Upload",
-                "func": UploadTestPage().show,
             },
         }
         for page, value in self.__pages.items():
