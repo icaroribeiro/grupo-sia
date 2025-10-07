@@ -144,7 +144,7 @@ class EADPage:
         upload_extracted_data_dir_path = (
             self.streamlit_app_settings.upload_extracted_data_dir_path
         )
-        with st.spinner("Starting workflow to decompress the file..."):
+        with st.spinner("Iniciando o fluxo de trabalho para descompactar o arquivo..."):
             try:
                 input_message = f"""
                 INSTRUCTIONS:
