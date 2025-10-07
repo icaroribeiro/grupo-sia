@@ -121,10 +121,20 @@ class DataAnalysisWorkflow(BaseWorkflow):
         builder.add_edge(start_key="cleanup_node", end_key=END)
 
     def __add_conditional_edges(self, builder: StateGraph) -> None:
+        # builder.add_conditional_edges(
+        #     source="tool_output_node",
+        #     path=self.route_tool_output,
+        #     path_map={
+        #         self.supervisor_agent.name: self.supervisor_agent.name,
+        #         "cleanup_and_end": "cleanup_node",
+        #     },
+        # )
         builder.add_conditional_edges(
             source="tool_output_node",
             path=self.route_tool_output,
             path_map={
+                self.unzip_file_agent.name: self.unzip_file_agent.name,
+                self.data_analysis_agent.name: self.data_analysis_agent.name,
                 self.supervisor_agent.name: self.supervisor_agent.name,
                 "cleanup_and_end": "cleanup_node",
             },
@@ -143,6 +153,23 @@ class DataAnalysisWorkflow(BaseWorkflow):
                 self.supervisor_agent.name: self.supervisor_agent.name,
             },
         )
+        # builder.add_conditional_edges(
+        #     source=self.data_analysis_agent.name,
+        #     path=functools.partial(
+        #         self.route_tools,
+        #         agent=self.data_analysis_agent,
+        #         routes_to=self.supervisor_agent.name,
+        #         routes_to_by_tool_name={
+        #             "python_repl_ast": "data_analysis_agent_tools",
+        #             "generate_distribution_tool": "data_analysis_agent_tools",
+        #         },
+        #         is_handoff=False,
+        #     ),
+        #     path_map={
+        #         "data_analysis_agent_tools": "data_analysis_agent_tools",
+        #         self.supervisor_agent.name: self.supervisor_agent.name,
+        #     },
+        # )
         builder.add_conditional_edges(
             source=self.data_analysis_agent.name,
             path=functools.partial(
@@ -158,6 +185,7 @@ class DataAnalysisWorkflow(BaseWorkflow):
             path_map={
                 "data_analysis_agent_tools": "data_analysis_agent_tools",
                 self.supervisor_agent.name: self.supervisor_agent.name,
+                END: END,
             },
         )
         builder.add_conditional_edges(
@@ -398,11 +426,33 @@ class DataAnalysisWorkflow(BaseWorkflow):
 
     def route_tool_output(self, state: DataAnalysisStateModel) -> str:
         logger.info("Routing from tool_output...")
+        last_tool_message = state["messages"][-1]
         routes_to: str = ""
-        is_final_plot = state.get("is_final_plot", None)
-        if is_final_plot and is_final_plot["status"]:
-            routes_to = "cleanup_and_end"
+
+        if last_tool_message.name in ["unzip_zip_file_tool"]:
+            # Unzip tool output should return to the UnzipFileAgent to finalize.
+            routes_to = self.unzip_file_agent.name
+        elif last_tool_message.name in [
+            "python_repl_ast",
+            "generate_distribution_tool",
+        ]:
+            # Output from Data Analysis tools MUST go back to the DataAnalysisAgent
+            # for synthesis and potential further tool calls.
+            routes_to = self.data_analysis_agent.name
         else:
+            # Fallback (e.g., if a tool call was made by the Supervisor or a non-standard case)
             routes_to = self.supervisor_agent.name
+
         logger.info(f"To {routes_to}...")
         return routes_to
+
+    # def route_tool_output(self, state: DataAnalysisStateModel) -> str:
+    #     logger.info("Routing from tool_output...")
+    #     routes_to: str = ""
+    #     is_final_plot = state.get("is_final_plot", None)
+    #     if is_final_plot and is_final_plot["status"]:
+    #         routes_to = "cleanup_and_end"
+    #     else:
+    #         routes_to = self.supervisor_agent.name
+    #     logger.info(f"To {routes_to}...")
+    #     return routes_to
