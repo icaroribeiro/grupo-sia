@@ -1,3 +1,4 @@
+import os
 import time
 
 from langchain_core.messages import HumanMessage
@@ -56,15 +57,15 @@ class WorkflowRunner:
                         logger.info(
                             f"Nodes in graph: {compiled_graph_with_checkpointer.nodes.keys()}"
                         )
-                        # logger.info(
-                        #     compiled_graph_with_checkpointer.get_graph().draw_ascii()
-                        # )
-                        # compiled_graph_with_checkpointer.get_graph().draw_mermaid_png(
-                        #     output_file_path=os.path.join(
-                        #         f"{self.streamlit_app_settings.output_data_dir_path}",
-                        #         f"{workflow.name}.png",
-                        #     )
-                        # )
+                        logger.info(
+                            compiled_graph_with_checkpointer.get_graph().draw_ascii()
+                        )
+                        compiled_graph_with_checkpointer.get_graph().draw_mermaid_png(
+                            output_file_path=os.path.join(
+                                f"{self.streamlit_app_settings.output_data_dir_path}",
+                                f"{workflow.name}.png",
+                            )
+                        )
                         input_state = {
                             "messages": [HumanMessage(content=input_message)]
                         }
@@ -81,9 +82,9 @@ class WorkflowRunner:
                         final_state = await compiled_graph_with_checkpointer.aget_state(
                             config={"configurable": {"thread_id": thread_id}}
                         )
-                        logger.info(f"final_state: {final_state}\n\n")
+                        # logger.info(f"final_state: {final_state}\n\n")
                         result_messages = final_state.values["messages"]
-                        logger.info(f"result_messages: {result_messages}\n\n")
+                        # logger.info(f"result_messages: {result_messages}\n\n")
                         return {"messages": result_messages}
                 except Exception as e:
                     logger.error(
