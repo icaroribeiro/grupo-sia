@@ -8,7 +8,6 @@ from langchain_core.messages import AIMessage, ToolCall, ToolMessage
 from langchain_experimental.tools import PythonAstREPLTool
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
-
 from src.layers.business_layer.ai_agents.agents.data_analysis_agent import (
     DataAnalysisAgent,
 )
@@ -108,7 +107,7 @@ class DataAnalysisWorkflow(BaseWorkflow):
             node="handoff_node",
             action=functools.partial(self.handoff_node, agent=self.supervisor_agent),
         )
-        builder.add_node(node="cleanup_node", action=self.cleanup_node)
+        builder.add_node(node="final_response", action=self.prepare_final_response)
 
     def __add_edges(self, builder: StateGraph) -> None:
         builder.add_edge(start_key=START, end_key=self.supervisor_agent.name)
@@ -118,17 +117,9 @@ class DataAnalysisWorkflow(BaseWorkflow):
             end_key="tool_output_node",
         )
         builder.add_edge(start_key="handoff_tools", end_key="handoff_node")
-        builder.add_edge(start_key="cleanup_node", end_key=END)
+        builder.add_edge(start_key="final_response", end_key=END)
 
     def __add_conditional_edges(self, builder: StateGraph) -> None:
-        # builder.add_conditional_edges(
-        #     source="tool_output_node",
-        #     path=self.route_tool_output,
-        #     path_map={
-        #         self.supervisor_agent.name: self.supervisor_agent.name,
-        #         "cleanup_and_end": "cleanup_node",
-        #     },
-        # )
         builder.add_conditional_edges(
             source="tool_output_node",
             path=self.route_tool_output,
@@ -136,7 +127,6 @@ class DataAnalysisWorkflow(BaseWorkflow):
                 self.unzip_file_agent.name: self.unzip_file_agent.name,
                 self.data_analysis_agent.name: self.data_analysis_agent.name,
                 self.supervisor_agent.name: self.supervisor_agent.name,
-                "cleanup_and_end": "cleanup_node",
             },
         )
         builder.add_conditional_edges(
@@ -153,23 +143,6 @@ class DataAnalysisWorkflow(BaseWorkflow):
                 self.supervisor_agent.name: self.supervisor_agent.name,
             },
         )
-        # builder.add_conditional_edges(
-        #     source=self.data_analysis_agent.name,
-        #     path=functools.partial(
-        #         self.route_tools,
-        #         agent=self.data_analysis_agent,
-        #         routes_to=self.supervisor_agent.name,
-        #         routes_to_by_tool_name={
-        #             "python_repl_ast": "data_analysis_agent_tools",
-        #             "generate_distribution_tool": "data_analysis_agent_tools",
-        #         },
-        #         is_handoff=False,
-        #     ),
-        #     path_map={
-        #         "data_analysis_agent_tools": "data_analysis_agent_tools",
-        #         self.supervisor_agent.name: self.supervisor_agent.name,
-        #     },
-        # )
         builder.add_conditional_edges(
             source=self.data_analysis_agent.name,
             path=functools.partial(
@@ -185,7 +158,6 @@ class DataAnalysisWorkflow(BaseWorkflow):
             path_map={
                 "data_analysis_agent_tools": "data_analysis_agent_tools",
                 self.supervisor_agent.name: self.supervisor_agent.name,
-                END: END,
             },
         )
         builder.add_conditional_edges(
@@ -193,11 +165,14 @@ class DataAnalysisWorkflow(BaseWorkflow):
             path=functools.partial(
                 self.route_tools,
                 agent=self.supervisor_agent,
-                routes_to=END,
+                routes_to="final_response",
                 routes_to_by_tool_name={},
                 is_handoff=True,
             ),
-            path_map={"handoff_tools": "handoff_tools", END: END},
+            path_map={
+                "handoff_tools": "handoff_tools",
+                "final_response": "final_response",
+            },
         )
         builder.add_conditional_edges(
             source="handoff_node",
@@ -329,7 +304,7 @@ class DataAnalysisWorkflow(BaseWorkflow):
         # logger.info(f"Messages: {messages}")
         last_message = state["messages"][-1]
         logger.info(f"Last message: {last_message}")
-        csv_file_paths = state.get("csv_file_paths", None)
+        csv_file_paths = state.get("csv_file_paths")
         logger.info(f"csv_file_paths: {csv_file_paths}")
         if (
             isinstance(last_message, ToolMessage)
@@ -341,48 +316,40 @@ class DataAnalysisWorkflow(BaseWorkflow):
                 csv_file_paths_str = match.group(1)
                 try:
                     csv_file_paths = eval(csv_file_paths_str)
-                    # state["csv_file_paths"] = csv_file_paths
                 except Exception as e:
                     logger.error(f"Error parsing csv file paths: {e}")
 
-        is_final_plot = state.get("is_final_plot", None)
-        logger.info(f"is_final_plot: {is_final_plot}")
+        final_chart_data = state.get("final_chart_data")
+        logger.info(f"final_chart_data: {final_chart_data}")
         if (
             isinstance(last_message, ToolMessage)
             and last_message.name == "generate_distribution_tool"
         ):
-            if is_final_plot is None or (
-                is_final_plot
-                and is_final_plot["tool_call_id"] != last_message.tool_call_id
-            ):
-                json_pattern = r"content='(\{.*\})'"
-                json_match = re.search(json_pattern, last_message.content, re.DOTALL)
+            json_pattern = r"content='(\{.*\})'"
+            json_match = re.search(json_pattern, last_message.content, re.DOTALL)
 
-                json_str = None
-                if json_match:
-                    json_str = json_match.group(1)
-                else:
-                    json_str = last_message.content.strip()
+            json_str = None
+            if json_match:
+                json_str = json_match.group(1)
+            else:
+                json_str = last_message.content.strip()
 
-                if json_str:
-                    try:
-                        json_obj = json.loads(json_str)
+            if json_str:
+                try:
+                    json_obj = json.loads(json_str)
+                    if json_obj:
+                        final_chart_data = json_obj
                         logger.info(
                             f"Valid JSON extracted and loaded: {json.dumps(json_obj, indent=4)[:200]}..."
                         )
-                        is_final_plot = {
-                            "tool_call_id": last_message.tool_call_id,
-                            "status": True,
-                        }
-                    except json.JSONDecodeError as error:
-                        logger.error(
-                            f"Extracted string is not valid JSON: {json_str[:200]}..., error: {error}"
-                        )
-        logger.info(f"is_final_plot: {is_final_plot}")
+                except json.JSONDecodeError as error:
+                    logger.error(
+                        f"Extracted string is not valid JSON: {json_str[:200]}..., error: {error}"
+                    )
         return {
             "messages": state["messages"],
             "csv_file_paths": csv_file_paths,
-            "is_final_plot": is_final_plot,
+            "final_chart_data": final_chart_data,
         }
 
     def data_analysis_agent_node(self, state: DataAnalysisStateModel) -> dict:
@@ -419,40 +386,45 @@ class DataAnalysisWorkflow(BaseWorkflow):
         )
         return new_state
 
-    def cleanup_node(self, state: DataAnalysisStateModel) -> DataAnalysisStateModel:
-        is_final_plot = state.get("is_final_plot")
-        is_final_plot["status"] = False
-        return {"is_final_plot": is_final_plot}
-
     def route_tool_output(self, state: DataAnalysisStateModel) -> str:
         logger.info("Routing from tool_output...")
         last_tool_message = state["messages"][-1]
         routes_to: str = ""
 
         if last_tool_message.name in ["unzip_zip_file_tool"]:
-            # Unzip tool output should return to the UnzipFileAgent to finalize.
             routes_to = self.unzip_file_agent.name
         elif last_tool_message.name in [
             "python_repl_ast",
             "generate_distribution_tool",
         ]:
-            # Output from Data Analysis tools MUST go back to the DataAnalysisAgent
-            # for synthesis and potential further tool calls.
             routes_to = self.data_analysis_agent.name
         else:
-            # Fallback (e.g., if a tool call was made by the Supervisor or a non-standard case)
             routes_to = self.supervisor_agent.name
 
         logger.info(f"To {routes_to}...")
         return routes_to
 
-    # def route_tool_output(self, state: DataAnalysisStateModel) -> str:
-    #     logger.info("Routing from tool_output...")
-    #     routes_to: str = ""
-    #     is_final_plot = state.get("is_final_plot", None)
-    #     if is_final_plot and is_final_plot["status"]:
-    #         routes_to = "cleanup_and_end"
-    #     else:
-    #         routes_to = self.supervisor_agent.name
-    #     logger.info(f"To {routes_to}...")
-    #     return routes_to
+    @staticmethod
+    def prepare_final_response(state: DataAnalysisStateModel) -> dict:
+        logger.info("Preparing final response...")
+        final_chart_data = state.get("final_chart_data")
+        messages = state["messages"]
+
+        final_analysis_message = messages[-1]
+        if final_chart_data and final_analysis_message:
+            final_content = {
+                "text": final_analysis_message.content,
+                "description": final_chart_data.get("description"),
+                "chart": final_chart_data.get("chart"),
+            }
+            # final_content = {
+            #     "description": final_chart_data.get("description"),
+            #     "chart": final_chart_data.get("chart"),
+            # }
+            final_message = AIMessage(content=json.dumps(final_content))
+            return {
+                "messages": messages[:-1] + [final_message],
+                "final_chart_data": None,
+            }
+
+        return {"messages": messages}
