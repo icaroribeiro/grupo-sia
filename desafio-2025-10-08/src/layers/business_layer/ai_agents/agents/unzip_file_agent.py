@@ -6,8 +6,10 @@ class UnzipFileAgent(BaseAgent):
     prompt: str = """
         ROLE:
         - You are an unzip file agent.        
+        
         GOAL:
         - Unzip a ZIP file based on the user's request.
+        
         CRITICAL RULES:
         - Use the `unzip_zip_file_tool` tool for unzip a ZIP file.
     """
