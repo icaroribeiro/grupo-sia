@@ -204,25 +204,36 @@ class EADPage:
             #     f"Response data for display: {json.dumps(response_data, indent=2)}"
             # )
             if isinstance(response_data, dict):
+                if "text" in response_data:
+                    st.markdown(response_data["text"])
+
                 if "chart" in response_data:
-                    chart_raw = response_data.get("chart")
-                    chart = self.__unescape_dict(chart_raw)
-                    st.vega_lite_chart(chart, use_container_width=True)
+                    chart_spec = response_data.get("chart")
+                    if chart_spec:
+                        chart = self.__unescape_dict(chart_spec)
+                        st.vega_lite_chart(chart, use_container_width=True)
+
                 if "description" in response_data:
-                    description_raw = response_data.get(
+                    description_spec = response_data.get(
                         "description", "Gráfico gerado."
                     )
-                    description = description_raw.encode().decode("unicode_escape")
-                    st.markdown(f"**Análise Concluída:** {description}")
+                    if description_spec:
+                        description = description_spec.encode().decode("unicode_escape")
+                        st.markdown(f"**Análise Concluída:** {description}")
+
                 if "error" in response_data:
                     st.error(response_data["error"])
             else:
                 st.markdown(response_data)
-        except (json.JSONDecodeError, TypeError) as error:
-            logger.info(
-                f"Non-JSON response (expected text summary). Displaying as markdown. Error details: {error}"
-            )
-            st.markdown(response_data)
+        except Exception as error:
+            logger.error(f"Error displaying assistant response: {error}")
+            st.error("Ocorreu um erro ao exibir a resposta do assistente.")
+            st.json(response_data)
+        # except (json.JSONDecodeError, TypeError) as error:
+        #     logger.info(
+        #         f"Non-JSON response (expected text summary). Displaying as markdown. Error details: {error}"
+        #     )
+        #     st.markdown(response_data)
 
     def process_aed_question(self, question: str) -> None:
         try:
