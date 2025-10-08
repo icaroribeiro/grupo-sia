@@ -7,4 +7,4 @@ from typing_extensions import Annotated
 
 class BaseStateModel(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
-    next_agent: str
+    next: str

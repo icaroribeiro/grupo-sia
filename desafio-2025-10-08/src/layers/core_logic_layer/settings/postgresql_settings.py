@@ -12,7 +12,7 @@ class PostgreSQLSettings(BaseSettings):
     )
 
     driver: str = Field(default="postgresql")
-    db: str = Field(default="langchain_chat_history")
+    db: str = Field(default="langchain_chat_history_db")
     user: str = Field(default="postgres")
     password: str = Field(default="postgres")
     host: str = Field(default="localhost")

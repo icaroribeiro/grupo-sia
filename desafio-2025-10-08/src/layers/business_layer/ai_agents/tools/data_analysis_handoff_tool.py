@@ -22,12 +22,12 @@ class DataAnalysisHandoffTool(BaseTool):
     description: str = (
         "Hands off a task to another agent with a description and relevant context."
     )
-    args_schema: Type[BaseModel] = DataAnalysisHandoffToolInput
     agent_name: str
+    args_schema: Type[BaseModel] = DataAnalysisHandoffToolInput
 
     def __init__(self, agent_name: str):
         super().__init__(agent_name=agent_name)
-        self.name = f"transfer_to_{agent_name}"
+        self.name = f"delegate_to_{agent_name}_tool"
         self.agent_name = agent_name
 
     async def _arun(
@@ -38,7 +38,7 @@ class DataAnalysisHandoffTool(BaseTool):
         logger.info(f"Executing handoff to {self.agent_name}...")
         logger.info(f"Task description for next agent: {task_description}")
         return ToolMessage(
-            content=f"transfer_to_agent={self.agent_name}::task={task_description}",
+            content=f"delegate_to={self.agent_name}::task={task_description}",
             name=self.name,
             tool_call_id=tool_call_id,
         )

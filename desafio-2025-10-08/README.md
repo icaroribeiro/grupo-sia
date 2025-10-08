@@ -1,28 +1,28 @@
 # desafio-2025-10-08
 
 - [Introdução](#introdução)
+- [Fluxo de Trabalho](#fluxo-de-trabalho)
 - [Como configurar a aplicação?](#como-configurar-a-aplicação)
 - [Como executar a aplicação?](#como-executar-a-aplicação)
 
 ## Introdução
 
-Este desafio consiste no desenvolvimento de um aplicativo de Análise Exploratória de Dados.
+Este desafio consiste no desenvolvimento de um aplicativo que permite realizar análise exploratória de dados utilizando um arquivo CSV.
 
-A aplicação foi desenvolvida com base em múltiplos agentes de IA utilizando [**Python**](https://www.python.org/), os frameworks [**Streamlit**](https://streamlit.io/) e [**LangGraph**](https://www.langchain.com/langgraph) e o banco de dados
+## Fluxo de Trabalho
+
+A aplicação foi desenvolvida com base em um fluxo de trabalho envolvendo múltiplos agentes de IA, utilizando as seguintes ferramentas: [**Python**](https://www.python.org/), os frameworks [**Streamlit**](https://streamlit.io/) e [**LangGraph**](https://www.langchain.com/langgraph) e o banco de dados
 [**PostgreSQL**](https://www.postgresql.org/)
 
-A seguir, é apresentado o fluxo de trabalho da aplicação indicando que existe um Agente Supervisor (`supervisor`) e dois agentes especializados que trabalham em conjunto para o processamento de dados e geração de respostas às perguntas de usuário:
-
-1. O agente de pré processamento (`unzip_file_agent`)
-2. O agente de análise e plotagem de dados (`data_analysis_node`)
+O fluxo de trabalho da aplicação consiste na utilização de um Agente Supervisor (`supervisor_agent`) e dois agentes especializados - o agente de pré processamento (`unzip_file_agent`) e o agente de análise e plotagem de dados (`data_analysis_node`) - que trabalham em conjunto para o processamento de dados e geração de respostas às perguntas de usuário:
 
 ![texto alternativo](data/output/data_analysis_workflow.png)
 
 ## Como configurar a aplicação?
 
-Em primeiro lugar, instale o [**Docker**](https://www.docker.com/) na máquina local.
+Antes de executar a aplicação localmente, é necessário instalar o [**Docker**](https://www.docker.com/) na máquina local.
 
-Depois disso, obtenha uma chave de API OpenAI.
+Depois disso, obtenha uma chave de API OpenAI para a configuração dos Agentes de IA.
 
 ### Configurar o arquivo .env:
 

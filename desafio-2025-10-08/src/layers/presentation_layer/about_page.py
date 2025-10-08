@@ -15,17 +15,16 @@ class AboutPage:
         )
         st.write(
             """
-            Ele utiliza um workflow provido de agentes de IA especializados para realizar a 
+            A solução utiliza um fluxo de trabalho provido de agentes de IA especializados para realizar a 
             Análise Exploratória de Dados (A.E.D.), detectando padrões, identificando anomalias 
             e gerando visualizações, tudo isso através de um simples bate-papo.
             """
         )
         file_path = "data/output/data_analysis_workflow.png"
         if os.path.exists(file_path):
-            st.image(file_path, width=500, caption="Workflow de Análise de Dados")
+            st.image(file_path, width=500, caption="Fluxo de Trabalho da Solução")
         else:
             st.warning(f"O arquivo do workflow não foi encontrado em: {file_path}")
-        st.subheader("Desenvolvido pelo **Grupo SIA** com ❤️")
         st.markdown(
-            "Este aplicativo foi desenvolvido pelo integrante **Ícaro Ribeiro (icaroribeiro@hotmail.com)** "
+            "Este aplicativo foi desenvolvido por **Ícaro Ribeiro** (icaroribeiro@hotmail.com), integrante do **Grupo SIA**."
         )

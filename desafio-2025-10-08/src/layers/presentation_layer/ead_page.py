@@ -144,7 +144,7 @@ class EADPage:
         upload_extracted_data_dir_path = (
             self.streamlit_app_settings.upload_extracted_data_dir_path
         )
-        with st.spinner("Starting workflow to decompress the file..."):
+        with st.spinner("Iniciando o fluxo de trabalho para descompactar o arquivo..."):
             try:
                 input_message = f"""
                 INSTRUCTIONS:
@@ -153,13 +153,17 @@ class EADPage:
                 CRITICAL RULES:
                     - DO NOT call handoffs in parallel. Always assign work to one agent if the previous was completed.
                 """
-                asyncio.run(
+                response = asyncio.run(
                     self.workflow_runner.run_workflow(
                         self.data_analysis_workflow,
                         input_message,
                         st.session_state.session_thread_id,
                     )
                 )
+                final_message = response["messages"][-1]
+                logger.info(f"final_message: {final_message}\n\n")
+                final_response_str = final_message.content
+                logger.info(f"final_response_str: {final_response_str}\n\n")
                 extracted_files = [
                     os.path.join(upload_extracted_data_dir_path, f)
                     for f in os.listdir(upload_extracted_data_dir_path)
@@ -200,25 +204,36 @@ class EADPage:
             #     f"Response data for display: {json.dumps(response_data, indent=2)}"
             # )
             if isinstance(response_data, dict):
+                if "text" in response_data:
+                    st.markdown(response_data["text"])
+
                 if "chart" in response_data:
-                    chart_raw = response_data.get("chart")
-                    chart = self.__unescape_dict(chart_raw)
-                    st.vega_lite_chart(chart, use_container_width=True)
+                    chart_spec = response_data.get("chart")
+                    if chart_spec:
+                        chart = self.__unescape_dict(chart_spec)
+                        st.vega_lite_chart(chart, use_container_width=True)
+
                 if "description" in response_data:
-                    description_raw = response_data.get(
+                    description_spec = response_data.get(
                         "description", "Gráfico gerado."
                     )
-                    description = description_raw.encode().decode("unicode_escape")
-                    st.markdown(f"**Análise Concluída:** {description}")
+                    if description_spec:
+                        description = description_spec.encode().decode("unicode_escape")
+                        st.markdown(f"**Análise Concluída:** {description}")
+
                 if "error" in response_data:
                     st.error(response_data["error"])
             else:
                 st.markdown(response_data)
-        except (json.JSONDecodeError, TypeError) as error:
-            logger.info(
-                f"Non-JSON response (expected text summary). Displaying as markdown. Error details: {error}"
-            )
-            st.markdown(response_data)
+        except Exception as error:
+            logger.error(f"Error displaying assistant response: {error}")
+            st.error("Ocorreu um erro ao exibir a resposta do assistente.")
+            st.json(response_data)
+        # except (json.JSONDecodeError, TypeError) as error:
+        #     logger.info(
+        #         f"Non-JSON response (expected text summary). Displaying as markdown. Error details: {error}"
+        #     )
+        #     st.markdown(response_data)
 
     def process_aed_question(self, question: str) -> None:
         try:
@@ -236,7 +251,9 @@ class EADPage:
                     )
                 )
                 final_message = response["messages"][-1]
+                logger.info(f"final_message: {final_message}\n\n")
                 final_response_str = final_message.content
+                logger.info(f"final_response_str: {final_response_str}\n\n")
                 tool_calls = final_message.additional_kwargs.get("tool_calls", [])
                 response_data = self.__extract_json_from_content(final_response_str)
                 with st.chat_message("assistant"):
