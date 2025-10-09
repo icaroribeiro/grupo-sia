@@ -417,10 +417,6 @@ class DataAnalysisWorkflow(BaseWorkflow):
                 "description": final_chart_data.get("description"),
                 "chart": final_chart_data.get("chart"),
             }
-            # final_content = {
-            #     "description": final_chart_data.get("description"),
-            #     "chart": final_chart_data.get("chart"),
-            # }
             final_message = AIMessage(content=json.dumps(final_content))
             return {
                 "messages": messages[:-1] + [final_message],
