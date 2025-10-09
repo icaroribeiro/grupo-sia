@@ -6,7 +6,7 @@ class HomePage:
         pass
 
     def show(self) -> None:
-        st.title("🏡 Aplicativo de Análise Exploratória de Dados!")
+        st.title("🏡 Aplicativo de Análise Exploratória de Dados")
         st.write(
             """
             Este aplicativo foi desenvolvido como uma solução genérica para trabalhar 
