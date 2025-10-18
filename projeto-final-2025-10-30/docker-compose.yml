@@ -1,6 +1,6 @@
 services:
   streamlit_app:
-    container_name: streamlit-app-container
+    container_name: streamlit-app
     build:
       context: .
     environment:
@@ -11,12 +11,12 @@ services:
     ports:
       - 8501:8501
     depends_on:
-      - postgresql
+      - postgresql_db
     volumes:
       - streamlit_app_data:/var/lib/streamlit_app/data
 
-  postgresql:
-    container_name: postgresql-container
+  postgresql_db:
+    container_name: postgresql-db
     image: postgres:latest
     environment:
       - POSTGRES_DB=invoice_db
@@ -26,8 +26,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgresql_data:/var/lib/postgresql/data
+      - postgresql_db_data:/var/lib/postgresql_db/data
 
 volumes:
   streamlit_app_data:
-  postgresql_data:
+  postgresql_db_data:

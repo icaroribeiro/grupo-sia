@@ -6,7 +6,9 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-from src.layers.core_logic_layer.settings.postgresdb_settings import PostgresDBSettings
+from src.layers.core_logic_layer.settings.postgresql_db_settings import (
+    PostgreSQLDBSettings,
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -27,15 +29,15 @@ target_metadata = None
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
-postgresdb_settings: PostgresDBSettings = PostgresDBSettings()
+postgresql_db_settings: PostgreSQLDBSettings = PostgreSQLDBSettings()
 connection_url = str(
     URL.create(
-        drivername=f"{postgresdb_settings.driver}+asyncpg",
-        username=postgresdb_settings.username,
-        password=postgresdb_settings.password,
-        host=postgresdb_settings.host,
-        port=postgresdb_settings.port,
-        database=postgresdb_settings.database,
+        drivername=f"{postgresql_db_settings.driver}+asyncpg",
+        username=postgresql_db_settings.user,
+        password=postgresql_db_settings.password,
+        host=postgresql_db_settings.host,
+        port=postgresql_db_settings.port,
+        database=postgresql_db_settings.db,
     ).render_as_string(hide_password=False)
 )
 config.set_main_option(

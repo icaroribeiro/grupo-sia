@@ -18,7 +18,7 @@ A aplicação foi desenvolvida com base em dois fluxos de trabalho envolvendo m�
 
 O fluxo de trabalho principal da aplicação consiste na utilização de um Agente Gerente (`manager_agent`) e dois sub fluxos de trabalho: fluxo de ingestão de dados e fluxo de análise de dados.
 
-![texto alternativo](data/output/top_level_workflow.png)
+![texto alternativo](data/output/workflow/invoice_mgmt_workflow.png)
 
 ### Fluxo de Ingestão de Dados
 

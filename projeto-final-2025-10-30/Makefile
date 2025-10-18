@@ -9,16 +9,21 @@ format:
 launch-streamlit-app:
 	uv run launch_streamlit_app.py
 
-# Streamlit App and PostgreSQL containers tasks.
+# PostgreSQL DB tasks.
 # --------------------------------------------------------------------------------------
-startup-streamlit-app-container:
+migrate-postgresql-db:
+	uv run migrate_postgresql_db.py
+
+# Streamlit App and PostgreSQL DB containers tasks.
+# --------------------------------------------------------------------------------------
+startup-streamlit-app:
 	docker-compose up --build -d streamlit_app
 
-shutdown-streamlit-app-container:
+shutdown-streamlit-app:
 	docker-compose down -v streamlit_app
 
-startup-postgresql-container:
-	docker-compose up --build -d postgresql
+startup-postgresql-db:
+	docker-compose up --build -d postgresql_db
 
-shutdown-postgresql-container:
-	docker-compose down -v postgresql
+shutdown-postgresql-db:
+	docker-compose down -v postgresql_db

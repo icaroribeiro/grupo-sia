@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator, Sequence
-
+from sqlalchemy import URL
 import asyncpg
 from langchain_community.utilities.sql_database import SQLDatabase
 from sqlalchemy import Engine, create_engine
@@ -12,14 +12,17 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from src.layers.core_logic_layer.logging import logger
-from src.layers.core_logic_layer.settings.postgresql_settings import (
-    PostgreSQLSettings,
+from src.layers.core_logic_layer.settings.postgresql_db_settings import (
+    PostgreSQLDBSettings,
 )
 
 
 class PostgreSQL(SQLDatabase):
-    def __init__(self, postgresql_settings: PostgreSQLSettings):
-        self.postgresql_settings = postgresql_settings
+    def __init__(
+        self,
+        postgresql_db_settings: PostgreSQLDBSettings,
+    ):
+        self.postgresql_db_settings = postgresql_db_settings
         self.__sync_engine = self.__create_engine()
         self.__async_engine = self.__create_async_engine()
         self.__async_sessionmaker = async_sessionmaker(
@@ -29,17 +32,21 @@ class PostgreSQL(SQLDatabase):
         )
         super().__init__(engine=self.__sync_engine)
 
-    def get_conn_string(self) -> str:
-        return (
-            "{driver}://{user}:{password}@{host}:{port}/{db}?sslmode=disable"
-        ).format(
-            driver=self.postgresql_settings.driver,
-            user=self.postgresql_settings.user,
-            password=self.postgresql_settings.password,
-            host=self.postgresql_settings.host,
-            port=self.postgresql_settings.port,
-            db=self.postgresql_settings.db,
-        )
+    def get_conn_string(self, is_async: bool = False) -> str:
+        if self.postgresql_db_settings.url:
+            return self.postgresql_db_settings.url
+
+        base_driver = self.postgresql_db_settings.driver
+        driver_suffix = "+asyncpg" if is_async else ""
+        driver = f"{base_driver}{driver_suffix}"
+        return URL.create(
+            drivername=driver,
+            username=self.postgresql_db_settings.user,
+            password=self.postgresql_db_settings.password,
+            host=self.postgresql_db_settings.host,
+            port=self.postgresql_db_settings.port,
+            database=self.postgresql_db_settings.db,
+        ).render_as_string(hide_password=False)
 
     async def table_exists(self, table_name: str) -> bool:
         conn = None
@@ -74,7 +81,7 @@ class PostgreSQL(SQLDatabase):
             raise Exception(message)
 
     async def close(self):
-        logger.info("Starting PostgresDB closure...")
+        logger.info("Starting PostgreSQLDB closure...")
         try:
             self.__sync_engine.dispose()
             self.__sync_engine = None
@@ -105,4 +112,4 @@ class PostgreSQL(SQLDatabase):
         return create_engine(url=self.get_conn_string())
 
     def __create_async_engine(self) -> AsyncEngine:
-        return create_async_engine(url=self.get_conn_string())
+        return create_async_engine(url=self.get_conn_string(is_async=True))

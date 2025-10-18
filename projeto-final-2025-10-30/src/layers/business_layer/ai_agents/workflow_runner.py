@@ -11,7 +11,7 @@ from src.layers.core_logic_layer.settings.ai_settings import AISettings
 from src.layers.core_logic_layer.settings.streamlit_app_settings import (
     StreamlitAppSettings,
 )
-from src.layers.data_access_layer.postgresql.postgresql import PostgreSQL
+from src.layers.data_access_layer.db.postgresql.postgresql import PostgreSQL
 
 
 class WorkflowRunner:
@@ -62,9 +62,9 @@ class WorkflowRunner:
                         )
                         compiled_graph_with_checkpointer.get_graph().draw_mermaid_png(
                             output_file_path=os.path.join(
-                                f"{self.streamlit_app_settings.output_data_dir_path}",
+                                f"{self.streamlit_app_settings.data_output_workflow_dir_path}",
                                 f"{workflow.name}.png",
-                            )
+                            ),
                         )
                         input_state = {
                             "messages": [HumanMessage(content=input_message)]
@@ -75,7 +75,8 @@ class WorkflowRunner:
                             config={
                                 "configurable": {
                                     "thread_id": thread_id,
-                                }
+                                },
+                                "recursion_limit": 50,
                             },
                         ):
                             pass

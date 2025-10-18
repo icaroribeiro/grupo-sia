@@ -2,9 +2,22 @@ import uuid
 
 import streamlit as st
 
+
 from src.layers.core_logic_layer.logging import logger
-from src.layers.presentation_layer.about_page import AboutPage
-from src.layers.presentation_layer.home_page import HomePage
+from src.layers.presentation_layer.pages.about_page import AboutPage
+from src.layers.presentation_layer.pages.chat_page import ChatPage
+from src.layers.presentation_layer.pages.data_analysis_page import DataAnalysisPage
+from src.layers.presentation_layer.pages.invoice_ingestion_page import (
+    InvoiceIngestionPage,
+)
+
+from src.layers.presentation_layer.pages.invoice_analysis_page import (
+    InvoiceAnalysisPage,
+)
+from src.layers.presentation_layer.pages.home_page import HomePage
+from src.layers.presentation_layer.pages.invoice_item_analysis_page import (
+    InvoiceItemAnalysisPage,
+)
 
 
 class App:
@@ -22,6 +35,26 @@ class App:
             "home": {
                 "title": "Ínicio",
                 "func": HomePage().show,
+            },
+            "invoice_ingestion": {
+                "title": "Ingestão de NF-e",
+                "func": InvoiceIngestionPage().show,
+            },
+            "data_analysis": {
+                "title": "Análise de Dados",
+                "func": DataAnalysisPage().show,
+            },
+            "invoice_analysis": {
+                "title": "Análise de NF-e",
+                "func": InvoiceAnalysisPage().show,
+            },
+            "invoice_item_analysis": {
+                "title": "Análise de Itens de NF-e",
+                "func": InvoiceItemAnalysisPage().show,
+            },
+            "chat": {
+                "title": "Bate-Papo",
+                "func": ChatPage().show,
             },
             "about": {
                 "title": "Sobre",

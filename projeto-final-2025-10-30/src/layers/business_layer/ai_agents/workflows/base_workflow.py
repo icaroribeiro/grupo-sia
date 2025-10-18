@@ -1,20 +1,16 @@
-import re
 from abc import ABC, abstractmethod
 from typing import Optional
-
 from langchain_core.messages import BaseMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import Runnable
 from langgraph.graph import StateGraph
-
+from langchain_core.messages import ToolMessage
 from src.layers.business_layer.ai_agents.agents.base_agent import BaseAgent
 from src.layers.business_layer.ai_agents.models.base_state_graph_model import (
     BaseStateGraphModel,
 )
+from langgraph.graph import END
 from src.layers.business_layer.ai_agents.models.base_state_model import BaseStateModel
-from src.layers.business_layer.ai_agents.models.data_analysis_state_model import (
-    DataAnalysisStateModel,
-)
 from src.layers.core_logic_layer.logging import logger
 
 
@@ -38,7 +34,7 @@ class BaseWorkflow(ABC):
         state: BaseStateModel,
         agent: BaseAgent,
         llm_with_tools: Runnable[BaseMessage, BaseMessage],
-    ) -> DataAnalysisStateModel:
+    ) -> BaseStateModel:
         logger.info(f"Calling {agent.name}...")
         messages = state["messages"]
         # logger.info(f"Messages: {messages}")
@@ -68,106 +64,93 @@ class BaseWorkflow(ABC):
         return {"messages": messages + [response]}
 
     @staticmethod
-    def handoff_node(
-        state: BaseStateModel, agent: BaseAgent, next: str
-    ) -> BaseStateModel:
-        logger.info(f"Calling handoff by {agent.name}...")
+    def handoff_node(state: BaseStateModel, agent: BaseAgent) -> BaseStateModel:
+        logger.info(f"Calling handoff from {agent.name}...")
         last_message = state["messages"][-1]
-        # logger.info(f"Last_message: {last_message}")
-        pattern = r"delegate_to=(\w+)::task=(.+)"
-        match = re.search(pattern, last_message.content)
-        if match:
-            name = match.group(1)
-            task_description = match.group(2)
-            new_task_message = HumanMessage(content=task_description)
+        logger.info(f"Last_message: {last_message}")
+
+        if not isinstance(last_message, ToolMessage) or not last_message.artifact:
+            logger.warning(
+                f"Last message is not a ToolMessage or missing artifact: {last_message}"
+            )
+            return {"messages": state["messages"], "next": None}
+
+        try:
+            agent_name, task_description = last_message.artifact
+
+            if not isinstance(agent_name, str) or not isinstance(task_description, str):
+                raise ValueError("Artifact content has an invalid structure.")
+
+            logger.info(f"Extracted handoff target: {agent_name}")
+            logger.info(f"Extracted handoff task: {task_description}")
+
+            new_task_message = HumanMessage(
+                content=task_description,
+                # It gives context that this is a system-generated task
+                name="task_handoff",
+            )
             return {
                 "messages": state["messages"] + [new_task_message],
-                next: name,
+                "next": agent_name,
             }
-        logger.warning("No valid entity to delegate found in handoff_node")
-        return {"messages": state["messages"], next: "manager"}
+        except Exception as e:
+            logger.error(f"Error processing Handoff Tool artifact: {e}")
+            return {
+                "messages": state["messages"],
+                "next": END,
+            }
+
+    # @staticmethod
+    # def handoff_node(state: BaseStateModel, agent: BaseAgent) -> BaseStateModel:
+    #     logger.info(f"Calling handoff by {agent.name}...")
+    #     last_message = state["messages"][-1]
+    #     logger.info(f"Last_message: {last_message}")
+    #     pattern = r"delegate_to=(\w+)::task=(.+)"
+    #     print(f"pattern: {pattern}")
+    #     match = re.search(pattern, last_message.content)
+    #     print(f"match: {match}")
+    #     if match:
+    #         name = match.group(1)
+    #         task_description = match.group(2)
+    #         print(f"name: {name}")
+    #         print(f"task_description: {task_description}")
+    #         new_task_message = HumanMessage(content=task_description)
+    #         return {
+    #             "messages": state["messages"] + [new_task_message],
+    #             "next": name,
+    #         }
+    #     logger.warning("No valid entity to delegate found in handoff_node")
+    #     return {"messages": state["messages"], "next": END}
 
     @staticmethod
     def route_tools(
         state: BaseStateModel,
         agent: BaseAgent,
-        routes_to: str,
-        is_handoff: bool = False,
+        routes_to: str | None = None,
+        routes_to_by_tool_name: dict[str, str] | None = None,
     ) -> str:
         logger.info(f"Routing from {agent.name}...")
         last_message = state["messages"][-1]
         # logger.info(f"Last_message: {last_message}")
-        routes_to: str = ""
+        new_routes_to: str = ""
         if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-            first_tool_call_name = last_message.tool_calls[0].get(
-                "name"
-            ) or last_message.tool_calls[0].get("function", {}).get("name")
-            if first_tool_call_name == "insert_records_into_database_tool":
-                routes_to = "insert_records_tool_node"
+            if routes_to_by_tool_name:
+                first_tool_name = last_message.tool_calls[0].get(
+                    "name"
+                ) or last_message.tool_calls[0].get("function", {}).get("name")
+                new_routes_to = routes_to_by_tool_name.get(first_tool_name)
             else:
-                if not is_handoff:
-                    routes_to = "tools"
-                else:
-                    routes_to = "handoff_tools"
+                new_routes_to = "tools"
         else:
-            routes_to = routes_to
-        logger.info(f"To {routes_to}...")
-        return routes_to
-
-    # @staticmethod
-    # def route_agent(
-    #     state: BaseStateModel,
-    #     name: str,
-    #     routes_to_by_name: dict[str, str] | None,
-    # ) -> str:
-    #     logger.info(f"Routing from {name}...")
-    #     last_message = state["messages"][-1]
-    #     # logger.info(f"Last message: {last_message}")
-    #     routes_to: str = END
-    #     if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-    #         if routes_to_by_name:
-    #             first_tool_name = last_message.tool_calls[0].get(
-    #                 "name"
-    #             ) or last_message.tool_calls[0].get("function", {}).get("name")
-    #             routes_to = routes_to_by_name.get(first_tool_name, "tools")
-    #         else:
-    #             routes_to = "tools"
-    #     else:
-    #         if routes_to_by_name:
-    #             routes_to = routes_to_by_name.get("name", "manager")
-    #     logger.info(f"To {routes_to}...")
-    #     return routes_to
-    # @staticmethod
-    # def route_agent(
-    #     state: DataIngestionStateModel,
-    #     name: str,
-    # ) -> str:
-    #     logger.info(f"Routing from {name} agent...")
-    #     last_message = state["messages"][-1]
-    #     logger.info(f"Last message: {last_message}")
-    #     routes_to: str = ""
-
-    #     if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-    #         # Check the name of the first tool call.
-    #         first_tool_call_name = last_message.tool_calls[0].get(
-    #             "name"
-    #         ) or last_message.tool_calls[0].get("function", {}).get("name")
-
-    #         if first_tool_call_name == "insert_records_into_database_tool":
-    #             routes_to = "insert_records_tool_node"
-    #         else:
-    #             routes_to = "tools"
-    #     else:
-    #         routes_to = "supervisor"
-
-    #     logger.info(f"To {routes_to}...")
-    #     return routes_to
+            new_routes_to = routes_to
+        logger.info(f"To {new_routes_to}...")
+        return new_routes_to
 
     @staticmethod
     def route_handoff(state: BaseStateModel) -> str:
         logger.info("Routing from handoff...")
         # last_message = state["messages"][-1]
         # logger.info(f"Last message: {last_message}")
-        next = state.get("next", "manager")
+        next = state.get("next", END)
         logger.info(f"To {next}...")
         return next

@@ -8,6 +8,7 @@ from src.layers.core_logic_layer.settings.streamlit_app_settings import (
 if __name__ == "__main__":
     try:
         streamlit_app_settings = StreamlitAppSettings()
+        logger.info("Streamlit application has started...")
         subprocess.run(
             [
                 "streamlit",
@@ -24,5 +25,5 @@ if __name__ == "__main__":
         message = "Streamlit application closed due to KeyboardInterrupt"
         logger.error(message)
     except Exception as error:
-        message = f"Failed to initiate Streamlit application: {error}"
+        message = f"Failed to launch Streamlit application: {error}"
         logger.error(message)

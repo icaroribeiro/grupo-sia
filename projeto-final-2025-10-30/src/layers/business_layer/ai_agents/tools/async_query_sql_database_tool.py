@@ -1,18 +1,14 @@
 from langchain_community.tools.sql_database.tool import QuerySQLDatabaseTool
-from langchain_core.language_models import BaseChatModel
 from sqlalchemy import text
 
 from src.layers.core_logic_layer.logging import logger
-from src.layers.data_access_layer.postgresql.postgresql import PostgreSQL
+from src.layers.data_access_layer.db.postgresql.postgresql import PostgreSQL
+from langchain_core.tools import ToolException
 
 
 class AsyncQuerySQLDatabaseTool(QuerySQLDatabaseTool):
-    def __init__(
-        self,
-        postgresql: PostgreSQL,
-        chat_model: BaseChatModel,
-    ):
-        super().__init__(db=postgresql, chat_model=chat_model)
+    def __init__(self, postgresql: PostgreSQL):
+        super().__init__(db=postgresql)
         self.name = "async_query_sql_database_tool"
         self.db = postgresql
 
@@ -22,7 +18,8 @@ class AsyncQuerySQLDatabaseTool(QuerySQLDatabaseTool):
             async with self.db.async_session() as async_session:
                 result = await async_session.execute(text(query))
                 return str([dict(row) for row in result.mappings().all()])
+
         except Exception as error:
-            message = f"Error: {str(error)}"
+            message = f"Error executing SQL query: {str(error)}"
             logger.error(message)
-            raise
+            raise ToolException(message)

@@ -12,7 +12,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.layers.data_access_layer.postgresdb.models.base_model import BaseModel
+from src.layers.data_access_layer.db.postgresql.models.base_model import BaseModel
 
 
 class InvoiceItemModel(BaseModel):

@@ -1,40 +1,43 @@
-from typing import Annotated, Any, Type
-
+from typing import Any, Type, Tuple, Dict, List
 import pandas as pd
-from langchain_core.messages import ToolMessage
-from langchain_core.tools import BaseTool, InjectedToolCallId
+from langchain_core.tools import BaseTool, ToolException  # <-- Novo Import
 from pydantic import BaseModel, Field
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import (
+    IntegrityError,
+    SQLAlchemyError,
+)  # <-- Importação de erro genérico do SQLAlchemy
 
 from src.layers.core_logic_layer.logging import logger
-from src.layers.data_access_layer.postgresql.models.base_model import (
+from src.layers.data_access_layer.db.postgresql.models.base_model import (
     BaseModel as SQLAlchemyBaseModel,
 )
-from src.layers.data_access_layer.postgresql.postgresql import PostgreSQL
+from src.layers.data_access_layer.db.postgresql.postgresql import PostgreSQL
 
 
 class InsertRecordsIntoDatabaseInput(BaseModel):
-    ingestion_args_list: list[dict[str, str]] = Field(
-        ..., description="List of ingestion arguments."
+    ingestion_args_list: List[Dict[str, str]] = Field(
+        ...,
+        description="List of ingestion arguments, where each dict contains 'table_name' and 'file_path'.",
     )
-    tool_call_id: Annotated[str, InjectedToolCallId] = Field(...)
 
 
 class InsertRecordsIntoDatabaseTool(BaseTool):
     name: str = "insert_records_into_database_tool"
     description: str = (
-        "Insert ingestion args into Postgres database using SQLALchemy ORM."
+        "Insert ingestion args (containing file path and table name) into Postgres "
+        "database using SQLAlchemy ORM. Skips duplicate records but fails on other errors."
     )
     postgresql: PostgreSQL
-    sqlalchemy_model_by_table_name: dict[str, Type[SQLAlchemyBaseModel]]
-    ingestion_config_dict: dict[int, dict[str, Any]]
+    sqlalchemy_model_by_table_name: Dict[str, Type[SQLAlchemyBaseModel]]
+    ingestion_config_dict: Dict[int, Dict[str, Any]]
     args_schema: Type[BaseModel] = InsertRecordsIntoDatabaseInput
+    response_format: str = "content_and_artifact"
 
     def __init__(
         self,
         postgresql: PostgreSQL,
-        sqlalchemy_model_by_table_name: dict[str, Type[SQLAlchemyBaseModel]],
-        ingestion_config_dict: dict[int, dict[str, Any]],
+        sqlalchemy_model_by_table_name: Dict[str, Type[SQLAlchemyBaseModel]],
+        ingestion_config_dict: Dict[int, Dict[str, Any]],
     ):
         super().__init__(
             postgresql=postgresql,
@@ -46,28 +49,31 @@ class InsertRecordsIntoDatabaseTool(BaseTool):
         self.ingestion_config_dict = ingestion_config_dict
 
     async def _arun(
-        self, ingestion_args_list: list[dict[str, str]], tool_call_id: str
-    ) -> ToolMessage:
+        self,
+        ingestion_args_list: List[Dict[str, str]],
+    ) -> Tuple[str, Dict[str, int]]:
         logger.info(f"Calling {self.name}...")
-        count_map: dict[str, int] = dict()
+
+        count_map: Dict[str, int] = {}
+        total_inserted_count: int = 0
+
         try:
-            count_map: dict[str, int] = dict()
             async with self.postgresql.async_session() as async_session:
                 for index, ingestion_args in enumerate(ingestion_args_list):
                     table_name = ingestion_args["table_name"]
                     file_path = ingestion_args["file_path"]
+
                     if table_name not in self.sqlalchemy_model_by_table_name:
-                        logger.error(f"Error: Invalid table name '{table_name}'")
-                        return ToolMessage(
-                            content="total_count:0",
-                            name=self.name,
-                            tool_call_id=tool_call_id,
-                        )
+                        message = f"Error: Invalid table name '{table_name}' found in ingestion arguments."
+                        logger.error(message)
+                        raise ToolException(message)
+
                     model_class = self.sqlalchemy_model_by_table_name[table_name]
                     if table_name not in count_map:
                         count_map[table_name] = 0
 
                     df: pd.DataFrame = pd.DataFrame()
+
                     try:
                         df = pd.read_csv(
                             file_path,
@@ -75,30 +81,10 @@ class InsertRecordsIntoDatabaseTool(BaseTool):
                                 "model_fields_to_dtypes"
                             ],
                         )
-                    except FileNotFoundError as error:
-                        message = f"Error: Failed to find file at {file_path}: {error}"
+                    except (FileNotFoundError, UnicodeDecodeError, Exception) as error:
+                        message = f"Error reading file {file_path}: {error.__class__.__name__}: {error}"
                         logger.error(message)
-                        return ToolMessage(
-                            content="total_count:0",
-                            name=self.name,
-                            tool_call_id=tool_call_id,
-                        )
-                    except UnicodeDecodeError as error:
-                        message = f"Error: Failed to decode data from file {file_path}: {error}"
-                        logger.error(message)
-                        return ToolMessage(
-                            content="total_count:0",
-                            name=self.name,
-                            tool_call_id=tool_call_id,
-                        )
-                    except Exception as error:
-                        message = f"Error: Failed to read file {file_path}: {error}"
-                        logger.error(message)
-                        return ToolMessage(
-                            content="total_count:0",
-                            name=self.name,
-                            tool_call_id=tool_call_id,
-                        )
+                        raise ToolException(message) from error
 
                     for _, row in df.iterrows():
                         try:
@@ -111,72 +97,54 @@ class InsertRecordsIntoDatabaseTool(BaseTool):
                                 if value is pd.NA or pd.isna(value):
                                     value = None
                                 model_data[field_name] = value
+
                             model = model_class.from_data(data=model_data)
                             async_session.add(model)
-                            # Flush sends the data to the DB to catch errors early
-                            # but does NOT commit the transaction.
-                            await async_session.flush()
+                            await (
+                                async_session.flush()
+                            )  # Tenta enviar para o DB para pegar IntegrityError cedo
                             count_map[table_name] += 1
+                            total_inserted_count += 1
+
                         except IntegrityError:
-                            # This error means the record already exists (e.g., duplicate primary key).
-                            # We must rollback this specific failed transaction chunk.
                             await async_session.rollback()
                             logger.warning(
                                 f"Warning: Duplicate record skipped in table '{table_name}'. Continuing."
                             )
-                            # Continue to the next record.
                             continue
-                        except Exception as error:
-                            # For any other error during record processing, rollback and fail hard.
+
+                        except (SQLAlchemyError, Exception) as error:
                             await async_session.rollback()
-                            logger.error(
-                                f"Error processing record for {table_name}: {error}"
-                            )
-                            return ToolMessage(
-                                content="total_count:0",
-                                name=self.name,
-                                tool_call_id=tool_call_id,
-                            )
+                            message = f"Critical Error processing record for {table_name}: {error.__class__.__name__}: {error}"
+                            logger.error(message)
+                            raise ToolException(message) from error
 
-                # === 2. Final Commit (Moved Outside the Loop) ===
-                # Commit the entire transaction only after all records
-                # from all tables have been successfully processed.
                 await async_session.commit()
-                logger.info("Success: All records from all tables have been committed.")
-
-        except Exception as error:
-            # Catch any other unexpected errors during the session.
-            logger.error(f"An unexpected error occurred in the tool: {error}")
-            return ToolMessage(
-                content="total_count:0",
-                name=self.name,
-                tool_call_id=tool_call_id,
-            )
-
-        if not any(count_map.values()):
-            logger.warning("Warning: No new records were available to insert.")
-            return ToolMessage(
-                content="total_count:0",
-                name=self.name,
-                tool_call_id=tool_call_id,
-            )
-
-        total_count = sum(count_map.values())
-        for model_name, count in count_map.items():
-            if count > 0:
                 logger.info(
-                    f"Success: {count} record(s) inserted into {model_name} table"
+                    f"Success: All {total_inserted_count} records committed across all tables."
                 )
 
-        return ToolMessage(
-            content=f"total_count:{total_count}",
-            name=self.name,
-            tool_call_id=tool_call_id,
-        )
+        except ToolException:
+            raise
+
+        except Exception as error:
+            message = f"An unexpected critical error occurred: {error.__class__.__name__}: {error}"
+            logger.error(message)
+            raise ToolException(message) from error
+
+        if total_inserted_count == 0:
+            content = "Warning: No new records were inserted into the database. All were skipped (duplicates or empty data)."
+        else:
+            content = f"Successfully inserted {total_inserted_count} new records into the database across {len(count_map)} tables."
+
+        artifact = count_map
+
+        return content, artifact
 
     def _run(
-        self, ingestion_args_list: list[dict[str, str]], tool_call_id: str
-    ) -> ToolMessage:
+        self,
+        ingestion_args_list: List[Dict[str, str]],
+    ) -> Tuple[str, Dict[str, int]]:
         message = "Warning: Synchronous execution is not supported. Use _arun instead."
         logger.warning(message)
         raise NotImplementedError(message)

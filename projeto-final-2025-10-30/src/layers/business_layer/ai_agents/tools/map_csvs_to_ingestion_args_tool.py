@@ -1,31 +1,34 @@
 import os
 import re
-from typing import Annotated, Any, Type
+from typing import Any, Type, List, Dict, Tuple
 
 import pandas as pd
-from langchain_core.messages import ToolMessage
-from langchain_core.tools import BaseTool, InjectedToolCallId
-from langgraph.types import Command
+from langchain_core.tools import BaseTool, ToolException
 from pydantic import BaseModel, Field
 
 from src.layers.core_logic_layer.logging import logger
 
 
 class MapCSVsToIngestionArgsInput(BaseModel):
-    csv_file_paths: list[str] = Field(..., description="Paths of extracted CSV files.")
-    destination_dir_path: str = Field(
-        ..., description="Path to the destination directory."
+    source_dir_path: str = Field(
+        ...,
+        description="Path to the source directory containing the extracted CSV files.",
     )
-    tool_call_id: Annotated[str, InjectedToolCallId] = Field(...)
+    destination_dir_path: str = Field(
+        ...,
+        description="Path to the destination directory where mapped files will be saved.",
+    )
 
 
 class MapCSVsToIngestionArgsTool(BaseTool):
     name: str = "map_csvs_to_ingestion_args_tool"
     description: str = (
-        "Map a list of paths of extracted CSV files to a list of ingestion arguments."
+        "Reads all CSV files from a source directory, maps them according to configuration, "
+        "and saves the mapped files to a destination directory, returning the ingestion arguments."
     )
     ingestion_config_dict: dict[int, dict[str, Any]]
     args_schema: Type[BaseModel] = MapCSVsToIngestionArgsInput
+    response_format: str = "content_and_artifact"
 
     def __init__(
         self,
@@ -37,55 +40,58 @@ class MapCSVsToIngestionArgsTool(BaseTool):
         self.ingestion_config_dict = ingestion_config_dict
 
     def _run(
-        self,
-        csv_file_paths: list[str],
-        destination_dir_path: str,
-        tool_call_id: str,
-    ) -> Command:
+        self, source_dir_path: str, destination_dir_path: str
+    ) -> Tuple[str, List[Dict[str, str]]]:
         logger.info(f"Calling {self.name}...")
+        logger.info(f"source_dir_path: {source_dir_path}")
+        logger.info(f"destination_dir_path: {destination_dir_path}")
+
+        ingestion_args: List[Dict[str, str]] = []
+
         try:
-            ingestion_args: list[dict[str, str]] = list()
+            if not os.path.isdir(source_dir_path):
+                raise ToolException(f"Source directory not found: {source_dir_path}")
+
+            csv_file_paths = [
+                os.path.join(source_dir_path, f)
+                for f in os.listdir(source_dir_path)
+                if f.endswith(".csv")
+                and os.path.isfile(os.path.join(source_dir_path, f))
+            ]
+
+            if not csv_file_paths:
+                raise ToolException(
+                    f"No CSV files found in the source directory: {source_dir_path}"
+                )
+
             for file_path in csv_file_paths:
                 file_name = os.path.basename(file_path)
+
+                matched = False
                 for _, ingestion_config in self.ingestion_config_dict.items():
                     if re.match(
                         rf"\d{{6}}_{ingestion_config['file_suffix']}\.csv$", file_name
                     ):
+                        matched = True
                         df: pd.DataFrame = pd.DataFrame()
+
                         try:
                             df = pd.read_csv(
                                 file_path,
                                 encoding="latin1",
                                 sep=";",
                             )
-                        except FileNotFoundError as error:
-                            message = (
-                                f"Error: Failed to find file at {file_path}: {error}"
-                            )
+                        except (
+                            FileNotFoundError,
+                            UnicodeDecodeError,
+                            Exception,
+                        ) as error:
+                            message = f"Error reading file {file_path}: {error.__class__.__name__}: {error}"
                             logger.error(message)
-                            return ToolMessage(
-                                content="ingestion_args_list:[]",
-                                name=self.name,
-                                tool_call_id=tool_call_id,
-                            )
-                        except UnicodeDecodeError as error:
-                            message = f"Error: Failed to decode data from file {file_path}: {error}"
-                            logger.error(message)
-                            return ToolMessage(
-                                content="ingestion_args_list:[]",
-                                name=self.name,
-                                tool_call_id=tool_call_id,
-                            )
-                        except Exception as error:
-                            message = f"Error: Failed to read file {file_path}: {error}"
-                            logger.error(message)
-                            return ToolMessage(
-                                content="ingestion_args_list:[]",
-                                name=self.name,
-                                tool_call_id=tool_call_id,
-                            )
+                            raise ToolException(message) from error
 
                         df_concatenated: pd.DataFrame = pd.DataFrame()
+
                         for index, row in df.iterrows():
                             try:
                                 model_data = {}
@@ -98,8 +104,10 @@ class MapCSVsToIngestionArgsTool(BaseTool):
                                     field_name = doc_field_info["field"]
                                     converter = doc_field_info.get("converter")
                                     value = row.get(csv_col)
+
                                     if value is pd.NA or pd.isna(value):
                                         value = None
+
                                     if converter:
                                         try:
                                             value = converter(value)
@@ -107,50 +115,54 @@ class MapCSVsToIngestionArgsTool(BaseTool):
                                             message = f"Warning: Could not convert '{value}' for field '{field_name}' in row {index + 1} of {file_path}: {error}"
                                             logger.warning(message)
                                             continue
+
                                     model_data[field_name] = value
+
                                 df_concatenated = pd.concat(
                                     [df_concatenated, pd.DataFrame([model_data])],
                                     ignore_index=True,
                                 )
                             except Exception as error:
-                                message = f"Error: Failed to process row {index + 1} from {file_path}: {error}"
-                                logger.error(message)
+                                message = f"Warning: Failed to process row {index + 1} from {file_path}: {error}"
+                                logger.warning(message)
                                 continue
+
+                        output_file_path = os.path.join(destination_dir_path, file_name)
                         df_concatenated.to_csv(
-                            path_or_buf=os.path.join(
-                                destination_dir_path, f"{file_name}"
-                            )
+                            path_or_buf=output_file_path, index=False
                         )
+
                         ingestion_args.append(
                             {
                                 "table_name": ingestion_config["table_name"],
-                                "file_path": os.path.join(
-                                    destination_dir_path, f"{file_name}"
-                                ),
+                                "file_path": output_file_path,
                             }
                         )
-            return ToolMessage(
-                content=f"ingestion_args_list:{str(ingestion_args)}",
-                name=self.name,
-                tool_call_id=tool_call_id,
-            )
+                        break
+
+                if not matched:
+                    logger.warning(
+                        f"No ingestion configuration matched for file: {file_name}"
+                    )
+
+            num_args = len(ingestion_args)
+            content = f"Successfully mapped {num_args} CSV files to ingestion arguments. Ready for database insertion."
+            artifact = ingestion_args
+
+            return content, artifact
+
+        except ToolException:
+            raise
+
         except Exception as error:
-            message = f"Error: {str(error)}"
+            message = f"An unexpected error occurred during CSV mapping: {str(error)}"
             logger.error(message)
-            return ToolMessage(
-                content="ingestion_args_list:[]",
-                name=self.name,
-                tool_call_id=tool_call_id,
-            )
+            raise ToolException(message) from error
 
     async def _arun(
-        self,
-        csv_file_paths: list[str],
-        destination_dir_path: str,
-        tool_call_id: str,
-    ) -> ToolMessage:
+        self, source_dir_path: str, destination_dir_path: str
+    ) -> Tuple[str, List[str]]:
         return self._run(
-            csv_file_paths=csv_file_paths,
+            source_dir_path=source_dir_path,
             destination_dir_path=destination_dir_path,
-            tool_call_id=tool_call_id,
         )

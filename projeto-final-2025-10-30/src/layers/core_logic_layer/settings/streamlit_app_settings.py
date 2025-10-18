@@ -1,3 +1,4 @@
+from typing import List
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -13,7 +14,54 @@ class StreamlitAppSettings(BaseSettings):
 
     host: str = Field(default="localhost")
     port: int = Field(default=8501)
-    output_data_dir_path: str = Field(default="data/output")
-    upload_data_dir_path: str = Field(default="data/upload")
-    upload_extracted_data_dir_path: str = Field(default="data/upload/extracted")
-    ingestion_data_dir_path: str = Field(default="data/ingestion")
+    data_input_upload_dir_path: str = Field(default="data/input/upload")
+    data_output_workflow_dir_path: str = Field(default="data/output/workflow")
+    data_output_upload_extracted_dir_path: str = Field(
+        default="data/output/upload/extracted"
+    )
+    data_output_ingestion_dir_path: str = Field(default="data/output/ingestion")
+    assets_dir_path: str = Field(default="assets")
+
+    @staticmethod
+    def get_year_list() -> List[int]:
+        return [2025, 2024, 2023, 2022]
+
+    @staticmethod
+    def get_color_theme_list() -> List[str]:
+        return ["Viridis", "Plasma", "Inferno", "Cividis"]
+
+    @staticmethod
+    def get_state_name_by_uf_code(uf_code: str) -> str:
+        uf_map = {
+            "AC": "Acre",
+            "AL": "Alagoas",
+            "AP": "Amapá",
+            "AM": "Amazonas",
+            "BA": "Bahia",
+            "CE": "Ceará",
+            "DF": "Distrito Federal",
+            "ES": "Espírito Santo",
+            "GO": "Goiás",
+            "MA": "Maranhão",
+            "MT": "Mato Grosso",
+            "MS": "Mato Grosso do Sul",
+            "MG": "Minas Gerais",
+            "PA": "Pará",
+            "PB": "Paraíba",
+            "PR": "Paraná",
+            "PE": "Pernambuco",
+            "PI": "Piauí",
+            "RJ": "Rio de Janeiro",
+            "RN": "Rio Grande do Norte",
+            "RS": "Rio Grande do Sul",
+            "RO": "Rondônia",
+            "RR": "Roraima",
+            "SC": "Santa Catarina",
+            "SP": "São Paulo",
+            "SE": "Sergipe",
+            "TO": "Tocantins",
+        }
+
+        cleaned_uf_code = uf_code.strip().upper() if isinstance(uf_code, str) else None
+
+        return uf_map.get(cleaned_uf_code, f"Desconhecido ({uf_code})")
