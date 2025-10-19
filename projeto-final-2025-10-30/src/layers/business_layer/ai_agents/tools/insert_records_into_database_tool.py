@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.exc import (
     IntegrityError,
     SQLAlchemyError,
-)  # <-- Importação de erro genérico do SQLAlchemy
+)
 
 from src.layers.core_logic_layer.logging import logger
 from src.layers.data_access_layer.db.postgresql.models.base_model import (

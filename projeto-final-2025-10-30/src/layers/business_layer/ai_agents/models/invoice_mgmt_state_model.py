@@ -3,3 +3,4 @@ from src.layers.business_layer.ai_agents.models.base_state_model import BaseStat
 
 class InvoiceMgmtStateModel(BaseStateModel):
     ingestion_args_list: list[dict[str, str]] | None
+    final_chart_data: dict | None = None

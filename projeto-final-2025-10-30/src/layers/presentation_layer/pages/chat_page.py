@@ -133,7 +133,8 @@ class ChatPage:
                         "description", "Análise Concluída."
                     )
                     if description_spec:
-                        description = description_spec.encode().decode("unicode_escape")
+                        # description = description_spec.encode().decode("unicode_escape")
+                        description = description_spec
                         st.markdown(f"**Resultado:** {description}")
 
                 if "error" in response_data:
@@ -175,6 +176,6 @@ class ChatPage:
         elif isinstance(data, list):
             return [self.__unescape_dict(item) for item in data]
         elif isinstance(data, str):
-            return data.encode().decode("unicode_escape")
+            return data
         else:
             return data

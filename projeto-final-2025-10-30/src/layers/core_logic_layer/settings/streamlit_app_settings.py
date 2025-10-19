@@ -24,14 +24,14 @@ class StreamlitAppSettings(BaseSettings):
 
     @staticmethod
     def get_year_list() -> List[int]:
-        return [2025, 2024, 2023, 2022]
+        return [2025, 2024, 2023]
 
     @staticmethod
     def get_color_theme_list() -> List[str]:
         return ["Viridis", "Plasma", "Inferno", "Cividis"]
 
     @staticmethod
-    def get_state_name_by_uf_code(uf_code: str) -> str:
+    def get_state_name_by_emitter_uf(uf_code: str) -> str:
         uf_map = {
             "AC": "Acre",
             "AL": "Alagoas",

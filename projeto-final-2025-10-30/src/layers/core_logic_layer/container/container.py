@@ -13,11 +13,17 @@ from src.layers.business_layer.ai_agents.llm.llm import LLM
 from src.layers.business_layer.ai_agents.toolkits.async_sql_database_toolkit import (
     AsyncSQLDatabaseToolkit,
 )
+from src.layers.business_layer.ai_agents.tools.generate_bar_plot_tool import (
+    GenerateBarPlotTool,
+)
 from src.layers.business_layer.ai_agents.tools.invoice_mgmt_handoff_tool import (
     InvoiceMgmtHandoffTool,
 )
 from src.layers.business_layer.ai_agents.tools.insert_records_into_database_tool import (
     InsertRecordsIntoDatabaseTool,
+)
+from src.layers.business_layer.ai_agents.tools.generate_distribution_plot_tool import (
+    GenerateDistributionPlotTool,
 )
 from src.layers.business_layer.ai_agents.tools.map_csvs_to_ingestion_args_tool import (
     MapCSVsToIngestionArgsTool,
@@ -91,6 +97,14 @@ class Container(containers.DeclarativeContainer):
         postgresql=postgresql,
         chat_model=llm.provided.chat_model,
     )
+    generate_bar_plot_tool = providers.Singleton(
+        GenerateBarPlotTool,
+        postgresql=postgresql,
+    )
+    generate_distribution_plot_tool = providers.Singleton(
+        GenerateDistributionPlotTool,
+        postgresql=postgresql,
+    )
 
     # Handoff tools
     delegate_to_unzip_file_agent_tool = providers.Singleton(
@@ -121,7 +135,9 @@ class Container(containers.DeclarativeContainer):
         unzip_zip_file_tool=unzip_zip_file_tool,
         map_csvs_to_ingestion_args_tool=map_csvs_to_ingestion_args_tool,
         insert_records_into_database_tool=insert_records_into_database_tool,
-        data_analysis_tools=async_sql_database_toolkit.provided.get_tools.call(),
+        async_sql_database_tools=async_sql_database_toolkit.provided.get_tools.call(),
+        generate_bar_plot_tool=generate_bar_plot_tool,
+        generate_distribution_plot_tool=generate_distribution_plot_tool,
         delegate_to_unzip_file_agent_tool=delegate_to_unzip_file_agent_tool,
         delegate_to_csv_mapping_agent_tool=delegate_to_csv_mapping_agent_tool,
         delegate_to_insert_records_agent_tool=delegate_to_insert_records_agent_tool,

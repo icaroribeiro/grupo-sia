@@ -42,7 +42,7 @@ class InvoiceIngestionPage:
 
     def show(self) -> None:
         st.title("🗄️ Ingestão de NF-e")
-        st.subheader("Upload de Arquivo, Pré-visualização e Inserção de NF-e")
+        st.markdown("### Upload de Arquivo, Pré-visualização e Inserção de NF-e")
         st.markdown(
             "Use a barra lateral para carregar um arquivo ZIP. O sistema irá descompactar (1ª Etapa) e exibir uma amostra dos arquivos CSV. Use o botão **'Iniciar Ingestão'** para o mapeamento e inserção no banco de dados (2ª Etapa)."
         )

@@ -35,17 +35,17 @@ class AboutPage:
             do usuário e decidir qual agente especializado deve assumir a tarefa.
 
             * 📂 **Agente de Descompactação de Arquivo ZIP**: Descompacta arquivos ZIP que contém
-            arquivos de NF-e em formato CSV.
+            arquivos de NF-e em arquivos CSV.
 
-            * 🗺️ **Agente de Mapeamento de CSVs**: Mapeia dados das NF-e em formato CSV 
+            * 🗺️ **Agente de Mapeamento de CSVs**: Mapeia dados das NF-e em arquivos CSV 
             para argumentos de ingestão que serão inseridos em tabelas no banco de dados SQL.
 
             * 💾 **Agente de Inserção de Registros**: Insere dados das NF-e obtidos do 
             mapeamento dos argumentos de ingestão no banco de dados SQL.
 
             * 🔍 **Agente de Análise de Dados**: Analisa dados segundo diferentes atributos como 
-            por tipo (compra, venda, serviço) e por centros de custos, e além de gerar recursos gráficos 
-            e outras visualizações, tudo isso através de um simples bate-papo.
+            por tipo (compra, venda, serviço) e por centros de custos, e além de gerar recursos gráficos,
+            tudo isso através de um simples bate-papo.
             """
         )
 

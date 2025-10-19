@@ -23,14 +23,14 @@ class PostgreSQL(SQLDatabase):
         postgresql_db_settings: PostgreSQLDBSettings,
     ):
         self.postgresql_db_settings = postgresql_db_settings
-        self.__sync_engine = self.__create_engine()
-        self.__async_engine = self.__create_async_engine()
-        self.__async_sessionmaker = async_sessionmaker(
+        self.sync_engine = self.__create_engine()
+        self.async_engine = self.__create_async_engine()
+        self.async_sessionmaker = async_sessionmaker(
             autocommit=False,
-            bind=self.__async_engine,
+            bind=self.async_engine,
             expire_on_commit=False,
         )
-        super().__init__(engine=self.__sync_engine)
+        super().__init__(engine=self.sync_engine)
 
     def get_conn_string(self, is_async: bool = False) -> str:
         if self.postgresql_db_settings.url:
@@ -71,7 +71,7 @@ class PostgreSQL(SQLDatabase):
     async def async_session(self) -> AsyncGenerator[AsyncSession, None]:
         logger.info("Starting PostgreSQL async session establishment...")
         try:
-            async with self.__async_sessionmaker() as async_session:
+            async with self.async_sessionmaker() as async_session:
                 message = "PostgreSQL async session establishment complete."
                 logger.info(message)
                 yield async_session
@@ -83,13 +83,13 @@ class PostgreSQL(SQLDatabase):
     async def close(self):
         logger.info("Starting PostgreSQLDB closure...")
         try:
-            self.__sync_engine.dispose()
-            self.__sync_engine = None
+            self.sync_engine.dispose()
+            self.sync_engine = None
             async with self.async_session() as session:
                 await session.close()
-            await self.__async_engine.dispose()
-            self.__async_engine = None
-            self.__async_sessionmaker = None
+            await self.async_engine.dispose()
+            self.async_engine = None
+            self.async_sessionmaker = None
             message = "PostgreSQL closure complete."
             logger.info(message)
         except Exception as error:
@@ -100,7 +100,7 @@ class PostgreSQL(SQLDatabase):
     async def run_async(
         self, command: str | Any, fetch: str = "all"
     ) -> str | Sequence[dict[str, Any]]:
-        async with self.__async_sessionmaker() as async_session:
+        async with self.async_sessionmaker() as async_session:
             result = await async_session.execute(command)
             if fetch == "all":
                 return [dict(row) for row in result.mappings().all()]

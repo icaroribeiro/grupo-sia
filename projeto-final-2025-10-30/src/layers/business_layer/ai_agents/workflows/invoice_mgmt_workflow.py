@@ -1,10 +1,16 @@
 import functools
+import json
 from typing import Any
 from langchain_core.tools import BaseTool
 from typing import Dict
-from langchain_core.messages import ToolMessage
+from src.layers.business_layer.ai_agents.tools.generate_bar_plot_tool import (
+    GenerateBarPlotTool,
+)
+from src.layers.business_layer.ai_agents.tools.generate_distribution_plot_tool import (
+    GenerateDistributionPlotTool,
+)
+from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.tools import ToolException
-
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 from src.layers.business_layer.ai_agents.agents.csv_mapping_agent import CSVMappingAgent
@@ -49,7 +55,9 @@ class InvoiceMgmtWorkflow(BaseWorkflow):
         unzip_zip_file_tool: UnzipZipFileTool,
         map_csvs_to_ingestion_args_tool: MapCSVsToIngestionArgsTool,
         insert_records_into_database_tool: InsertRecordsIntoDatabaseTool,
-        data_analysis_tools: list[BaseTool],
+        async_sql_database_tools: list[BaseTool],
+        generate_bar_plot_tool: GenerateBarPlotTool,
+        generate_distribution_plot_tool: GenerateDistributionPlotTool,
         delegate_to_unzip_file_agent_tool: InvoiceMgmtHandoffTool,
         delegate_to_csv_mapping_agent_tool: InvoiceMgmtHandoffTool,
         delegate_to_insert_records_agent_tool: InvoiceMgmtHandoffTool,
@@ -65,7 +73,10 @@ class InvoiceMgmtWorkflow(BaseWorkflow):
         self.unzip_zip_file_tool = unzip_zip_file_tool
         self.map_csvs_to_ingestion_args_tool = map_csvs_to_ingestion_args_tool
         self.insert_records_into_database_tool = insert_records_into_database_tool
-        self.data_analysis_tools = data_analysis_tools
+        self.data_analysis_tools = async_sql_database_tools + [
+            generate_bar_plot_tool,
+            generate_distribution_plot_tool,
+        ]
         self.delegate_to_unzip_file_agent_tool = delegate_to_unzip_file_agent_tool
         self.delegate_to_csv_mapping_agent_tool = delegate_to_csv_mapping_agent_tool
         self.delegate_to_insert_records_agent_tool = (
@@ -123,7 +134,7 @@ class InvoiceMgmtWorkflow(BaseWorkflow):
                 self.agent_node,
                 agent=self.data_analysis_agent,
                 llm_with_tools=self.data_analysis_agent.chat_model.bind_tools(
-                    tools=self.data_analysis_tools,
+                    tools=self.data_analysis_tools + [],
                 ),
             ),
         )
@@ -402,9 +413,27 @@ class InvoiceMgmtWorkflow(BaseWorkflow):
                 logger.warning("ToolMessage found, but artifact was empty or None.")
                 ingestion_args_list = []
 
+        final_chart_data = state.get("final_chart_data")
+        if isinstance(last_message, ToolMessage) and last_message.name in [
+            "generate_bar_plot_tool",
+            "generate_distribution_plot_tool",
+        ]:
+            if last_message.artifact and isinstance(last_message.artifact, dict):
+                final_chart_data = {
+                    "chart": last_message.artifact,
+                    "description": last_message.content,
+                }
+
+                logger.info("Successfully extracted chart data from tool artifact.")
+            else:
+                logger.error(
+                    f"The {last_message.name} returned no valid chart artifact (expected dict)."
+                )
+
         return {
             "messages": state["messages"],
             "ingestion_args_list": ingestion_args_list,
+            "final_chart_data": final_chart_data,
         }
 
     def route_tool_output(
@@ -428,5 +457,21 @@ class InvoiceMgmtWorkflow(BaseWorkflow):
     @staticmethod
     def prepare_final_response(state: InvoiceMgmtStateModel) -> dict:
         logger.info("Preparing final response...")
+        final_chart_data = state.get("final_chart_data")
         messages = state["messages"]
+
+        final_analysis_message = messages[-1]
+        if final_chart_data and final_analysis_message:
+            final_content = {
+                "text": final_analysis_message.content,
+                "description": final_chart_data.get("description"),
+                "chart": final_chart_data.get("chart"),
+            }
+            final_message = AIMessage(content=json.dumps(final_content))
+
+            return {
+                "messages": messages[:-1] + [final_message],
+                "final_chart_data": None,
+            }
+
         return {"messages": messages}
