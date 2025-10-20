@@ -29,13 +29,8 @@ class GenerateDistributionPlotTool(BaseTool):
     args_schema: Type[BaseModel] = GenerateDistributionPlotToolInput
     response_format: str = "content_and_artifact"
 
-    def __init__(
-        self,
-        postgresql: PostgreSQL,
-    ):
-        super().__init__(
-            postgresql=postgresql,
-        )
+    def __init__(self, postgresql: PostgreSQL):
+        super().__init__(postgresql=postgresql)
         self.postgresql = postgresql
 
     def _run(

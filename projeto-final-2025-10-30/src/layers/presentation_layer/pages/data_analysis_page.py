@@ -3,9 +3,8 @@ import re
 import streamlit as st
 import json
 import pandas as pd
-import altair as alt
 from typing import Dict, Any, List
-
+import altair as alt
 from dependency_injector.wiring import Provide, inject
 
 # Importações mantidas para contexto, ajuste os caminhos se necessário
@@ -34,31 +33,68 @@ class BaseDashboardTab:
     def __init__(self, parent_page: Any) -> None:
         self.streamlit_app_settings = parent_page.streamlit_app_settings
 
-    def get_agent_format_instructions(self, question: str) -> Dict[str, Any]:
+    def get_agent_format_instructions(self, question: str, year: int) -> Dict[str, Any]:
+        """
+        Generates the input message and JSON schema for the agent, requesting both
+        the single-year map data AND the multi-year table/chart data.
+        """
         group_by = self.GROUP_BY_COLUMN.replace("_code", "").replace("uf", "state")
 
+        # --- 1. Schema for Single Year Map/Table Data ---
+        map_schema = {
+            "type": "array",
+            "description": f"List of data aggregated by Brazilian {group_by} for the selected year ({year}). Metric: {self.METRIC_LABEL}.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    self.GROUP_BY_COLUMN: {
+                        "type": "string",
+                        "description": "The grouping column, e.g., 'AC', 'RJ', 'SP'.",
+                    },
+                    self.METRIC_COLUMN: {
+                        "type": "number",
+                        "description": f"The calculated metric value: {self.METRIC_LABEL}.",
+                    },
+                },
+                "required": [self.GROUP_BY_COLUMN, self.METRIC_COLUMN],
+            },
+        }
+
+        # --- 2. Schema for Multi-Year Table/Chart Data ---
+        # This will be used to generate the table data you requested, even if the chart is removed.
+        multi_year_schema = {
+            "type": "array",
+            "description": f"List of data aggregated by year and {group_by} for all available years. Metric: {self.METRIC_LABEL}.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "year": {"type": "integer", "description": "The fiscal year."},
+                    self.GROUP_BY_COLUMN: {
+                        "type": "string",
+                        "description": "The grouping column, e.g., 'AC', 'RJ', 'SP'.",
+                    },
+                    self.METRIC_COLUMN: {
+                        "type": "number",
+                        "description": f"The calculated metric value: {self.METRIC_LABEL}.",
+                    },
+                },
+                "required": ["year", self.GROUP_BY_COLUMN, self.METRIC_COLUMN],
+            },
+        }
+
         format_instructions = {
-            "title": "brazil_invoice_data",
+            "title": f"dashboard_data_{self.TAB_ID.lower()}",
             "type": "object",
             "properties": {
-                "data_by_group": {
-                    "type": "array",
-                    "description": f"List of data aggregated by Brazilian {group_by} for: {self.METRIC_LABEL}.",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            self.GROUP_BY_COLUMN: {"type": "string"},
-                            self.METRIC_COLUMN: {"type": "number"},
-                        },
-                        "required": [self.GROUP_BY_COLUMN, self.METRIC_COLUMN],
-                    },
-                }
+                "data_by_group": map_schema,
+                "multi_year_data": multi_year_schema,
             },
-            "required": ["data_by_group"],
+            "required": ["data_by_group", "multi_year_data"],
         }
 
         format_instructions_str = json.dumps(format_instructions, indent=2)
 
+        # --- Proposed Agent Input Message ---
         input_message = f"""
         INSTRUCTIONS:
         - Perform a multi-step procedure to analyze data based on the user's question.
@@ -82,7 +118,7 @@ class BaseDashboardTab:
         self,
         selected_year: int,
         selected_color_theme: str,
-        # df_multi_year: pd.DataFrame,
+        df_multi_year: pd.DataFrame,  # Now required for the new table
         geojson: Dict[str, Any],
         data_for_map: List[Dict[str, Any]],
     ):
@@ -113,25 +149,9 @@ class BaseDashboardTab:
 
                 st.markdown("---")
 
-                # df_bar_chart = df_multi_year.copy()
-                # required_cols = ["emitter_uf", "year", self.METRIC_COLUMN]
+                # New: Render the Multi-Year Table here
+                self.__render_multi_year_table(df_multi_year, selected_color_theme)
 
-                # if all(col in df_bar_chart.columns for col in required_cols):
-                #     df_bar_chart = df_bar_chart[required_cols]
-                #     df_bar_chart.dropna(subset=[self.METRIC_COLUMN], inplace=True)
-                # else:
-                #     df_bar_chart = pd.DataFrame()
-
-                # if df_bar_chart.empty:
-                #     st.warning(
-                #         f"Não há dados multi-anuais para o gráfico de barras de {self.METRIC_LABEL}."
-                #     )
-                # else:
-                #     bar_chart = self.__make_bar_chart_by_year_and_uf(
-                #         df_bar_chart, selected_color_theme
-                #     )
-                #     if bar_chart:
-                #         st.altair_chart(bar_chart, use_container_width=True)
             else:
                 st.markdown(
                     f"##### Distribuição de {self.METRIC_LABEL} por {self.get_group_label()} - Ano Fiscal {selected_year}"
@@ -147,7 +167,13 @@ class BaseDashboardTab:
                 self.__render_data_table(df_map_data)
 
         if not df_map_data.empty and self.GROUP_BY_COLUMN == "emitter_uf":
-            with st.expander(f"Ver Dados Brutos Utilizados ({self.METRIC_LABEL})"):
+            # --- START CHANGE 1: New markdown title for expander ---
+            with st.expander(f"Ver Dados Brutos Utilizados para {self.METRIC_LABEL}"):
+                # Table for single-year data (Map Data)
+                st.markdown(
+                    f"#### Dados Anuais Brutos por UF Emitente ({selected_year})"
+                )
+
                 df_display = df_map_data.copy()
                 if "emitter_uf" in df_display.columns:
                     df_display["state_name"] = df_display["emitter_uf"].apply(
@@ -179,6 +205,45 @@ class BaseDashboardTab:
                     column_order = list(df_display.columns)
 
                 st.dataframe(df_display[column_order], use_container_width=True)
+
+                # --- START CHANGE 2: Also show raw multi-year data with specific column names ---
+                if not df_multi_year.empty:
+                    st.markdown("#### Dados Multi-Anuais Brutos")
+
+                    # Apply specific column name changes for the multi-year data
+                    df_multi_year_display = df_multi_year.copy()
+
+                    # Define the target column names as requested in the chat (year, emitter_uf, num_invoices)
+                    # For a generic tab, we use GROUP_BY_COLUMN and METRIC_COLUMN,
+                    # but we ensure 'year' is present and rename the others for clarity.
+                    column_mapping = {
+                        "year": "Ano",
+                        self.GROUP_BY_COLUMN: self.get_group_label(),
+                        self.METRIC_COLUMN: self.METRIC_LABEL,
+                    }
+
+                    df_multi_year_display = df_multi_year_display.rename(
+                        columns=column_mapping
+                    )
+
+                    # Set the display order, ensuring only available columns are used
+                    multi_year_column_order = [
+                        "Ano",
+                        self.get_group_label(),
+                        self.METRIC_LABEL,
+                    ]
+
+                    # Filter columns to only include those present after renaming
+                    final_cols = [
+                        col
+                        for col in multi_year_column_order
+                        if col in df_multi_year_display.columns
+                    ]
+
+                    st.dataframe(
+                        df_multi_year_display[final_cols], use_container_width=True
+                    )
+                # --- END CHANGE 2 ---
 
     @staticmethod
     def __format_number(num, metric_type="currency"):
@@ -240,7 +305,7 @@ class BaseDashboardTab:
 
         max_value = df[metric].max() if not df.empty else 0
 
-        st.markdown(f"##### **Mapa de {label} por UF Emitente**")  # Bolded title
+        st.markdown(f"##### **Mapa de {label} por UF Emitente**")
 
         fig = px.choropleth(
             df,
@@ -454,7 +519,6 @@ class BaseDashboardTab:
             else:
                 progress_format = "%.2f"
 
-            # O Dataframe final só deve ter o nome da coluna de agrupamento e o valor
             df_table = df_map_data[[self.GROUP_BY_COLUMN, self.METRIC_COLUMN]].rename(
                 columns={self.GROUP_BY_COLUMN: group_col_label, metric: label}
             )
@@ -476,6 +540,39 @@ class BaseDashboardTab:
             )
         else:
             st.info("Nenhum dado disponível para o ano selecionado.")
+
+    def __render_multi_year_table(
+        self, df_multi_year: pd.DataFrame, selected_color_theme: str
+    ):
+        """
+        Renders the Altair bar chart for multi-year data.
+        """
+        metric = self.METRIC_COLUMN
+
+        if df_multi_year.empty:
+            st.warning("Não há dados multi-anuais para esta análise.")
+            return
+
+        # Prepare DataFrame
+        df_bar_chart = df_multi_year.copy()
+        required_cols = [self.GROUP_BY_COLUMN, "year", metric]
+
+        if all(col in df_bar_chart.columns for col in required_cols):
+            df_bar_chart = df_bar_chart[required_cols]
+            df_bar_chart.dropna(subset=[metric], inplace=True)
+        else:
+            df_bar_chart = pd.DataFrame()
+
+        if df_bar_chart.empty:
+            st.warning(
+                f"Não há dados multi-anuais para o gráfico de barras de {self.METRIC_LABEL}."
+            )
+        else:
+            bar_chart = self.__make_bar_chart_by_year_and_uf(
+                df_bar_chart, selected_color_theme
+            )
+            if bar_chart:
+                st.altair_chart(bar_chart, use_container_width=True)
 
 
 class InvoiceCountTab(BaseDashboardTab):
@@ -500,69 +597,6 @@ class InvoiceItemCountTab(BaseDashboardTab):
     DISPLAY_TYPE = "map"
 
 
-class InvoiceItemQuantityTab(BaseDashboardTab):
-    TAB_ID = "INVOICE_ITEM_QUANTITY_UF"
-    TAB_TITLE = "Total de Quantidade"
-    METRIC_COLUMN = "total_quantity"
-    METRIC_LABEL = "Quantidade Total (Unidades/KG/etc.)"
-    METRIC_TYPE = "count"
-    METRIC_TOOLTIP_FORMAT = ","
-    GROUP_BY_COLUMN = "emitter_uf"
-    DISPLAY_TYPE = "map"
-
-
-class InvoiceItemByProductTab(BaseDashboardTab):
-    TAB_ID = "INVOICE_ITEM_BY_PRODUCT"
-    TAB_TITLE = "Top Produtos"
-    METRIC_COLUMN = "item_total_value_sum"
-    METRIC_LABEL = "Valor Total do Item (R$)"
-    METRIC_TYPE = "currency"
-    GROUP_BY_COLUMN = "product_service_description"
-    DISPLAY_TYPE = "table"
-
-
-class ProductCountTab(BaseDashboardTab):
-    TAB_ID = "PRODUCT_COUNT"
-    TAB_TITLE = "Produtos Mais Vendidos"
-    METRIC_COLUMN = "product_count"
-    METRIC_LABEL = "Contagem de Produtos"
-    METRIC_TYPE = "count"
-    GROUP_BY_COLUMN = "product_service_description"
-    DISPLAY_TYPE = "table"
-
-
-class InvoiceAverageValueTab(BaseDashboardTab):
-    TAB_ID = "INVOICE_AVG_VALUE_UF"
-    TAB_TITLE = "Valor Médio NF-e (R$)"
-    METRIC_COLUMN = "avg_invoice_value"
-    METRIC_LABEL = "Valor Médio da NF-e (R$)"
-    METRIC_TYPE = "average"
-    METRIC_TOOLTIP_FORMAT = "$,.2f"
-    GROUP_BY_COLUMN = "emitter_uf"
-    DISPLAY_TYPE = "map"
-
-
-class InvoiceTotalValueTab(BaseDashboardTab):
-    TAB_ID = "INVOICE_TOTAL_VALUE_UF"
-    TAB_TITLE = "Faturamento Total (R$)"
-    METRIC_COLUMN = "total_value_sum"
-    METRIC_LABEL = "Valor Total (R$)"
-    METRIC_TYPE = "currency"
-    METRIC_TOOLTIP_FORMAT = "$,.2f"
-    GROUP_BY_COLUMN = "emitter_uf"
-    DISPLAY_TYPE = "map"
-
-
-class InvoiceItemTotalValueTab(BaseDashboardTab):
-    TAB_ID = "INVOICE_ITEM_TOTAL_VALUE_UF"
-    TAB_TITLE = "Faturamento por Item (R$)"
-    METRIC_COLUMN = "item_total_value_sum"
-    METRIC_LABEL = "Valor Total do Item (R$)"
-    METRIC_TYPE = "currency"
-    GROUP_BY_COLUMN = "emitter_uf"
-    DISPLAY_TYPE = "map"
-
-
 class DataAnalysisPage:
     @inject
     def __init__(
@@ -578,16 +612,16 @@ class DataAnalysisPage:
         self.streamlit_app_settings = streamlit_app_settings
         self.invoice_mgmt_workflow = invoice_mgmt_workflow
         self.workflow_runner = workflow_runner
+
+        # Only keeping InvoiceCountTab as requested
         self.tabs = {
             InvoiceCountTab.TAB_TITLE: InvoiceCountTab(self),
             InvoiceItemCountTab.TAB_TITLE: InvoiceItemCountTab(self),
-            # InvoiceItemQuantityTab.TAB_TITLE: InvoiceItemQuantityTab(self),
-            # InvoiceItemByProductTab.TAB_TITLE: InvoiceItemByProductTab(self),
-            # ProductCountTab.TAB_TITLE: ProductCountTab(self),
-            # InvoiceAverageValueTab.TAB_TITLE: InvoiceAverageValueTab(self),
-            # InvoiceTotalValueTab.TAB_TITLE: InvoiceTotalValueTab(self),
-            # InvoiceItemTotalValueTab.TAB_TITLE: InvoiceItemTotalValueTab(self),
         }
+
+        # Initialize session state for active tab if not present
+        if "active_tab_title" not in st.session_state:
+            st.session_state["active_tab_title"] = InvoiceCountTab.TAB_TITLE
 
     def show(self) -> None:
         st.title("📊 Análise de Dados")
@@ -601,7 +635,7 @@ class DataAnalysisPage:
             selected_year = st.selectbox(
                 "Selecione o Ano Fiscal",
                 self.streamlit_app_settings.get_year_list(),
-                index=0,
+                key="selected_year_filter",
             )
             selected_color_theme = st.selectbox(
                 "Selecione um Esquema de Cores",
@@ -610,89 +644,102 @@ class DataAnalysisPage:
             )
 
         tab_titles = list(self.tabs.keys())
+
+        # Create tabs containers
         st_tabs = st.tabs(tab_titles)
 
-        multi_year_data = self.__run_dummy_data_simulation(selected_year, "MULTI_YEAR")
-        df_multi_year = pd.DataFrame(multi_year_data.get("multi_year_data", []))
-
-        for tab_title, st_tab in zip(tab_titles, st_tabs):
+        # We need to manually iterate to ensure the workflow is only run if necessary.
+        for i, (tab_title, st_tab) in enumerate(zip(tab_titles, st_tabs)):
             tab_instance = self.tabs[tab_title]
 
-            # --- Unique Cache Key Generation ---
-            # The key must change if the tab or the year filter changes
-            cache_key = f"{tab_instance.TAB_ID}_{selected_year}"
-            # --- End Key Generation ---
+            with st_tab:
+                # --- Unique Cache Key Generation ---
+                cache_key = f"{tab_instance.TAB_ID}_{selected_year}"
+                # --- End Key Generation ---
 
-            # --- Workflow Execution Block ---
-            if cache_key not in st.session_state.workflow_cache:
-                # RUN WORKFLOW: Only runs on initial tab/year selection
-                with st.spinner(
-                    f"🚀 Analisando dados de {tab_title} para o ano {selected_year}..."
-                ):
-                    group_label = tab_instance.get_group_label()
-                    question_template = f"Calculate the {tab_instance.METRIC_LABEL} ({tab_instance.METRIC_COLUMN}) grouped by {group_label} ({tab_instance.GROUP_BY_COLUMN}) for the year {selected_year}."
-                    agent_info = tab_instance.get_agent_format_instructions(
-                        question_template
-                    )
-                    input_message = agent_info["input_message"]
+                response = None
+                agent_info = None
 
-                    response = asyncio.run(
-                        self.workflow_runner.run_workflow(
-                            self.invoice_mgmt_workflow,
-                            input_message,
-                            st.session_state.session_thread_id
-                            if "session_thread_id" in st.session_state
-                            else "dummy_thread_id",
+                # --- Workflow Execution Block (Runs only if not in cache) ---
+                if cache_key not in st.session_state.workflow_cache:
+                    # RUN WORKFLOW: Only runs on initial tab/year selection
+                    with st.spinner(
+                        f"🚀 Analisando dados de {tab_title} para o ano {selected_year}..."
+                    ):
+                        group_label = tab_instance.get_group_label()
+                        # Use the new, comprehensive question template
+                        question_template = f"Calculate the {tab_instance.METRIC_LABEL} ({tab_instance.METRIC_COLUMN}) grouped by {group_label} ({tab_instance.GROUP_BY_COLUMN}) for the year {selected_year} and also for all years."
+                        agent_info = tab_instance.get_agent_format_instructions(
+                            question_template, selected_year
                         )
-                    )
+                        input_message = agent_info["input_message"]
 
-                    # Cache the result and agent info
-                    st.session_state.workflow_cache[cache_key] = {
-                        "response": response,
-                        "agent_info": agent_info,
-                    }
-            else:
-                # LOAD FROM CACHE: Runs on every subsequent re-run (like checkbox click)
-                cached_data = st.session_state.workflow_cache[cache_key]
+                        response = asyncio.run(
+                            self.workflow_runner.run_workflow(
+                                self.invoice_mgmt_workflow,
+                                input_message,
+                                st.session_state.session_thread_id
+                                if "session_thread_id" in st.session_state
+                                else "dummy_thread_id",
+                            )
+                        )
+
+                        # Cache the result and agent info
+                        st.session_state.workflow_cache[cache_key] = {
+                            "response": response,
+                            "agent_info": agent_info,
+                        }
+
+                # --- Data Processing and Rendering (Uses cached or newly run 'response') ---
+                cached_data = st.session_state.workflow_cache.get(cache_key)
+                if not cached_data:
+                    st.error("Erro ao carregar ou executar o workflow.")
+                    continue
+
                 response = cached_data["response"]
                 agent_info = cached_data["agent_info"]
-            # --- End Workflow Execution Block ---
 
-            # --- Data Processing and Rendering (Uses cached or newly run 'response') ---
-            final_message = response["messages"][-1]
-            final_response_str = final_message.content
-            logger.info(f"final_response_str: {final_response_str}")
-            response_data = self.__extract_json_from_content(final_response_str)
-            logger.info(f"response_data: {response_data}")
-            source_data = response_data.get("data_by_group", [])
+                final_message = response["messages"][-1]
+                final_response_str = final_message.content
+                logger.info(
+                    f"final_response_str: {final_response_str}"
+                )  # Commented for brevity
+                response_data = self.__extract_json_from_content(final_response_str)
+                logger.info(f"response_data: {response_data}")  # Commented for brevity
 
-            data_for_map = [
-                {
-                    tab_instance.GROUP_BY_COLUMN: d[tab_instance.GROUP_BY_COLUMN],
-                    tab_instance.METRIC_COLUMN: d.get(tab_instance.METRIC_COLUMN),
-                }
-                for d in source_data
-                if tab_instance.GROUP_BY_COLUMN in d and tab_instance.METRIC_COLUMN in d
-            ]
+                # Extracting both map data and multi-year data
+                source_map_data = response_data.get("data_by_group", [])
+                source_multi_year_data = response_data.get("multi_year_data", [])
 
-            # Render the tab content
-            tab_instance.render(
-                selected_year,
-                selected_color_theme,
-                # df_multi_year,
-                geojson,
-                data_for_map,
-            )
-            # --- End Data Processing and Rendering ---
+                data_for_map = [
+                    {
+                        tab_instance.GROUP_BY_COLUMN: d.get(
+                            tab_instance.GROUP_BY_COLUMN
+                        ),
+                        tab_instance.METRIC_COLUMN: d.get(tab_instance.METRIC_COLUMN),
+                    }
+                    for d in source_map_data
+                    if isinstance(d, dict)
+                ]
 
-            # --- Checkbox (Now Safe) ---
-            with st_tab:
+                df_multi_year = pd.DataFrame(source_multi_year_data)
+
                 if st.checkbox(
-                    f"Mostrar Instruções do Agente ({tab_title})", value=False
+                    f"Mostrar Instruções do Agente ({tab_title})",
+                    value=False,
+                    key=f"agent_check_{tab_instance.TAB_ID}",
                 ):
-                    # These lines display the cached 'agent_info'
                     st.code(agent_info["input_message"], language="markdown")
                     st.code(agent_info["format_instructions_str"], language="json")
+
+                # Render the tab content
+                tab_instance.render(
+                    selected_year,
+                    selected_color_theme,
+                    df_multi_year,  # Passing the real data
+                    geojson,
+                    data_for_map,
+                )
 
     def __load_brazil_geojson(self) -> Any:
         geojson_path = (
@@ -714,17 +761,32 @@ class DataAnalysisPage:
 
     @staticmethod
     def __extract_json_from_content(content_str: str) -> dict | str:
-        json_pattern = r"content='(\{.*\})'"
-        json_match = re.search(json_pattern, content_str, re.DOTALL)
+        # Improved JSON extraction to handle various LLM outputs
+        # First, try to find a JSON block starting with '{' and ending with '}'
+        # This covers cases where the JSON is wrapped in text or quotes.
+
+        # Regex to find JSON structure (may need adjustment depending on the exact LLM wrapper)
+        json_match = re.search(r"(\{[\s\S]*\})", content_str)
 
         json_str = None
         if json_match:
-            json_str = json_match.group(1)
+            # Strip surrounding quotes/code blocks if necessary
+            json_str = json_match.group(0).strip().strip("`").strip()
         else:
-            json_str = content_str.strip()
+            # Fallback to the original logic
+            json_pattern = r"content='(\{.*\})'"
+            json_match_old = re.search(json_pattern, content_str, re.DOTALL)
+            if json_match_old:
+                json_str = json_match_old.group(1).strip()
+            else:
+                json_str = content_str.strip()
 
         if json_str:
             try:
+                # Clean up known LLM formatting issues (e.g., trailing comma in last item, comments)
+                json_str = re.sub(r",\s*\}", "}", json_str)
+                json_str = re.sub(r",\s*\]", "]", json_str)
+
                 json_obj = json.loads(json_str)
                 return json_obj
             except json.JSONDecodeError as error:

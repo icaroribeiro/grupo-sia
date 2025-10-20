@@ -28,6 +28,9 @@ from src.layers.business_layer.ai_agents.models.invoice_mgmt_state_graph_model i
 from src.layers.business_layer.ai_agents.models.invoice_mgmt_state_model import (
     InvoiceMgmtStateModel,
 )
+from src.layers.business_layer.ai_agents.tools.get_detail_schema_tool import (
+    GetDetailedSchemaTool,
+)
 from src.layers.business_layer.ai_agents.tools.invoice_mgmt_handoff_tool import (
     InvoiceMgmtHandoffTool,
 )
@@ -56,6 +59,7 @@ class InvoiceMgmtWorkflow(BaseWorkflow):
         map_csvs_to_ingestion_args_tool: MapCSVsToIngestionArgsTool,
         insert_records_into_database_tool: InsertRecordsIntoDatabaseTool,
         async_sql_database_tools: list[BaseTool],
+        get_detailed_schema_tool: GetDetailedSchemaTool,
         generate_bar_plot_tool: GenerateBarPlotTool,
         generate_distribution_plot_tool: GenerateDistributionPlotTool,
         delegate_to_unzip_file_agent_tool: InvoiceMgmtHandoffTool,
@@ -74,6 +78,7 @@ class InvoiceMgmtWorkflow(BaseWorkflow):
         self.map_csvs_to_ingestion_args_tool = map_csvs_to_ingestion_args_tool
         self.insert_records_into_database_tool = insert_records_into_database_tool
         self.data_analysis_tools = async_sql_database_tools + [
+            get_detailed_schema_tool,
             generate_bar_plot_tool,
             generate_distribution_plot_tool,
         ]

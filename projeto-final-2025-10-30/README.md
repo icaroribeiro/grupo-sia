@@ -304,3 +304,17 @@ Crie um histograma para visualizar a distribuição dos valores totais das fatur
             return {"data_list": data_map_2024.get(tab_id, [])}
 
         return {"data_list": []}
+
+**CRITICAL MANDATORY SCHEMA CHECK & DATE COLUMN RESOLUTION:** - **ABSOLUTELY CRITICAL:** If the task involves any date/time column (e.g., filtering by YEAR, MONTH, DATE), your **FIRST ACTION MUST BE** to call the **get_detailed_schema_tool** for the `invoice` table. - The `get_detailed_schema_tool` returns column **descriptions (comments)** which are CRITICAL for identifying the correct date column (e.g., 'issue_date', 'emission_datetime', 'created_at', etc.). - **DO NOT GUESS COLUMN NAMES.** Use the column comment returned by the schema tool to find the correct date column for filtering. - If the schema check confirms the date column is, for instance, `issue_date` (and NOT `emission_date`), you MUST use `issue_date` in your SQL.
+
+        **SQL EXECUTION FLOW:**
+        1. **Schema Check** (If necessary, as defined above).
+        2. **SQL Generation:** Construct the correct SQL query using the confirmed date column.
+        3. **Execution:** Call `async_query_sql_database_tool` to get the raw data.
+        4. **Final JSON:** Format the output strictly as a JSON object as requested by the user's instructions.
+
+        CRITICAL RULES:
+        - NEVER invent table or column names.
+        - After a schema check, DO NOT call the schema tool again unless the query target changes.
+        - If your final response must be the requested JSON data, with no surrounding text or explanation.
+        - **NEVER** respond to the supervisor immediately upon receiving a task without trying to execute it, with or without the help of a tool.

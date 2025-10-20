@@ -20,5 +20,6 @@ class SupervisorAgent(BaseAgent):
         CRITICAL RULES:
         - DO NOT perform handoff, that is, call agents in parallel.
         - **ALWAYS** proceed delegating a task only if the previous was completed.
+        - If the user's question specify any formatting instructions, it **MUST** be informed when performing handoff to the next agent.
         - **NEVER** conclude a procedure without performing no handoff. ALWAYS start delegating a task for an agent.
     """

@@ -31,13 +31,8 @@ class GenerateBarPlotTool(BaseTool):
     args_schema: Type[BaseModel] = GenerateBarPlotToolInput
     response_format: str = "content_and_artifact"
 
-    def __init__(
-        self,
-        postgresql: PostgreSQL,
-    ):
-        super().__init__(
-            postgresql=postgresql,
-        )
+    def __init__(self, postgresql: PostgreSQL):
+        super().__init__(postgresql=postgresql)
         self.postgresql = postgresql
 
     def _run(self, sql_query: str, column_name: str) -> Tuple[str, Dict[str, Any]]:

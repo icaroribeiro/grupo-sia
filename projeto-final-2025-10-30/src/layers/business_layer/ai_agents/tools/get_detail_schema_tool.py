@@ -2,15 +2,13 @@ from typing import Any, Type, Tuple, Dict, List
 from langchain_core.tools import BaseTool, ToolException
 from pydantic import BaseModel, Field
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import text  # Import the text function for raw SQL queries
+from sqlalchemy import text
 
 from src.layers.core_logic_layer.logging import logger
 from src.layers.data_access_layer.db.postgresql.postgresql import PostgreSQL
 
 
-class GetDetailedSchemaInput(BaseModel):
-    """Input for the GetDetailedSchemaTool."""
-
+class GetDetailedSchemaToolInput(BaseModel):
     table_names: List[str] = Field(
         ...,
         description="List of table names for which to retrieve the detailed schema (including comments).",
@@ -18,13 +16,6 @@ class GetDetailedSchemaInput(BaseModel):
 
 
 class GetDetailedSchemaTool(BaseTool):
-    """
-    Retrieves the detailed schema for specified tables, including column data types and comments (descriptions)
-    from PostgreSQL's system catalogs (pg_catalog).
-    This information is critical for the agent to correctly map user intent (e.g., 'data de emissão')
-    to the correct database column (e.g., 'issue_date').
-    """
-
     name: str = "get_detailed_schema_tool"
     description: str = (
         "Use this tool to retrieve the complete schema structure of specific tables, "
@@ -32,7 +23,7 @@ class GetDetailedSchemaTool(BaseTool):
         "This is essential for accurately mapping complex user questions to the correct columns."
     )
     postgresql: PostgreSQL
-    args_schema: Type[BaseModel] = GetDetailedSchemaInput
+    args_schema: Type[BaseModel] = GetDetailedSchemaToolInput
     response_format: str = "content_and_artifact"
 
     def __init__(self, postgresql: PostgreSQL):
@@ -48,8 +39,6 @@ class GetDetailedSchemaTool(BaseTool):
         if not table_names:
             raise ToolException("Table names list cannot be empty.")
 
-        # PostgreSQL Query to fetch detailed column info and comments
-        # This query uses pg_catalog tables which contain the column descriptions (comments)
         query = f"""
             SELECT
                 c.table_name,
@@ -89,7 +78,6 @@ class GetDetailedSchemaTool(BaseTool):
                     content = f"Warning: No schema information found for tables: {', '.join(table_names)}."
                     return content, {}
 
-                # 2. Process the results into a structured dictionary
                 for row in rows:
                     (
                         table_name,
@@ -113,7 +101,6 @@ class GetDetailedSchemaTool(BaseTool):
                         }
                     )
 
-                # 3. Format the final output content (a string representation for the LLM)
                 formatted_schema_list = []
                 for table, data in schema_data.items():
                     col_details = []
@@ -123,12 +110,12 @@ class GetDetailedSchemaTool(BaseTool):
                         )
 
                     formatted_schema_list.append(
-                        f"### Tabela: {table}\n"
-                        f"**Descrição da Tabela:** {data['table_comment']}\n"
-                        f"**Colunas:**\n" + "\n".join(col_details)
+                        f"### Table: {table}\n"
+                        f"**Table Description:** {data['table_comment']}\n"
+                        f"**Columns:**\n" + "\n".join(col_details)
                     )
 
-                content = "Schema Detalhado Recuperado:\n\n" + "\n\n".join(
+                content = "Detailed Schema Recovered:\n\n" + "\n\n".join(
                     formatted_schema_list
                 )
 
@@ -142,11 +129,9 @@ class GetDetailedSchemaTool(BaseTool):
             logger.error(message)
             raise ToolException(message) from error
 
-        # The artifact contains the structured JSON/Dict data, which can be easily consumed by the agent if needed
         return content, schema_data
 
     def _run(self, table_names: List[str]) -> Tuple[str, Dict[str, Any]]:
-        # Synchronous execution is not supported
-        raise NotImplementedError(
-            "Synchronous execution is not supported. Use _arun instead."
-        )
+        message = "Warning: Synchronous execution is not supported. Use _arun instead."
+        logger.warning(message)
+        raise NotImplementedError(message)

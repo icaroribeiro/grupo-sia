@@ -16,6 +16,9 @@ from src.layers.business_layer.ai_agents.toolkits.async_sql_database_toolkit imp
 from src.layers.business_layer.ai_agents.tools.generate_bar_plot_tool import (
     GenerateBarPlotTool,
 )
+from src.layers.business_layer.ai_agents.tools.get_detail_schema_tool import (
+    GetDetailedSchemaTool,
+)
 from src.layers.business_layer.ai_agents.tools.invoice_mgmt_handoff_tool import (
     InvoiceMgmtHandoffTool,
 )
@@ -97,6 +100,10 @@ class Container(containers.DeclarativeContainer):
         postgresql=postgresql,
         chat_model=llm.provided.chat_model,
     )
+    get_detailed_schema_tool = providers.Singleton(
+        GetDetailedSchemaTool,
+        postgresql=postgresql,
+    )
     generate_bar_plot_tool = providers.Singleton(
         GenerateBarPlotTool,
         postgresql=postgresql,
@@ -136,6 +143,7 @@ class Container(containers.DeclarativeContainer):
         map_csvs_to_ingestion_args_tool=map_csvs_to_ingestion_args_tool,
         insert_records_into_database_tool=insert_records_into_database_tool,
         async_sql_database_tools=async_sql_database_toolkit.provided.get_tools.call(),
+        get_detailed_schema_tool=get_detailed_schema_tool,
         generate_bar_plot_tool=generate_bar_plot_tool,
         generate_distribution_plot_tool=generate_distribution_plot_tool,
         delegate_to_unzip_file_agent_tool=delegate_to_unzip_file_agent_tool,
