@@ -22,7 +22,7 @@ from src.streamlit_app_layers.ai_layer.toolkits.async_sql_database_toolkit impor
 from src.streamlit_app_layers.ai_layer.tools.generate_bar_plot_tool import (
     GenerateBarPlotTool,
 )
-from src.streamlit_app_layers.ai_layer.tools.get_detail_database_schema_tool import (
+from src.streamlit_app_layers.ai_layer.tools.get_detailed_table_schemas_tool import (
     GetDetailedTableSchemasTool,
 )
 from src.streamlit_app_layers.ai_layer.tools.invoice_mgmt_handoff_tool import (
