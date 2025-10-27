@@ -3,11 +3,11 @@ import os
 
 from sqlalchemy import text
 
-from src.layers.core_logic_layer.logging import logger
-from src.layers.core_logic_layer.settings.postgresql_db_settings import (
+from src.streamlit_app_layers.core_layer.logging import logger
+from src.streamlit_app_layers.settings_layer.postgresql_db_settings import (
     PostgreSQLDBSettings,
 )
-from src.layers.data_access_layer.db.postgresql.postgresql import PostgreSQL
+from src.streamlit_app_layers.data_access_layer.db.postgresql import PostgreSQL
 
 
 async def main() -> None:

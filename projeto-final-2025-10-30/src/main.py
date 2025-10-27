@@ -1,17 +1,17 @@
 import streamlit as st
-from src.layers.business_layer.ai_agents.models.invoice_ingestion_config_model import (
+from src.streamlit_app_layers.ai_layer.models.invoice_ingestion_config_model import (
     InvoiceIngestionConfigModel,
 )
-from src.layers.business_layer.ai_agents.models.invoice_item_ingestion_config_model import (
+from src.streamlit_app_layers.ai_layer.models.invoice_item_ingestion_config_model import (
     InvoiceItemIngestionConfigModel,
 )
-from src.layers.core_logic_layer.container.container import Container
-from src.layers.core_logic_layer.logging import logger
+from src.streamlit_app_layers.core_layer.container.container import Container
+from src.streamlit_app_layers.core_layer.logging import logger
 from src.streamlit_app import App
-from src.layers.data_access_layer.db.postgresql.models.invoice_model import (
+from src.streamlit_app_layers.data_access_layer.db.models.invoice_model import (
     InvoiceModel as SQLAlchemyInvoiceModel,
 )
-from src.layers.data_access_layer.db.postgresql.models.invoice_item_model import (
+from src.streamlit_app_layers.data_access_layer.db.models.invoice_item_model import (
     InvoiceItemModel as SQLAlchemyInvoiceItemModel,
 )
 
@@ -42,7 +42,7 @@ def main() -> None:
         container.wire(
             modules=[
                 "src.streamlit_app",
-                "src.layers.presentation_layer",
+                "src.streamlit_app_layers.presentation_layer",
             ]
         )
         app: App = App()

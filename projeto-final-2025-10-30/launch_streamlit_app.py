@@ -1,7 +1,7 @@
 import subprocess
 
-from src.layers.core_logic_layer.logging import logger
-from src.layers.core_logic_layer.settings.streamlit_app_settings import (
+from src.streamlit_app_layers.core_layer.logging import logger
+from src.streamlit_app_layers.settings_layer.streamlit_app_settings import (
     StreamlitAppSettings,
 )
 

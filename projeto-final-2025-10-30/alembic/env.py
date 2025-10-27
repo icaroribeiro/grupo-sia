@@ -6,7 +6,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-from src.layers.core_logic_layer.settings.postgresql_db_settings import (
+from src.streamlit_app_layers.settings_layer.postgresql_db_settings import (
     PostgreSQLDBSettings,
 )
 
