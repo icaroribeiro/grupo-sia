@@ -1,0 +1,123 @@
+Roteiro de Apresentação (Pitch de 5 Minutos)
+
+(Slide 1: Título)
+
+>>> Olá a todos. 
+Meu nome é Ícaro, e hoje apresento o projeto de conclusão do Grupo SIA: um Sistema de Gestão de Notas Fiscais Eletrônicas com Inteligência Artificial.
+Nosso objetivo é transformar dados fiscais complexos em vantagem competitiva real para as empresas brasileiras.
+
+(Slide 2: Tabela de Conteúdo)
+
+>>> Nossa agenda hoje é direta:
+Vamos abordar o Problema, a Solução que propomos, o Produto em Ação, o Valor de Mercado e outros itens até nossos Próximos Passos.
+
+(Slide 3: O Problema - 95%)
+
+>>> O problema que estamos resolvendo é o "Custo Brasil" Fiscal.
+Segundo o Instituto Brasileiro de Planejamento e Tributação, 95% das empresas brasileiras pagam mais impostos do que deveriam.
+
+(Slide 4: O Problema - 3 Pilares)
+
+>>> Este custo é definido por três fatores:
+A extrema complexidade da nossa legislação, que leva a erros de escrituração.
+O uso de processos manuais lentos e caros.
+E a falta de visibilidade estratégica, que impede gestores de tomar decisões baseadas em dados.
+Além disso, o cenário se agrava: a Reforma Tributária cria uma urgência sem precedentes para a otimização fiscal.
+
+(Slide 5: A Solução)
+
+>>> A nossa solução é uma plataforma inteligente que automatiza o fluxo de dados fiscais e os transforma em insights acionáveis.
+
+(Slide 6: 3 Pilares da Solução)
+
+>>> Nossa plataforma se baseia em três pilares:
+Automação de Ponta a Ponta: Nossos agentes de IA cuidam da extração, mapeamento e inserção dos dados, eliminando erros operacionais.
+Análise Visual Intuitiva: Dashboards interativos que revelam padrões de faturamento e tendências geográficas.
+E o nosso principal diferencial: um Assistente Conversacional com IA, que permite ao gestor "conversar com seus dados".
+
+(Slide 7: O Produto em Ação - Título)
+
+>>> Vamos ver rapidamente o produto em ação.
+
+(Slide 8: Ingestão Automatizada)
+
+>>> O processo começa na Ingestão. 
+O usuário simplesmente faz o upload de um arquivo ZIP contendo os CSVs das notas. 
+A partir daí, nosso Agente Supervisor assume o fluxo de trabalho, orquestrando especialistas em IA que descompactam, mapeiam e inserem os dados no banco, sem intervenção humana.
+
+(Slide 10: Dashboards Interativos)
+
+>>> Uma vez no banco, os dados ganham vida. 
+Com um clique, o gestor pode ver o faturamento total por estado em um mapa, ou analisar o ranking dos produtos mais vendidos.
+
+(Slide 11: Assistente de IA)
+
+>>> E o mais importante:
+O usuário pode simplesmente perguntar ao chat: "Qual o valor médio das notas em São Paulo no mês de Novembro de 2025?"
+O sistema entende, consulta os dados e gera a resposta, inclusive com elementos gráficos.
+
+(Slide 12: Valor de Mercado)
+
+> O mercado para essa solução é vasto. 
+
+(Mudar slide 13)
+
+>>> O mercado total de software de gestão fiscal (TAM) é estimado em 15 bilhões de reais.
+Nosso foco inicial (o SOM) são 5.000 escritórios de contabilidade e PMEs que precisam urgentemente de uma solução de BI fiscal moderna e acessível.
+
+(Slide 18: Vantagens Competitivas)
+
+>>> O que nos torna diferentes? 
+
+(Mudar slide 19)
+
+>>> Em primeiro lugar, nossa arquitetura de IA Multiagentes é mais flexível que sistemas tradicionais.
+Segundo luger, o Foco no Gestor, não apenas na conformidade fiscal.
+Além disso, nós acreditamos oferecer um custo-benefício superior comparado ao mercado
+E o mais importante: a Experiência de Usuário Inovadora. Não temos conhecimento de concorrentes que permitem que o usuário "converse" com seus dados fiscais.
+
+(Slide 20: Próximos Passos) [4:25 - 4:45] (20 seg)
+
+>>> Nossa visão é criar um ecossistema fiscal completo. 
+
+(Mudar slide 21) 
+
+>>> Nosso roadmap para 2026 e 2027 inclui:
+O processamento de XML e PDF com OCR
+A implementação de um Agente de Auditoria proativo e conectores para os principais ERPs do mercado.
+
+(Slide 22: Obrigado) [4:45 - 5:00] (15 seg)
+
+>>> Este foi o Sistema de Gestão de NF-e com IA, focado em transformar dados em vantagem competitiva.
+
+Muito obrigado!
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+(Slide 14: Modelo de Negócio) [3:10 - 3:30] (20 seg)
+
+>>> Para capturar esse mercado, nosso modelo de negócio é um SaaS Freemium.
+
+(Mudar slide 15)
+
+>>> Nós teremos um plano Básico gratuito para atrair usuários, um plano Profissional focado em PMEs, e um plano Enterprise com integrações e auditoria avançada.
+
+(Slide 16: Adoção de Mercado) [3:30 - 3:55] (25 seg)
+
+> Nossa estratégia de adoção foca nos contadores e PMEs.
+
+(Mudar slide 17) 
+
+> Faremos isso através de três frentes: 
+> Parcerias estratégicas com escritórios de contabilidade; 
+> Marketing de conteúdo focado na Reforma Tributária;
+> e o modelo Freemium, que permite o teste rápido da ferramenta.
+
+(Slide 14: Modelo de Negócio) [3:10 - 3:30] (20 seg)
+
+>>> Para capturar esse mercado, nosso modelo de negócio é um SaaS Freemium.
+
+(Mudar slide 15)
+
+>>> Nós teremos um plano Básico gratuito para atrair usuários, um plano Profissional focado em PMEs, e um plano Enterprise com integrações e auditoria avançada.

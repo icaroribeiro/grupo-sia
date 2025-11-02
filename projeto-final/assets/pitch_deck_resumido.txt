@@ -1,0 +1,42 @@
+>>> Olá a todos. Meu nome é Ícaro, e hoje apresento o projeto de conclusão do Grupo SIA: um Sistema de Gestão de Notas Fiscais Eletrônicas com Inteligência Artificial. Nosso objetivo é transformar dados fiscais complexos em vantagem competitiva real para as empresas brasileiras.
+
+>>> Nossa agenda hoje é direta: Vamos abordar o Problema, a Solução que propomos, o Produto em Ação e outros itens até nossos Próximos Passos.
+
+>>> O problema que estamos resolvendo é o "Custo Brasil" Fiscal. Segundo o Instituto Brasileiro de Planejamento e Tributação, 95% das empresas brasileiras pagam mais impostos do que deveriam.
+
+>>> Este custo é definido por três fatores: A extrema complexidade da nossa legislação, que leva a erros de escrituração. O uso de processos manuais lentos e caros. E a falta de visibilidade estratégica, que impede gestores de tomar decisões baseadas em dados. Além disso, o cenário se agrava: a Reforma Tributária cria uma urgência sem precedentes para a otimização fiscal.
+
+>>> A nossa solução é uma plataforma inteligente que automatiza o fluxo de dados fiscais e os transforma em insights acionáveis.
+
+>>> Nossa plataforma se baseia em três pilares: Automação de Ponta a Ponta: Nossos agentes de IA cuidam da extração, mapeamento e inserção dos dados em um banco de dados, eliminando erros operacionais. Análise Visual Intuitiva: Dashboards interativos que revelam padrões de faturamento e tendências geográficas. E o nosso principal diferencial: um Assistente Conversacional com IA, que permite ao gestor "conversar com seus dados".
+
+*********************************************************>
+
+>>> Vamos ver rapidamente o produto em ação.
+
+>>> O processo começa na Ingestão. O usuário simplesmente faz o upload de um arquivo ZIP contendo os CSVs das notas. A partir daí, nosso Agente Supervisor assume o fluxo de trabalho, orquestrando especialistas em IA que descompactam, mapeiam e inserem os dados no banco, sem intervenção humana.
+
+>>> Uma vez no banco, os dados ganham vida. Com um clique, o gestor pode ver o faturamento total por estado em um mapa, ou analisar o ranking dos produtos mais vendidos. 
+
+>>> E o mais importante: O usuário pode simplesmente perguntar ao chat: "Qual o valor médio das notas em São Paulo no mês de Novembro de 2025?" O sistema entende, consulta os dados e gera a resposta, inclusive com elementos gráficos.
+
+>>> O mercado para essa solução é vasto. 
+
+>>> O mercado total de software de gestão fiscal (TAM) é estimado em 15 bilhões de reais.
+Nosso foco inicial (o SOM) são 5.000 escritórios de contabilidade e PMEs que precisam urgentemente de uma solução de BI fiscal moderna e acessível.
+
+>>> Para capturar esse mercado, nosso modelo de negócio é um SaaS Freemium.
+
+>>> Nós teremos um plano Básico gratuito para atrair usuários, um plano Profissional focado em PMEs, e um plano Enterprise com integrações e auditoria avançada.
+
+>>> O que nos torna diferentes? 
+
+>>> Em primeiro lugar, nossa arquitetura de IA Multiagentes é mais flexível que sistemas tradicionais. Além disso, mantemos o Foco no Gestor, não apenas na conformidade fiscal. Também, acreditamos oferecer um custo-benefício superior comparado ao mercado. E o mais importante: a Experiência de Usuário Inovadora. Não temos conhecimento de concorrentes que permitem que o usuário "converse" com seus dados fiscais.
+
+>>> Nossa visão é criar um ecossistema fiscal completo. 
+
+>>> Nosso roadmap para 2026 e 2027 inclui: O processamento de XML e PDF com OCR, a implementação de um Agente de Auditoria proativo e conectores para os principais ERPs do mercado.
+
+>>> Este foi o Sistema de Gestão de NF-e com IA, focado em transformar dados em vantagem competitiva.
+
+>>> Obrigado!
