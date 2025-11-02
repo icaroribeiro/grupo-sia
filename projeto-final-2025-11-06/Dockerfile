@@ -1,0 +1,62 @@
+# Stage 1: Use Python 3.13-bookworm as the base image for the builder stage to ensure compatibility
+FROM python:3.13-bookworm AS base
+
+# Builder stage to install dependencies and prepare the application
+FROM base AS builder
+
+# Set the working directory to /app for all subsequent commands
+WORKDIR /app
+
+# Install libpq-dev which provides the libpq.so.5 required by psycopg2.
+# Using 'apt-get install -y --no-install-recommends' keeps the image size down.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libpq-dev gcc python3-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Configure uv to compile Python bytecode for faster startup and use copy mode to avoid symlink issues
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
+
+# Install uv package manager to manage dependencies efficiently
+RUN pip install uv
+
+# Copy only dependency files first to leverage Docker's layer caching
+COPY pyproject.toml uv.lock /app/
+
+# Install dependencies into a virtual environment, caching packages to speed up builds
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --no-dev
+
+# Copy the full application code after dependencies to minimize cache invalidation
+COPY . /app/
+
+# Install the application and dependencies, using verbose output for debugging
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --verbose
+
+# Stage 2: Runtime stage using slim image for a smaller, production-ready footprint
+FROM python:3.13-slim-bookworm AS runtime
+
+# Set the working directory to /app in the runtime stage
+WORKDIR /app
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libpq5 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy the entire /app directory (including virtual environment) from the builder stage
+COPY --from=builder /app /app
+
+# Set PYTHONPATH to /app to ensure Python can find modules in the application directory
+ENV PYTHONPATH="/app"
+
+# Add the virtual environment's bin directory to PATH for easy access to executables
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Make the entrypoint script executable to allow it to run on container startup
+RUN chmod +x entrypoint.sh
+
+# Expose port 8501 for the Streamlit application
+EXPOSE 8501
+
+# Run the entrypoint script using sh to start the application
+ENTRYPOINT ["sh", "entrypoint.sh"]
