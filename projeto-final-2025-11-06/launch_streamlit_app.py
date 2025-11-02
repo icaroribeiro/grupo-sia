@@ -1,0 +1,29 @@
+import subprocess
+
+from src.core.logging import logger
+from src.settings.streamlit_app_settings import (
+    StreamlitAppSettings,
+)
+
+if __name__ == "__main__":
+    try:
+        streamlit_app_settings = StreamlitAppSettings()
+        logger.info("Streamlit application has started...")
+        subprocess.run(
+            [
+                "streamlit",
+                "run",
+                "src/main.py",
+                "--server.address",
+                f"{streamlit_app_settings.host}",
+                "--server.port",
+                f"{streamlit_app_settings.port}",
+            ],
+            check=True,
+        )
+    except KeyboardInterrupt:
+        message = "Streamlit application closed due to KeyboardInterrupt"
+        logger.error(message)
+    except Exception as error:
+        message = f"Failed to launch Streamlit application: {error}"
+        logger.error(message)
