@@ -1182,7 +1182,7 @@ wheels = [
 ]
 
 [[package]]
-name = "projeto-final-2025-11-06"
+name = "projeto-final"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
