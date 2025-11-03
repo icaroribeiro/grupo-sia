@@ -6,7 +6,6 @@
 - [Artefatos](#artefatos)
 - [Como configurar a aplicação?](#como-configurar-a-aplicação)
 - [Como executar a aplicação?](#como-executar-a-aplicação)
-- [Licença](#licença)
 
 ## Introdução
 
