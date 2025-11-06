@@ -1,7 +1,5 @@
 # projeto-final
 
-**![Licença MIT](https://img.shields.io/badge/Licença-MIT-blue.svg)**
-
 - [Introdução](#introdução)
 - [Artefatos](#artefatos)
 - [Como configurar a aplicação?](#como-configurar-a-aplicação)
